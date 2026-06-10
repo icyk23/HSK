@@ -19,7 +19,7 @@ export const DEFAULT_SETTINGS = {
   speechRate: 0.9,
   newPerDay: 15,
   reviewLimit: 100,
-  activeDeckId: "hsk6-starter",
+  activeDeckId: "hsk-1-6",
 };
 
 function read(key, fallback) {
