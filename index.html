@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#c0392b" />
+  <title>HSK6 学习 · Học HSK6</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-zh">学</span>
+      <span class="brand-text">Học HSK6 <small>· 繁简</small></span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="study">🎴 Học thẻ</button>
+      <button class="tab" data-view="quiz">📝 Quiz</button>
+      <button class="tab" data-view="listen">🔊 Nghe</button>
+      <button class="tab" data-view="manage">📚 Bộ thẻ</button>
+      <button class="tab" data-view="stats">📊 Tiến độ</button>
+      <button class="tab" data-view="settings">⚙️ Cài đặt</button>
+    </nav>
+  </header>
+
+  <main id="app">
+    <!-- Views are rendered here by js/ui.js -->
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
