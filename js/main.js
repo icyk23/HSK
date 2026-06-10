@@ -5,6 +5,7 @@ import * as ui from "./ui.js";
 
 const VIEWS = {
   study: ui.renderStudy,
+  vocab: ui.renderVocab,
   quiz: ui.renderQuiz,
   listen: ui.renderListen,
   manage: ui.renderManage,

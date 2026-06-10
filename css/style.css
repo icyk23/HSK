@@ -230,3 +230,22 @@ input[type="checkbox"].toggle:checked::after { left: 21px; }
 
 .empty { text-align: center; padding: 50px 20px; color: var(--text-muted); }
 .empty .big { font-size: 48px; margin-bottom: 12px; }
+
+/* ---- Từ vựng (vocab browser) ---- */
+.vocab-filters { gap: 10px; }
+.vocab-selects { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.vocab-selects select { width: 100%; }
+.vocab-list { gap: 10px; }
+.vocab-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+}
+.vocab-main { flex: 1; min-width: 0; }
+.vocab-hanzi { font-size: calc(26px * var(--hanzi-scale)); font-weight: 600; line-height: 1.25; }
+.vocab-trad { color: var(--accent); margin-left: 10px; font-size: 0.8em; }
+.vocab-meaning { margin-top: 3px; color: var(--text); }
+.vocab-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.pill.muted-pill { background: var(--border); color: var(--text-muted); }
+.pill.ghost-pill { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+.pill.warn-pill { background: var(--warn); color: #fff; }
+@media (min-width: 620px) { .vocab-selects { grid-template-columns: repeat(4, 1fr); } }

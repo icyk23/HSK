@@ -8,6 +8,8 @@ trên điện thoại (PWA).
 
 - 🎴 **Flashcard + SRS** — lặp lại ngắt quãng (thuật toán kiểu SM-2). Tự động
   đưa lại những từ sắp quên, mỗi ngày thêm một lượng từ mới tùy chọn.
+- 📖 **Từ vựng HSK1–6** — duyệt toàn bộ 5.002 từ, lọc theo cấp HSK, cấu trúc từ
+  (S1–S5) và nhóm ngữ nghĩa (A1–E2 / F1–F6); tìm theo chữ Hán, pinyin hoặc nghĩa.
 - 🔊 **Luyện nghe / phát âm** — đọc bằng giọng tiếng Trung có sẵn trong trình
   duyệt (Web Speech API), miễn phí, không cần API ngoài. Có chế độ nghe-đoán.
 - 📝 **Quiz** — trắc nghiệm nghĩa của từ, chấm điểm, theo dõi độ chính xác.
@@ -62,11 +64,26 @@ js/store.js             lưu trữ (settings, tiến độ, bộ thẻ)
 js/srs.js               thuật toán lặp lại ngắt quãng
 js/audio.js             phát âm (TTS)
 js/decks.js             nạp bộ thẻ + parse CSV import
-data/hsk6-starter.json  bộ HSK6 khởi đầu
+js/words.js             nạp kho từ HSK + nhãn nhóm + bộ lọc
+data/words.json         5.002 từ HSK1–6 đã gắn nhóm (sinh từ scripts/build_vocab.py)
+data/hsk6-starter.json  bộ HSK6 khởi đầu (flashcard)
+scripts/build_vocab.py  Excel HSK1–6 → words.json (struct + phân loại Lớp 1–2)
 sw.js, manifest.*       hỗ trợ offline / cài đặt như app
 ```
 
+## Sinh lại kho từ vựng từ Excel
+
+`data/words.json` được sinh từ file Excel HSK1–6 (6 sheet `HSK1`…`HSK6`):
+
+```bash
+pip install openpyxl opencc-python-reimplemented
+python scripts/build_vocab.py "FULL_TU_VUNG_HSK1_HSK6.xlsx"
+```
+
+Script tự gán cấu trúc từ (S1–S5) và chạy phân loại Lớp 1–2 (từ chức năng + từ
+khóa). Xem bộ quy tắc đầy đủ trong `VOCAB_CLASSIFICATION_SYSTEM.md`.
+
 ## Mở rộng bộ HSK6 đầy đủ
 
-`data/hsk6-starter.json` mới chỉ là bộ khởi đầu (~50 từ). Để có toàn bộ HSK6,
-thêm từ vào file này theo đúng định dạng, hoặc import qua tab Bộ thẻ.
+`data/hsk6-starter.json` là bộ khởi đầu cho flashcard (~50 từ). Toàn bộ 5.002 từ
+HSK1–6 nằm ở `data/words.json` (tab 📖 Từ vựng).

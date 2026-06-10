@@ -4,6 +4,7 @@ import * as store from "./store.js";
 import * as srs from "./srs.js";
 import { speak, hasChineseVoice } from "./audio.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
+import { loadWords, filterWords, STRUCT_LABELS, SEMANTIC_ORDER, SEMANTIC_LABELS, SOURCE_LABELS, semanticLabel } from "./words.js";
 
 const app = () => document.getElementById("app");
 
@@ -278,6 +279,97 @@ export async function renderListen() {
 
   paint();
   root.append(display, controls);
+}
+
+/* ============================================================
+   VOCAB — duyệt & lọc kho từ HSK (data/words.json)
+   ============================================================ */
+const vocabFilters = { q: "", hsk: "", struct: "", semantic: "", source: "" };
+let vocabLimit = 60;
+const VOCAB_PAGE = 60;
+
+export async function renderVocab() {
+  const root = clear();
+  const s = store.getSettings();
+  root.append(el("h1", { class: "view-title" }, "📖 Từ vựng HSK"));
+
+  const words = await loadWords();
+  if (!words.length) {
+    root.append(emptyState("Chưa có kho từ vựng",
+      "Chạy scripts/build_vocab.py để sinh data/words.json từ file Excel HSK1–6, hoặc kiểm tra lại đường dẫn file."));
+    return;
+  }
+
+  // ---- thanh lọc ----
+  const search = el("input", { type: "search", placeholder: "Tìm chữ Hán, pinyin hoặc nghĩa…", value: vocabFilters.q });
+  const hskSel = selectFilter("Cấp HSK", ["1", "2", "3", "4", "5", "6"].map((n) => [n, "HSK " + n]), vocabFilters.hsk);
+  const structSel = selectFilter("Cấu trúc", Object.entries(STRUCT_LABELS).map(([k, v]) => [k, `${k} · ${v}`]), vocabFilters.struct);
+  const semOpts = [["_none", "Chưa phân loại"], ...SEMANTIC_ORDER.map((k) => [k, `${k} · ${SEMANTIC_LABELS[k]}`])];
+  const semSel = selectFilter("Nhóm nghĩa", semOpts, vocabFilters.semantic);
+  const srcOpts = [...Object.entries(SOURCE_LABELS), ["_none", "Chưa phân loại"]];
+  const sourceSel = selectFilter("Nguồn", srcOpts, vocabFilters.source);
+
+  const countEl = el("div", { class: "muted", style: "margin:6px 0 4px" });
+  const list = el("div", { class: "stack vocab-list" });
+
+  const rerender = () => {
+    const filtered = filterWords(words, vocabFilters);
+    countEl.textContent = `${filtered.length.toLocaleString("vi")} / ${words.length.toLocaleString("vi")} từ`;
+    list.innerHTML = "";
+    filtered.slice(0, vocabLimit).forEach((w) => list.append(vocabRow(w, s)));
+    if (filtered.length > vocabLimit) {
+      list.append(el("button", { class: "btn", style: "margin:8px auto;display:block", onclick: () => { vocabLimit += VOCAB_PAGE; rerender(); } },
+        `Hiện thêm (còn ${(filtered.length - vocabLimit).toLocaleString("vi")})`));
+    }
+  };
+
+  const apply = (patch) => { Object.assign(vocabFilters, patch); vocabLimit = VOCAB_PAGE; rerender(); };
+  search.addEventListener("input", () => apply({ q: search.value }));
+  hskSel.addEventListener("change", () => apply({ hsk: hskSel.value }));
+  structSel.addEventListener("change", () => apply({ struct: structSel.value }));
+  semSel.addEventListener("change", () => apply({ semantic: semSel.value }));
+  sourceSel.addEventListener("change", () => apply({ source: sourceSel.value }));
+
+  root.append(
+    el("div", { class: "panel stack vocab-filters" },
+      el("div", { class: "field" }, search),
+      el("div", { class: "vocab-selects" }, hskSel, structSel, semSel, sourceSel),
+    ),
+    countEl,
+    list,
+  );
+  rerender();
+}
+
+function selectFilter(allLabel, options, current) {
+  const sel = el("select", {});
+  sel.append(el("option", { value: "", selected: !current }, allLabel + ": tất cả"));
+  options.forEach(([v, label]) => sel.append(el("option", { value: v, selected: v === current }, label)));
+  return sel;
+}
+
+function vocabRow(w, s) {
+  const { main, sub } = displayHanzi(
+    { simplified: w.simplified, traditional: w.traditional || w.simplified }, s.charMode);
+
+  const badges = el("div", { class: "vocab-badges" },
+    el("span", { class: "pill" }, "HSK " + w.hsk_level),
+    el("span", { class: "pill" }, w.struct_group + (STRUCT_LABELS[w.struct_group] ? " " + STRUCT_LABELS[w.struct_group] : "")),
+    el("span", { class: "pill" + (w.semantic_group ? "" : " muted-pill") }, semanticLabel(w.semantic_group)),
+    w.classification_source && el("span", { class: "pill ghost-pill" }, SOURCE_LABELS[w.classification_source] || w.classification_source),
+    w.needs_review && el("span", { class: "pill warn-pill" }, "cần xem lại"),
+  );
+
+  return el("div", { class: "vocab-item" },
+    el("button", { class: "card-audio", title: "Nghe", onclick: () => speak(w.simplified, { rate: s.speechRate }) }, "🔊"),
+    el("div", { class: "vocab-main" },
+      el("div", { class: "vocab-hanzi" }, main, sub && el("span", { class: "vocab-trad" }, sub)),
+      w.pinyin && el("div", { class: "pinyin", style: "margin:0" }, w.pinyin),
+      w.meaning_vi && el("div", { class: "vocab-meaning" }, w.meaning_vi),
+      w.example_zh && el("div", { class: "example", style: "margin-top:6px" }, w.example_zh),
+      badges,
+    ),
+  );
 }
 
 /* ============================================================
