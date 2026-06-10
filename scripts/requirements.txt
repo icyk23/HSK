@@ -1,0 +1,4 @@
+# Phụ thuộc cho các script chuẩn bị dữ liệu (chạy 1 lần, không phải app).
+# Cài trong venv:  pip install -r scripts/requirements.txt
+openpyxl>=3.1
+opencc-python-reimplemented>=0.1.7
