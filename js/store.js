@@ -5,6 +5,7 @@ const KEYS = {
   decks: "hsk.decks",        // user-imported / edited decks
   progress: "hsk.progress",  // SRS state keyed by cardId
   stats: "hsk.stats",        // daily review log
+  classOverrides: "hsk.classOverrides", // sửa nhóm thủ công, keyed by cardId
 };
 
 export const DEFAULT_SETTINGS = {
@@ -88,6 +89,39 @@ export function resetProgress(deckId) {
   write(KEYS.progress, all);
 }
 
+/* ---------------- Sửa nhóm thủ công (manual classification) ----------------
+ * Lưu TÁCH RIÊNG với data tĩnh để khi nạp lại bộ thẻ không ghi đè lựa chọn của
+ * người dùng. Mỗi override: { semantic_group, struct_group?, classification_source:"manual",
+ * classification_conf:1, needs_review:false }. mergeClassification() áp override lên thẻ. */
+export function getClassOverrides() {
+  return read(KEYS.classOverrides, {});
+}
+export function getClassOverride(cardId) {
+  return getClassOverrides()[cardId] || null;
+}
+export function setClassOverride(cardId, patch) {
+  const all = getClassOverrides();
+  all[cardId] = {
+    ...all[cardId],
+    ...patch,
+    classification_source: "manual",
+    classification_conf: 1.0,
+    needs_review: false,
+  };
+  write(KEYS.classOverrides, all);
+  return all[cardId];
+}
+export function clearClassOverride(cardId) {
+  const all = getClassOverrides();
+  delete all[cardId];
+  write(KEYS.classOverrides, all);
+}
+// Áp override (nếu có) lên thẻ — dùng khi render. Override luôn thắng data tĩnh.
+export function mergeClassification(card) {
+  const o = getClassOverride(card.id);
+  return o ? { ...card, ...o } : card;
+}
+
 /* ---------------- Daily stats ---------------- */
 export function logReview(correct) {
   const stats = read(KEYS.stats, {});
@@ -107,6 +141,7 @@ export function exportAll() {
     decks: getUserDecks(),
     progress: getProgress(),
     stats: getStats(),
+    classOverrides: getClassOverrides(),
     exportedAt: new Date().toISOString(),
   };
 }
@@ -115,4 +150,5 @@ export function importAll(data) {
   if (data.decks) write(KEYS.decks, data.decks);
   if (data.progress) write(KEYS.progress, data.progress);
   if (data.stats) write(KEYS.stats, data.stats);
+  if (data.classOverrides) write(KEYS.classOverrides, data.classOverrides);
 }
