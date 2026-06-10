@@ -1,0 +1,107 @@
+{
+  "id": "trans-hsk6-sentences",
+  "type": "translation",
+  "name": "Luyện dịch HSK6 — Câu mẫu",
+  "source": "Bộ mẫu",
+  "description": "Dịch câu Trung → Việt theo phong cách đề HSK6. Có bản dịch tham chiếu và từ vựng trọng tâm.",
+  "items": [
+    {
+      "id": "t-0001",
+      "zh": "随着科技的发展，人们的生活方式发生了巨大的变化。",
+      "vi": "Cùng với sự phát triển của khoa học công nghệ, phương thức sống của con người đã có những thay đổi to lớn.",
+      "vocab": [
+        { "w": "随着", "pinyin": "suízhe", "meaning": "cùng với; theo" },
+        { "w": "生活方式", "pinyin": "shēnghuó fāngshì", "meaning": "phương thức sống" },
+        { "w": "巨大", "pinyin": "jùdà", "meaning": "to lớn; khổng lồ" }
+      ]
+    },
+    {
+      "id": "t-0002",
+      "zh": "这次会议的目的是为了加强双方的合作与交流。",
+      "vi": "Mục đích của cuộc họp lần này là để tăng cường hợp tác và giao lưu giữa hai bên.",
+      "vocab": [
+        { "w": "加强", "pinyin": "jiāqiáng", "meaning": "tăng cường" },
+        { "w": "双方", "pinyin": "shuāngfāng", "meaning": "hai bên; đôi bên" },
+        { "w": "合作", "pinyin": "hézuò", "meaning": "hợp tác" }
+      ]
+    },
+    {
+      "id": "t-0003",
+      "zh": "无论遇到多大的困难，我们都不能轻易放弃。",
+      "vi": "Dù gặp khó khăn lớn đến đâu, chúng ta cũng không thể dễ dàng từ bỏ.",
+      "vocab": [
+        { "w": "无论", "pinyin": "wúlùn", "meaning": "bất kể; cho dù" },
+        { "w": "轻易", "pinyin": "qīngyì", "meaning": "dễ dàng; tùy tiện" },
+        { "w": "放弃", "pinyin": "fàngqì", "meaning": "từ bỏ" }
+      ]
+    },
+    {
+      "id": "t-0004",
+      "zh": "他凭借自己的努力，终于实现了多年的梦想。",
+      "vi": "Bằng nỗ lực của bản thân, cuối cùng anh ấy đã thực hiện được giấc mơ bao năm.",
+      "vocab": [
+        { "w": "凭借", "pinyin": "píngjiè", "meaning": "dựa vào; nhờ vào" },
+        { "w": "实现", "pinyin": "shíxiàn", "meaning": "thực hiện; biến thành hiện thực" },
+        { "w": "梦想", "pinyin": "mèngxiǎng", "meaning": "giấc mơ; ước mơ" }
+      ]
+    },
+    {
+      "id": "t-0005",
+      "zh": "这部电影不仅情节精彩，而且发人深省。",
+      "vi": "Bộ phim này không chỉ có tình tiết hấp dẫn mà còn khiến người ta phải suy ngẫm sâu sắc.",
+      "vocab": [
+        { "w": "情节", "pinyin": "qíngjié", "meaning": "tình tiết; cốt truyện" },
+        { "w": "精彩", "pinyin": "jīngcǎi", "meaning": "đặc sắc; hấp dẫn" },
+        { "w": "发人深省", "pinyin": "fā rén shēn xǐng", "meaning": "khiến người ta suy ngẫm sâu sắc" }
+      ]
+    },
+    {
+      "id": "t-0006",
+      "zh": "由于准备充分，他在面试中表现得非常出色。",
+      "vi": "Nhờ chuẩn bị kỹ lưỡng, anh ấy đã thể hiện rất xuất sắc trong buổi phỏng vấn.",
+      "vocab": [
+        { "w": "充分", "pinyin": "chōngfèn", "meaning": "đầy đủ; kỹ lưỡng" },
+        { "w": "面试", "pinyin": "miànshì", "meaning": "phỏng vấn" },
+        { "w": "出色", "pinyin": "chūsè", "meaning": "xuất sắc; nổi bật" }
+      ]
+    },
+    {
+      "id": "t-0007",
+      "zh": "经过反复讨论，大家终于达成了一致的意见。",
+      "vi": "Sau khi thảo luận nhiều lần, mọi người cuối cùng đã đạt được ý kiến thống nhất.",
+      "vocab": [
+        { "w": "反复", "pinyin": "fǎnfù", "meaning": "nhiều lần; lặp đi lặp lại" },
+        { "w": "达成", "pinyin": "dáchéng", "meaning": "đạt được (thỏa thuận)" },
+        { "w": "一致", "pinyin": "yízhì", "meaning": "nhất trí; thống nhất" }
+      ]
+    },
+    {
+      "id": "t-0008",
+      "zh": "我们应该尊重彼此的差异，相互理解。",
+      "vi": "Chúng ta nên tôn trọng sự khác biệt của nhau và thấu hiểu lẫn nhau.",
+      "vocab": [
+        { "w": "尊重", "pinyin": "zūnzhòng", "meaning": "tôn trọng" },
+        { "w": "差异", "pinyin": "chāyì", "meaning": "sự khác biệt" },
+        { "w": "相互", "pinyin": "xiānghù", "meaning": "lẫn nhau; tương hỗ" }
+      ]
+    },
+    {
+      "id": "t-0009",
+      "zh": "时间过得真快，转眼间一年又过去了。",
+      "vi": "Thời gian trôi qua thật nhanh, thoáng cái lại một năm nữa đã trôi qua.",
+      "vocab": [
+        { "w": "转眼间", "pinyin": "zhuǎnyǎn jiān", "meaning": "thoáng cái; trong nháy mắt" }
+      ]
+    },
+    {
+      "id": "t-0010",
+      "zh": "保护环境是每个公民应尽的责任。",
+      "vi": "Bảo vệ môi trường là trách nhiệm mà mỗi công dân phải gánh vác.",
+      "vocab": [
+        { "w": "公民", "pinyin": "gōngmín", "meaning": "công dân" },
+        { "w": "应尽", "pinyin": "yīng jìn", "meaning": "phải làm tròn (bổn phận)" },
+        { "w": "责任", "pinyin": "zérèn", "meaning": "trách nhiệm" }
+      ]
+    }
+  ]
+}

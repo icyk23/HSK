@@ -1,0 +1,63 @@
+{
+  "id": "story-ve-nha",
+  "type": "story",
+  "title": "回家的路 — Con đường về nhà",
+  "source": "Truyện ngắn mẫu (nguyên gốc)",
+  "description": "Truyện ngắn đơn giản để luyện dịch theo từng đoạn. Có bản dịch tham chiếu và từ vựng.",
+  "units": [
+    {
+      "id": "s-vn-1",
+      "zh": "天渐渐黑了，小李还在公司加班。",
+      "vi": "Trời dần tối, Tiểu Lý vẫn còn tăng ca ở công ty.",
+      "vocab": [
+        { "w": "渐渐", "pinyin": "jiànjiàn", "meaning": "dần dần" },
+        { "w": "加班", "pinyin": "jiābān", "meaning": "tăng ca; làm thêm giờ" }
+      ]
+    },
+    {
+      "id": "s-vn-2",
+      "zh": "他看了看窗外，街上的灯一盏一盏地亮了起来。",
+      "vi": "Anh nhìn ra ngoài cửa sổ, đèn trên phố lần lượt từng ngọn sáng lên.",
+      "vocab": [
+        { "w": "窗外", "pinyin": "chuāng wài", "meaning": "bên ngoài cửa sổ" },
+        { "w": "一盏一盏", "pinyin": "yì zhǎn yì zhǎn", "meaning": "từng ngọn (đèn)" }
+      ]
+    },
+    {
+      "id": "s-vn-3",
+      "zh": "突然，他收到妈妈发来的一条短信：“今晚回家吃饭吗？”",
+      "vi": "Đột nhiên, anh nhận được một tin nhắn mẹ gửi: \"Tối nay con về nhà ăn cơm không?\"",
+      "vocab": [
+        { "w": "突然", "pinyin": "tūrán", "meaning": "đột nhiên" },
+        { "w": "短信", "pinyin": "duǎnxìn", "meaning": "tin nhắn" }
+      ]
+    },
+    {
+      "id": "s-vn-4",
+      "zh": "小李愣了一下，心里忽然觉得很温暖。",
+      "vi": "Tiểu Lý sững lại một chút, trong lòng bỗng thấy rất ấm áp.",
+      "vocab": [
+        { "w": "愣", "pinyin": "lèng", "meaning": "sững sờ; ngây ra" },
+        { "w": "温暖", "pinyin": "wēnnuǎn", "meaning": "ấm áp" }
+      ]
+    },
+    {
+      "id": "s-vn-5",
+      "zh": "他关上电脑，拿起外套，决定今天早点回家。",
+      "vi": "Anh tắt máy tính, cầm áo khoác, quyết định hôm nay về nhà sớm hơn.",
+      "vocab": [
+        { "w": "外套", "pinyin": "wàitào", "meaning": "áo khoác" },
+        { "w": "决定", "pinyin": "juédìng", "meaning": "quyết định" }
+      ]
+    },
+    {
+      "id": "s-vn-6",
+      "zh": "走在熟悉的路上，他想：原来幸福其实很简单。",
+      "vi": "Đi trên con đường quen thuộc, anh nghĩ: hóa ra hạnh phúc thật ra rất đơn giản.",
+      "vocab": [
+        { "w": "熟悉", "pinyin": "shúxī", "meaning": "quen thuộc" },
+        { "w": "幸福", "pinyin": "xìngfú", "meaning": "hạnh phúc" }
+      ]
+    }
+  ]
+}
