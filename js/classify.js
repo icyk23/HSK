@@ -72,9 +72,13 @@ const FUNCTION_LOOKUP = (() => {
 // Từ khóa mỗi nhóm. Cụm nhiều chữ (vd "ngân hàng") khớp như một cụm.
 const KEYWORD_MAP = {
   A1: ["bệnh", "ung thư", "đau", "sốt", "thuốc", "y tế", "phẫu thuật", "bác sĩ",
-       "bệnh viện", "cơ thể", "sức khỏe", "triệu chứng", "khám", "chữa", "thương"],
+       "bệnh viện", "cơ thể", "sức khỏe", "triệu chứng", "khám", "chữa", "thương",
+       "tay", "chân", "mắt", "tai", "mũi", "miệng", "răng", "máu", "xương",
+       "tim", "phổi", "dạ dày", "cổ", "lưng", "bụng", "ngực", "não", "khỏe"],
   A2: ["vui", "buồn", "sợ", "tức", "yêu", "ghét", "lo", "cảm xúc", "tâm lý",
-       "tính cách", "cảm giác", "tâm trạng", "vui mừng", "hạnh phúc", "tức giận", "lo lắng", "thất vọng", "tự tin"],
+       "tính cách", "cảm giác", "tâm trạng", "vui mừng", "hạnh phúc", "tức giận",
+       "lo lắng", "thất vọng", "tự tin", "thích", "giận", "mừng", "chán",
+       "hứng thú", "nhiệt tình", "bình tĩnh", "căng thẳng", "xấu hổ", "ghen", "hồi hộp"],
   A3: ["gia đình", "bạn bè", "đồng nghiệp", "chào", "xin lỗi", "cảm ơn", "quan hệ",
        "giao tiếp", "lịch sự", "cha mẹ", "bố mẹ", "bạn", "thăm hỏi", "lễ phép"],
   A4: ["ăn", "mặc", "ngủ", "nghỉ", "mua", "giải trí", "hàng ngày", "sinh hoạt",
@@ -87,12 +91,15 @@ const KEYWORD_MAP = {
        "thu nhập", "giá", "kinh doanh", "buôn bán", "mua bán", "vốn", "tài chính"],
   C1: ["suy nghĩ", "phân tích", "lý luận", "quan điểm", "nguyên tắc", "lý thuyết",
        "phán đoán", "logic", "tư duy", "nhận thức", "lý lẽ", "đạo lý", "lý giải"],
-  C2: ["ngôn ngữ", "dịch", "chữ", "văn", "giải thích", "diễn đạt", "mô tả",
-       "từ ngữ", "câu", "biểu đạt", "văn chương", "phiên dịch", "thuyết minh"],
+  C2: ["ngôn ngữ", "dịch", "chữ", "giải thích", "diễn đạt", "mô tả",
+       "từ ngữ", "câu", "biểu đạt", "văn chương", "phiên dịch", "thuyết minh",
+       "nói", "kể", "viết", "đọc", "tiếng", "ngữ pháp", "phát âm", "chữ viết"],
   D1: ["núi", "sông", "biển", "thời tiết", "động vật", "thực vật", "môi trường",
        "ô nhiễm", "tài nguyên", "khí hậu", "nhiệt độ", "thiên nhiên", "địa hình", "sinh vật"],
-  D2: ["trên", "dưới", "trái", "phải", "trước", "sau", "thời gian", "khi", "lúc",
-       "thường xuyên", "đôi khi", "gần đây", "phương hướng", "vị trí", "tương lai", "xung quanh"],
+  D2: ["bên trên", "bên dưới", "bên trái", "bên phải", "phía trước", "phía sau",
+       "thời gian", "thường xuyên", "đôi khi", "gần đây", "phương hướng", "vị trí",
+       "tương lai", "xung quanh", "giờ", "phút", "mùa", "buổi", "tuần", "thế kỷ",
+       "quá khứ", "hiện tại", "khoảnh khắc", "thời kỳ", "thời điểm", "khoảng cách"],
   E1: ["luật", "chính phủ", "quyền", "bầu cử", "chính sách", "dân chủ", "nhà nước",
        "pháp luật", "chính trị", "quyền lợi", "nghĩa vụ", "chế độ", "quốc gia"],
   E2: ["văn hóa", "lịch sử", "nghệ thuật", "âm nhạc", "hội họa", "lễ hội", "phong tục",
@@ -129,6 +136,49 @@ function keywordMatches(meaning) {
 }
 
 /* ============================================================
+ * LỚP 2b — KHỚP THEO HÁN TỰ (gợi ý từ thành phần chữ Trung)
+ * Hình vị tiếng Trung nhất quán nghĩa hơn nghĩa tiếng Việt ngắn:
+ * chứa 病/医/药 → gần như chắc chắn sức khỏe; 钱/银/股 → tài chính.
+ * Chỉ chọn các chữ ĐỘ ĐẶC HIỆU CAO, tránh chữ đa nghĩa (心,理,法,教...).
+ * ============================================================ */
+
+const CHAR_HINTS = {
+  A1: "病医疗症药痛疼健诊患癌烧咳疫残疾肿瘤胃肺肝肤肌喉咙脏牙血骨",
+  A2: "喜怒哀愁怕惧恐忧烦悲慌怨恨厌慕妒焦虑悦愉郁躁怖慰趣",
+  A3: "父母兄弟姐妹婚嫁娶邻友谢歉聘",
+  A4: "吃喝穿睡洗饭菜衣鞋购浴餐厨",
+  B1: "学校考课习师育研读毕智慧识",
+  B2: "职雇聘薪岗",
+  B3: "钱费贸币银股财税账济售薪贷赚赔购商贫富盈",
+  C1: "思析判逻辑虑悟智想念",
+  C2: "语词译句字谈讲叙述话",
+  D1: "山河海江湖树林花草鸟鱼虫雨雪风云石矿岩沙岛峰谷壤",
+  D2: "时期季钟刻",
+  E1: "政权党律宪选举官警军",
+  E2: "艺画戏诗舞俗雕琴棋绘剧佛庙",
+};
+
+// Lọc bỏ ký tự không phải Hán trong định nghĩa hint (vd dấu ngoặc chú thích).
+const CHAR_HINT_SETS = (() => {
+  const out = {};
+  for (const [g, chars] of Object.entries(CHAR_HINTS)) {
+    out[g] = new Set((chars.match(/[一-鿿]/g)) || []);
+  }
+  return out;
+})();
+
+function charMatches(simplified) {
+  const results = [];
+  const chars = new Set(String(simplified || ""));
+  for (const [group, set] of Object.entries(CHAR_HINT_SETS)) {
+    let hits = 0;
+    for (const ch of chars) if (set.has(ch)) hits++;
+    if (hits > 0) results.push({ group, hits });
+  }
+  return results;
+}
+
+/* ============================================================
  * PIPELINE TỔNG: classify(word)
  * word = { simplified, meaning, isIdiom? }
  * Trả về { struct_group, semantic_group, classification_source,
@@ -153,25 +203,40 @@ export function classify(word) {
     };
   }
 
-  // LỚP 2 — từ khóa nghĩa tiếng Việt
-  const matches = keywordMatches(word.meaning);
-  if (matches.length === 1) {
+  // LỚP 2 — kết hợp từ khóa nghĩa Việt (×2) + gợi ý Hán tự (×1)
+  const kw = keywordMatches(word.meaning);
+  const ch = charMatches(simplified);
+  const score = new Map();
+  const add = (g, w) => score.set(g, (score.get(g) || 0) + w);
+  for (const m of kw) add(m.group, 2 * m.hits);
+  for (const m of ch) add(m.group, 1 * m.hits);
+
+  if (score.size > 0) {
+    const order = Object.keys(SEMANTIC_LABELS);
+    const ranked = [...score.entries()].map(([g, s]) => ({ g, s }))
+      .sort((a, b) => b.s - a.s || order.indexOf(a.g) - order.indexOf(b.g));
+    const top = ranked[0];
+    const runner = ranked[1];
+    const kwGroups = new Set(kw.map((m) => m.group));
+    const chGroups = new Set(ch.map((m) => m.group));
+    const dominant = !runner || top.s - runner.s >= 2; // trội rõ rệt
+
+    let conf, review;
+    if (!dominant) {
+      conf = 0.6; review = true; // nhiều nhóm cạnh tranh → cần xem lại (opt #3)
+    } else if (kwGroups.has(top.g) && chGroups.has(top.g)) {
+      conf = 0.9; review = false; // keyword + Hán tự đồng thuận
+    } else if (kwGroups.has(top.g)) {
+      conf = 0.85; review = false; // keyword
+    } else {
+      conf = 0.75; review = top.s < 2; // chỉ Hán tự; 1 gợi ý đơn → vẫn xem lại
+    }
     return {
       struct_group,
-      semantic_group: matches[0].group,
+      semantic_group: top.g,
       classification_source: "keyword",
-      classification_conf: 0.85,
-      needs_review: false,
-    };
-  }
-  if (matches.length >= 2) {
-    // đa-khớp: chọn nhóm nhiều hit nhất nhưng đánh dấu cần xem lại (opt #3)
-    return {
-      struct_group,
-      semantic_group: matches[0].group,
-      classification_source: "keyword",
-      classification_conf: 0.6,
-      needs_review: true,
+      classification_conf: conf,
+      needs_review: review,
     };
   }
 
