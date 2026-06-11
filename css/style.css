@@ -230,3 +230,50 @@ input[type="checkbox"].toggle:checked::after { left: 21px; }
 
 .empty { text-align: center; padding: 50px 20px; color: var(--text-muted); }
 .empty .big { font-size: 48px; margin-bottom: 12px; }
+
+/* ---------- Small button + study secondary actions ---------- */
+button.btn.small { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+.skip-row { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+
+/* ---------- Study filter banner ---------- */
+.filter-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--accent-soft); color: var(--accent);
+  padding: 8px 12px; border-radius: 10px; margin-bottom: 14px; font-size: 14px;
+}
+
+/* ---------- Vocab browser ---------- */
+.vocab-filter .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.vocab-filter select { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); color: var(--text); font-size: 14px; }
+.review-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; cursor: pointer; }
+.review-toggle input { width: 18px; height: 18px; }
+
+.vocab-list { display: grid; gap: 8px; }
+.vocab-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 11px; padding: 10px 12px;
+}
+.vocab-item .vhanzi { font-size: 26px; font-weight: 600; cursor: pointer; min-width: 1.6em; text-align: center; }
+.vocab-item .vmeta { flex: 1; min-width: 0; }
+.vocab-item .vline { font-size: 14px; }
+.vocab-item .vpy { color: var(--accent); }
+.vocab-item .vmean { font-size: 14px; color: var(--text); margin: 2px 0 6px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--border); color: var(--text-muted); white-space: nowrap; }
+.chip.lvl { background: var(--accent); color: #fff; }
+.chip.review { background: rgba(224,161,6,.18); color: var(--warn); font-weight: 600; }
+.chip.manual { background: rgba(46,158,107,.16); color: var(--ok); }
+.chip.muted-chip { font-style: italic; }
+/* màu nhóm nghĩa theo nhóm A–F */
+.chip.sem { color: #fff; }
+.chip.sem.A { background: #d65745; }
+.chip.sem.B { background: #d97706; }
+.chip.sem.C { background: #7c3aed; }
+.chip.sem.D { background: #0f766e; }
+.chip.sem.E { background: #2563eb; }
+.chip.sem.F { background: #6b7280; }
+
+.group-editor { display: flex; align-items: center; gap: 4px; }
+.group-editor select { padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; max-width: 150px; }

@@ -4,6 +4,7 @@ import * as store from "./store.js";
 import * as srs from "./srs.js";
 import { speak, hasChineseVoice } from "./audio.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
+import { STRUCT_LABELS, SEMANTIC_LABELS } from "./classify.js";
 
 const app = () => document.getElementById("app");
 
@@ -48,26 +49,65 @@ function clear() {
    ============================================================ */
 let session = null;
 
+// Bộ lọc học tập (do tab Từ vựng đặt qua "Học các từ đang lọc").
+let studyFilter = null;
+let studyFilterLabel = "";
+export function setStudyFilter(pred, label) { studyFilter = pred; studyFilterLabel = label || ""; }
+function clearStudyFilter() { studyFilter = null; studyFilterLabel = ""; }
+function studyFilterBanner() {
+  if (!studyFilter) return null;
+  return el("div", { class: "filter-banner" },
+    el("span", {}, `🔎 Đang học theo bộ lọc: ${studyFilterLabel}`),
+    el("button", { class: "btn ghost small", onclick: () => { clearStudyFilter(); renderStudy(); } }, "✕ Bỏ lọc"));
+}
+
 export async function renderStudy() {
   const root = clear();
   const s = store.getSettings();
   const deck = await getDeck(s.activeDeckId);
+  const banner = studyFilterBanner();
 
   if (!deck) {
+    if (banner) root.append(banner);
     root.append(emptyState("Chưa chọn bộ thẻ", "Vào tab 📚 Bộ thẻ để chọn hoặc tạo bộ thẻ."));
     return;
   }
 
+  let cards = deck.cards;
+  if (studyFilter) cards = cards.filter(studyFilter);
+
   const progress = store.getProgress();
-  const queue = srs.buildQueue(deck.cards, progress, { newPerDay: s.newPerDay, reviewLimit: s.reviewLimit });
+  const queue = srs.buildQueue(cards, progress, { newPerDay: s.newPerDay, reviewLimit: s.reviewLimit });
 
   if (!queue.length) {
-    root.append(emptyState("🎉 Xong hôm nay!", `Bạn đã ôn hết thẻ đến hạn của "${deck.name}". Quay lại sau nhé, hoặc tăng số từ mới/ngày trong Cài đặt.`));
+    if (banner) root.append(banner);
+    root.append(emptyState("🎉 Xong hôm nay!", studyFilter
+      ? `Đã ôn hết thẻ đến hạn trong bộ lọc. Bỏ lọc để học cả bộ, hoặc quay lại sau.`
+      : `Bạn đã ôn hết thẻ đến hạn của "${deck.name}". Quay lại sau nhé, hoặc tăng số từ mới/ngày trong Cài đặt.`));
     return;
   }
 
   session = { deck, queue, idx: 0, total: queue.length, settings: s, revealed: false };
   renderCard();
+}
+
+function advance() {
+  session.idx += 1;
+  session.revealed = false;
+  if (session.idx >= session.queue.length) renderStudy();
+  else renderCard();
+}
+function skipCard() {
+  if (!session) return;
+  toast("Đã bỏ qua");
+  advance();
+}
+function markKnown() {
+  if (!session) return;
+  const card = session.queue[session.idx];
+  store.saveCardState(card.id, srs.knownState(session.deck.id));
+  toast(`✓ Đã thuộc "${card.simplified}" — sẽ không hiện lại`);
+  advance();
 }
 
 function renderCard() {
@@ -101,6 +141,8 @@ function renderCard() {
 
   const flashcard = el("div", { class: "flashcard", onclick: () => { if (!session.revealed) reveal(); } }, front, back);
 
+  const banner = studyFilterBanner();
+  if (banner) root.append(banner);
   root.append(bar, counter, flashcard);
 
   if (session.revealed) {
@@ -109,6 +151,12 @@ function renderCard() {
     root.append(el("div", { class: "row", style: "margin-top:14px;justify-content:center" },
       el("button", { class: "btn primary", onclick: reveal }, "Hiện nghĩa (Space)")));
   }
+
+  // Hành động phụ: bỏ qua / đã thuộc (dùng được cả trước và sau khi lật)
+  root.append(el("div", { class: "skip-row" },
+    el("button", { class: "btn ghost small", title: "Bỏ qua thẻ này, không ghi nhận (S)", onclick: skipCard }, "⏭️ Bỏ qua"),
+    el("button", { class: "btn ghost small", title: "Đã thuộc — không hiện lại (K)", onclick: markKnown }, "✓ Đã thuộc"),
+  ));
 
   if (settings.autoPlayAudio) speak(card.simplified, { rate: settings.speechRate });
 }
@@ -131,10 +179,7 @@ function gradeButtons(card) {
       session.queue.push(card);
       session.total = session.queue.length;
     }
-    session.idx += 1;
-    session.revealed = false;
-    if (session.idx >= session.queue.length) renderStudy();
-    else renderCard();
+    advance();
   };
 
   return el("div", { class: "grade-row", style: "margin-top:14px" },
@@ -149,10 +194,165 @@ function gradeButtons(card) {
 export function handleStudyKey(e) {
   if (!session) return;
   if (e.code === "Space") { e.preventDefault(); if (!session.revealed) reveal(); return; }
+  if (e.key === "s" || e.key === "S") { e.preventDefault(); skipCard(); return; }
+  if (e.key === "k" || e.key === "K") { e.preventDefault(); markKnown(); return; }
   if (session.revealed && ["1", "2", "3", "4"].includes(e.key)) {
     const map = { "1": ".again", "2": ".hard", "3": ".good", "4": ".easy" };
     document.querySelector(`.grade${map[e.key]}`)?.click();
   }
+}
+
+/* ============================================================
+   VOCAB BROWSER (lọc theo cấp/nhóm + sửa nhóm thủ công)
+   ============================================================ */
+const SEM_ORDER = Object.keys(SEMANTIC_LABELS); // A1..F6
+let vocab = { level: "all", sem: "all", struct: "all", review: false, q: "", limit: 100, editing: null };
+
+function matchVocab(c, f) {
+  if (f.level !== "all" && String(c.hsk_level) !== f.level) return false;
+  if (f.struct !== "all" && c.struct_group !== f.struct) return false;
+  if (f.sem === "none") { if (c.semantic_group) return false; }
+  else if (f.sem !== "all" && c.semantic_group !== f.sem) return false;
+  if (f.review && !c.needs_review) return false;
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    const hay = `${c.simplified} ${c.traditional || ""} ${(c.pinyin || "").toLowerCase()} ${(c.meaning || "").toLowerCase()} ${(c.han_viet || "").toLowerCase()}`;
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+export async function renderVocab() {
+  const root = clear();
+  const s = store.getSettings();
+  const deck = await getDeck(s.activeDeckId);
+  root.append(el("h1", { class: "view-title" }, "📖 Từ vựng"));
+  if (!deck) { root.append(emptyState("Chưa chọn bộ thẻ", "Vào tab 📚 Bộ thẻ để chọn bộ thẻ.")); return; }
+
+  // Áp override sửa tay lên từng thẻ
+  const cards = deck.cards.map(store.mergeClassification);
+  const levels = [...new Set(cards.map((c) => c.hsk_level).filter(Boolean))].sort();
+
+  const reRender = (resetLimit = true) => { if (resetLimit) vocab.limit = 100; renderVocab(); };
+
+  // ----- Thanh lọc -----
+  const search = el("input", { type: "text", placeholder: "Tìm chữ Hán / pinyin / nghĩa…", value: vocab.q });
+  search.addEventListener("input", () => { vocab.q = search.value.trim(); vocab.limit = 100; renderVocabList(); });
+
+  const levelSel = selectRow(["all", ...levels.map(String)], ["Mọi cấp", ...levels.map((l) => "HSK" + l)], vocab.level, (v) => { vocab.level = v; reRender(); });
+  const structSel = selectRow(["all", ...Object.keys(STRUCT_LABELS)], ["Mọi cấu trúc", ...Object.values(STRUCT_LABELS).map((l, i) => `${Object.keys(STRUCT_LABELS)[i]} · ${l}`)], vocab.struct, (v) => { vocab.struct = v; reRender(); });
+  const semSel = selectRow(
+    ["all", "none", ...SEM_ORDER],
+    ["Mọi nhóm nghĩa", "(chưa phân loại)", ...SEM_ORDER.map((g) => `${g} · ${SEMANTIC_LABELS[g]}`)],
+    vocab.sem, (v) => { vocab.sem = v; reRender(); });
+
+  const reviewToggle = el("label", { class: "review-toggle" },
+    (() => { const cb = el("input", { type: "checkbox", checked: vocab.review || false }); cb.addEventListener("change", () => { vocab.review = cb.checked; reRender(); }); return cb; })(),
+    el("span", {}, "⚠ Chỉ từ cần xem lại"));
+
+  root.append(el("div", { class: "panel vocab-filter" },
+    el("div", { class: "field", style: "margin-bottom:10px" }, search),
+    el("div", { class: "filter-grid" }, levelSel, structSel, semSel),
+    reviewToggle,
+  ));
+
+  // Vùng danh sách (render riêng để lọc/tìm không dựng lại cả thanh lọc)
+  root.append(el("div", { id: "vocab-list" }));
+  renderVocabList();
+}
+
+function renderVocabList() {
+  const host = document.getElementById("vocab-list");
+  if (!host) return;
+  host.innerHTML = "";
+
+  getDeck(store.getSettings().activeDeckId).then((deck) => {
+    const host2 = document.getElementById("vocab-list");
+    if (!deck || !host2) return;
+    const cards = deck.cards.map(store.mergeClassification);
+    const filtered = cards.filter((c) => matchVocab(c, vocab));
+
+    // Thanh tóm tắt + nút học
+    const summary = el("div", { class: "row", style: "margin:14px 0 10px" },
+      el("div", { class: "muted" }, `${filtered.length} từ`),
+      el("div", { class: "spacer" }),
+      filtered.length ? el("button", { class: "btn primary small", onclick: () => {
+        const ids = new Set(filtered.map((c) => c.id));
+        const label = describeFilter(filtered.length);
+        setStudyFilter((c) => ids.has(c.id), label);
+        document.querySelector('[data-view="study"]').click();
+      } }, `🎴 Học ${filtered.length} từ này`) : null,
+    );
+    host2.append(summary);
+
+    if (!filtered.length) { host2.append(el("p", { class: "muted center", style: "padding:30px" }, "Không có từ nào khớp bộ lọc.")); return; }
+
+    const list = el("div", { class: "vocab-list" });
+    filtered.slice(0, vocab.limit).forEach((c) => list.append(vocabRow(c)));
+    host2.append(list);
+
+    if (filtered.length > vocab.limit) {
+      host2.append(el("div", { class: "center", style: "margin-top:12px" },
+        el("button", { class: "btn", onclick: () => { vocab.limit += 100; renderVocabList(); } }, `Hiện thêm (còn ${filtered.length - vocab.limit})`)));
+    }
+  });
+}
+
+function describeFilter(n) {
+  const parts = [];
+  if (vocab.level !== "all") parts.push("HSK" + vocab.level);
+  if (vocab.struct !== "all") parts.push(STRUCT_LABELS[vocab.struct]);
+  if (vocab.sem === "none") parts.push("chưa phân loại");
+  else if (vocab.sem !== "all") parts.push(SEMANTIC_LABELS[vocab.sem]);
+  if (vocab.review) parts.push("cần xem lại");
+  if (vocab.q) parts.push(`"${vocab.q}"`);
+  return parts.length ? parts.join(" · ") : `${n} từ`;
+}
+
+function semChipClass(g) { return g ? "chip sem " + g[0] : "chip"; }
+
+function vocabRow(c) {
+  const chips = el("div", { class: "chips" },
+    c.hsk_level && el("span", { class: "chip lvl" }, "HSK" + c.hsk_level),
+    c.struct_group && el("span", { class: "chip" }, c.struct_group),
+    c.semantic_group
+      ? el("span", { class: semChipClass(c.semantic_group), title: SEMANTIC_LABELS[c.semantic_group] || "" }, `${c.semantic_group} ${SEMANTIC_LABELS[c.semantic_group] || ""}`)
+      : el("span", { class: "chip muted-chip" }, "chưa phân loại"),
+    c.classification_source === "manual" && el("span", { class: "chip manual" }, "✎ sửa tay"),
+    c.needs_review && el("span", { class: "chip review" }, "⚠ xem lại"),
+  );
+
+  const right = c.id === vocab.editing ? groupEditor(c) :
+    el("button", { class: "btn ghost small", title: "Sửa nhóm nghĩa", onclick: () => { vocab.editing = c.id; renderVocabList(); } }, "✏️");
+
+  return el("div", { class: "vocab-item" },
+    el("div", { class: "vhanzi", title: "Nghe phát âm", onclick: () => speak(c.simplified, { rate: store.getSettings().speechRate }) }, c.simplified),
+    el("div", { class: "vmeta" },
+      el("div", { class: "vline" }, el("b", { class: "vpy" }, c.pinyin || ""),
+        c.traditional && c.traditional !== c.simplified ? el("span", { class: "muted" }, " · " + c.traditional) : null,
+        c.han_viet ? el("span", { class: "muted" }, " · " + c.han_viet) : null),
+      el("div", { class: "vmean" }, c.meaning || ""),
+      chips),
+    right,
+  );
+}
+
+function groupEditor(c) {
+  const sel = el("select", {});
+  sel.append(el("option", { value: "", selected: !c.semantic_group }, "— chọn nhóm —"));
+  for (const g of SEM_ORDER) sel.append(el("option", { value: g, selected: g === c.semantic_group }, `${g} · ${SEMANTIC_LABELS[g]}`));
+  sel.addEventListener("change", () => {
+    if (sel.value) {
+      store.setClassOverride(c.id, { semantic_group: sel.value, struct_group: c.struct_group });
+      toast(`Đã đổi "${c.simplified}" → ${sel.value}`);
+    }
+    vocab.editing = null; renderVocabList();
+  });
+  const cancel = el("button", { class: "btn ghost small", title: "Đóng", onclick: () => { vocab.editing = null; renderVocabList(); } }, "✕");
+  const clear = c.classification_source === "manual"
+    ? el("button", { class: "btn ghost small", title: "Bỏ sửa tay (về tự động)", onclick: () => { store.clearClassOverride(c.id); toast("Đã bỏ sửa tay"); vocab.editing = null; renderVocabList(); } }, "↺")
+    : null;
+  return el("div", { class: "group-editor" }, sel, clear, cancel);
 }
 
 /* ============================================================
