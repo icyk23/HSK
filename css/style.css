@@ -277,3 +277,16 @@ button.btn.small { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
 
 .group-editor { display: flex; align-items: center; gap: 4px; }
 .group-editor select { padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; max-width: 150px; }
+
+/* trạng thái học (badge trong Danh sách) */
+.chip.st.learning { background: rgba(37,99,235,.16); color: #2563eb; }
+.chip.st.due { background: rgba(224,161,6,.20); color: var(--warn); font-weight: 600; }
+.chip.st.known { background: rgba(46,158,107,.16); color: var(--ok); }
+
+/* tô đậm từ khóa trong câu ví dụ (mặt sau thẻ) */
+mark.hl { background: var(--accent-soft); color: var(--accent); border-radius: 3px; padding: 0 2px; font-weight: 600; }
+.center-chips { justify-content: center; }
+
+/* thanh tiến độ theo cấp / nhóm */
+.prog-row { display: grid; gap: 6px; }
+.prog-head { display: flex; justify-content: space-between; font-size: 14px; }

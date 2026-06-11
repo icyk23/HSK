@@ -44,6 +44,26 @@ function clear() {
   return root;
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+// Tô đậm mọi lần xuất hiện của từ khóa trong câu ví dụ (an toàn HTML).
+function highlightHeadword(example, word) {
+  const esc = escapeHtml(example);
+  if (!word) return esc;
+  return esc.split(escapeHtml(word)).join(`<mark class="hl">${escapeHtml(word)}</mark>`);
+}
+
+// Trạng thái học của một thẻ: new | learning | due | known
+function learnStatus(cardId) {
+  const st = store.getCardState(cardId);
+  if (!st || st.reps === 0) return "new";
+  if (st.known) return "known";
+  if (srs.isDue(st)) return "due";
+  return "learning";
+}
+const STATUS_LABELS = { new: "Chưa học", learning: "Đang học", due: "Đến hạn", known: "Đã thuộc" };
+
 /* ============================================================
    STUDY (flashcards + SRS)
    ============================================================ */
@@ -113,8 +133,9 @@ function markKnown() {
 function renderCard() {
   const root = clear();
   const { deck, queue, idx, total, settings } = session;
-  const card = queue[idx];
-  if (!card) return renderStudy();
+  const rawCard = queue[idx];
+  if (!rawCard) return renderStudy();
+  const card = store.mergeClassification(rawCard);
 
   const { main, sub } = displayHanzi(card, settings.charMode);
   const progressPct = Math.round((idx / total) * 100);
@@ -134,9 +155,14 @@ function renderCard() {
   const back = session.revealed && el("div", { class: "stack" },
     el("div", { class: "pinyin" }, card.pinyin),
     el("div", { class: "meaning" }, card.meaning),
+    card.han_viet && el("div", { class: "muted" }, `Hán-Việt: ${card.han_viet}`),
     settings.charMode !== "both" && card.traditional !== card.simplified &&
       el("div", { class: "muted" }, `${settings.charMode === "traditional" ? "Giản thể" : "Phồn thể"}: ${settings.charMode === "traditional" ? card.simplified : card.traditional}`),
-    card.example && el("div", { class: "example" }, card.example),
+    card.example && el("div", { class: "example", html: highlightHeadword(card.example, card.simplified) }),
+    (card.hsk_level || card.semantic_group) && el("div", { class: "chips center-chips" },
+      card.hsk_level && el("span", { class: "chip lvl" }, "HSK" + card.hsk_level),
+      card.semantic_group && el("span", { class: semChipClass(card.semantic_group), title: SEMANTIC_LABELS[card.semantic_group] || "" }, `${card.semantic_group} ${SEMANTIC_LABELS[card.semantic_group] || ""}`),
+    ),
   );
 
   const flashcard = el("div", { class: "flashcard", onclick: () => { if (!session.revealed) reveal(); } }, front, back);
@@ -206,7 +232,8 @@ export function handleStudyKey(e) {
    VOCAB BROWSER (lọc theo cấp/nhóm + sửa nhóm thủ công)
    ============================================================ */
 const SEM_ORDER = Object.keys(SEMANTIC_LABELS); // A1..F6
-let vocab = { level: "all", sem: "all", struct: "all", review: false, q: "", limit: 100, editing: null };
+const SEM_COLORS = { A: "#d65745", B: "#d97706", C: "#7c3aed", D: "#0f766e", E: "#2563eb", F: "#6b7280" };
+let vocab = { level: "all", sem: "all", struct: "all", status: "all", review: false, sort: "level", q: "", limit: 100, editing: null };
 
 function matchVocab(c, f) {
   if (f.level !== "all" && String(c.hsk_level) !== f.level) return false;
@@ -214,6 +241,7 @@ function matchVocab(c, f) {
   if (f.sem === "none") { if (c.semantic_group) return false; }
   else if (f.sem !== "all" && c.semantic_group !== f.sem) return false;
   if (f.review && !c.needs_review) return false;
+  if (f.status !== "all" && learnStatus(c.id) !== f.status) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
     const hay = `${c.simplified} ${c.traditional || ""} ${(c.pinyin || "").toLowerCase()} ${(c.meaning || "").toLowerCase()} ${(c.han_viet || "").toLowerCase()}`;
@@ -235,6 +263,14 @@ export async function renderVocab() {
 
   const reRender = (resetLimit = true) => { if (resetLimit) vocab.limit = 100; renderVocab(); };
 
+  // Đếm số từ mỗi nhóm nghĩa theo bộ lọc cấp/trạng thái/cần-xem-lại hiện tại
+  const base = cards.filter((c) =>
+    (vocab.level === "all" || String(c.hsk_level) === vocab.level) &&
+    (!vocab.review || c.needs_review) &&
+    (vocab.status === "all" || learnStatus(c.id) === vocab.status));
+  const semCount = {}; let noneCount = 0;
+  for (const c of base) { if (c.semantic_group) semCount[c.semantic_group] = (semCount[c.semantic_group] || 0) + 1; else noneCount++; }
+
   // ----- Thanh lọc -----
   const search = el("input", { type: "text", placeholder: "Tìm chữ Hán / pinyin / nghĩa…", value: vocab.q });
   search.addEventListener("input", () => { vocab.q = search.value.trim(); vocab.limit = 100; renderVocabList(); });
@@ -243,8 +279,11 @@ export async function renderVocab() {
   const structSel = selectRow(["all", ...Object.keys(STRUCT_LABELS)], ["Mọi cấu trúc", ...Object.values(STRUCT_LABELS).map((l, i) => `${Object.keys(STRUCT_LABELS)[i]} · ${l}`)], vocab.struct, (v) => { vocab.struct = v; reRender(); });
   const semSel = selectRow(
     ["all", "none", ...SEM_ORDER],
-    ["Mọi nhóm nghĩa", "(chưa phân loại)", ...SEM_ORDER.map((g) => `${g} · ${SEMANTIC_LABELS[g]}`)],
+    [`Mọi nhóm nghĩa (${base.length})`, `(chưa phân loại) (${noneCount})`, ...SEM_ORDER.map((g) => `${g} · ${SEMANTIC_LABELS[g]} (${semCount[g] || 0})`)],
     vocab.sem, (v) => { vocab.sem = v; reRender(); });
+  const statusSel = selectRow(["all", "new", "learning", "due", "known"],
+    ["Mọi trạng thái", "Chưa học", "Đang học", "Đến hạn", "Đã thuộc"], vocab.status, (v) => { vocab.status = v; reRender(); });
+  const sortSel = selectRow(["level", "pinyin", "length"], ["Sắp xếp: cấp HSK", "Sắp xếp: pinyin A→Z", "Sắp xếp: số chữ"], vocab.sort, (v) => { vocab.sort = v; renderVocabList(); });
 
   const reviewToggle = el("label", { class: "review-toggle" },
     (() => { const cb = el("input", { type: "checkbox", checked: vocab.review || false }); cb.addEventListener("change", () => { vocab.review = cb.checked; reRender(); }); return cb; })(),
@@ -252,7 +291,7 @@ export async function renderVocab() {
 
   root.append(el("div", { class: "panel vocab-filter" },
     el("div", { class: "field", style: "margin-bottom:10px" }, search),
-    el("div", { class: "filter-grid" }, levelSel, structSel, semSel),
+    el("div", { class: "filter-grid" }, levelSel, structSel, semSel, statusSel, sortSel),
     reviewToggle,
   ));
 
@@ -270,7 +309,7 @@ function renderVocabList() {
     const host2 = document.getElementById("vocab-list");
     if (!deck || !host2) return;
     const cards = deck.cards.map(store.mergeClassification);
-    const filtered = cards.filter((c) => matchVocab(c, vocab));
+    const filtered = sortVocab(cards.filter((c) => matchVocab(c, vocab)), vocab.sort);
 
     // Thanh tóm tắt + nút học
     const summary = el("div", { class: "row", style: "margin:14px 0 10px" },
@@ -311,8 +350,18 @@ function describeFilter(n) {
 
 function semChipClass(g) { return g ? "chip sem " + g[0] : "chip"; }
 
+function sortVocab(arr, sort) {
+  const a = [...arr];
+  if (sort === "pinyin") a.sort((x, y) => (x.pinyin || "").localeCompare(y.pinyin || "", "vi"));
+  else if (sort === "length") a.sort((x, y) => (x.simplified.length - y.simplified.length) || (x.hsk_level || 0) - (y.hsk_level || 0));
+  else a.sort((x, y) => (x.hsk_level || 0) - (y.hsk_level || 0) || (x.id < y.id ? -1 : 1));
+  return a;
+}
+
 function vocabRow(c) {
+  const st = learnStatus(c.id);
   const chips = el("div", { class: "chips" },
+    st !== "new" && el("span", { class: "chip st " + st }, STATUS_LABELS[st]),
     c.hsk_level && el("span", { class: "chip lvl" }, "HSK" + c.hsk_level),
     c.struct_group && el("span", { class: "chip" }, c.struct_group),
     c.semantic_group
@@ -592,6 +641,40 @@ export async function renderStats() {
     ));
   });
   root.append(hist);
+
+  // Tiến độ theo cấp HSK + theo nhóm nghĩa
+  if (deck) {
+    const merged = deck.cards.map(store.mergeClassification);
+    const byLevel = {}, byGroup = {};
+    for (const c of merged) {
+      const learnedFlag = (progress[c.id]?.reps > 0);
+      if (c.hsk_level) { (byLevel[c.hsk_level] ??= { learned: 0, total: 0 }).total++; if (learnedFlag) byLevel[c.hsk_level].learned++; }
+      if (c.semantic_group) { (byGroup[c.semantic_group] ??= { learned: 0, total: 0 }).total++; if (learnedFlag) byGroup[c.semantic_group].learned++; }
+    }
+    const levelKeys = Object.keys(byLevel).sort();
+    if (levelKeys.length) {
+      root.append(el("h2", { class: "view-title", style: "margin-top:24px;font-size:17px" }, "Tiến độ theo cấp HSK"));
+      const wrap = el("div", { class: "panel stack" });
+      levelKeys.forEach((lv) => wrap.append(progressRow("HSK" + lv, byLevel[lv].learned, byLevel[lv].total)));
+      root.append(wrap);
+    }
+    const groupKeys = SEM_ORDER.filter((g) => byGroup[g]);
+    if (groupKeys.length) {
+      root.append(el("h2", { class: "view-title", style: "margin-top:24px;font-size:17px" }, "Tiến độ theo nhóm nghĩa"));
+      const wrap = el("div", { class: "panel stack" });
+      groupKeys.forEach((g) => wrap.append(progressRow(`${g} · ${SEMANTIC_LABELS[g]}`, byGroup[g].learned, byGroup[g].total, g[0])));
+      root.append(wrap);
+    }
+  }
+}
+
+function progressRow(label, learned, total, colorKey) {
+  const pct = total ? Math.round((learned / total) * 100) : 0;
+  const fill = el("span", { style: `width:${pct}%` });
+  if (colorKey && SEM_COLORS[colorKey]) fill.style.background = SEM_COLORS[colorKey];
+  return el("div", { class: "prog-row" },
+    el("div", { class: "prog-head" }, el("span", {}, label), el("span", { class: "muted" }, `${learned}/${total} · ${pct}%`)),
+    el("div", { class: "progress", style: "margin-bottom:0" }, fill));
 }
 
 function computeStreak(stats) {
