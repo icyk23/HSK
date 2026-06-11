@@ -4,6 +4,7 @@ import * as store from "./store.js";
 import * as srs from "./srs.js";
 import { speak, hasChineseVoice } from "./audio.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
+import { getAllExams, getExam, countReadingQuestions, parseExamJson } from "./exams.js";
 import { STRUCT_LABELS, SEMANTIC_LABELS } from "./classify.js";
 
 const app = () => document.getElementById("app");
@@ -797,3 +798,270 @@ function emptyState(title, msg) {
   return el("div", { class: "empty" }, el("div", { class: "big" }, "📭"), el("h2", {}, title), el("p", {}, msg));
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ============================================================
+   LUYỆN ĐỀ (HSK6 — Đọc trắc nghiệm + Viết 缩写)
+   ============================================================ */
+let examView = { screen: "list", examId: null };
+let readingState = null;       // { examId, answers, graded, score, total }
+let writeTimer = null;         // setInterval id cho đồng hồ phần Viết
+function clearWriteTimer() { if (writeTimer) { clearInterval(writeTimer); writeTimer = null; } }
+
+export async function renderExam() {
+  clearWriteTimer();
+  const root = clear();
+  if (examView.screen === "reading") return examReading(root);
+  if (examView.screen === "writing") return examWriting(root);
+  return examList(root);
+}
+
+function examTopbar(title) {
+  return el("div", { class: "exam-topbar" },
+    el("button", { class: "btn ghost", onclick: () => { examView = { screen: "list" }; renderExam(); } }, "← Danh sách đề"),
+    el("span", { class: "muted" }, title));
+}
+
+/* ---------- Màn hình danh sách đề ---------- */
+async function examList(root) {
+  root.append(el("h1", { class: "view-title" }, "📝 Luyện đề HSK6"));
+  root.append(examImportBar());
+  const exams = await getAllExams();
+  if (!exams.length) { root.append(emptyState("Chưa có đề", "Nhập đề JSON ở trên để bắt đầu.")); return; }
+
+  const list = el("div", { class: "exam-list" });
+  for (const ex of exams) {
+    const prog = store.getExamProgress(ex.id);
+    const rq = countReadingQuestions(ex);
+    const actions = el("div", { class: "exam-actions" });
+    if (rq) actions.append(el("button", { class: "btn primary", onclick: () => { examView = { screen: "reading", examId: ex.id }; renderExam(); } }, `🧩 Đọc · ${rq} câu`));
+    if (ex.writing) actions.append(el("button", { class: "btn", onclick: () => { examView = { screen: "writing", examId: ex.id }; renderExam(); } }, "✍️ Viết"));
+    if (!ex.builtin) actions.append(el("button", { class: "btn ghost", onclick: () => { if (confirm("Xóa đề này?")) { store.deleteUserExam(ex.id); renderExam(); } } }, "Xóa"));
+
+    const badges = el("div", { class: "exam-badges" });
+    if (prog.reading) badges.append(el("span", { class: "chip st known" }, `Đọc: ${prog.reading.score}/${prog.reading.total}`));
+    if (prog.writing && prog.writing.text) badges.append(el("span", { class: "chip st learning" }, `Viết: ${countChars(prog.writing.text)} chữ`));
+
+    list.append(el("div", { class: "panel exam-card" },
+      el("div", { class: "exam-head" }, el("h3", {}, ex.title), ex.builtin && el("span", { class: "chip" }, "mẫu")),
+      ex.note && el("p", { class: "muted small" }, ex.note),
+      badges.childNodes.length ? badges : null,
+      actions,
+    ));
+  }
+  root.append(list);
+}
+
+function examImportBar() {
+  const ta = el("textarea", { rows: "4", placeholder: 'Dán JSON đề. Cấu trúc: { "title": "...", "reading": [...], "writing": {...} }' });
+  const fileInput = el("input", { type: "file", accept: ".json" });
+  fileInput.addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) ta.value = await f.text(); });
+  const doImport = () => {
+    const { exam, error } = parseExamJson(ta.value.trim());
+    if (error) return toast(error);
+    store.saveUserExam(exam);
+    toast("Đã nhập đề: " + exam.title);
+    renderExam();
+  };
+  return el("details", { class: "panel exam-import" },
+    el("summary", {}, "📥 Nhập đề JSON"),
+    el("p", { class: "muted small" }, "Dán JSON hoặc chọn file. Sau này Qwen3 sẽ sinh đề tự động."),
+    el("div", { class: "field" }, ta),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: doImport }, "Nhập đề")),
+  );
+}
+
+/* ---------- Phần Đọc (trắc nghiệm, tự chấm) ---------- */
+async function examReading(root) {
+  const exam = await getExam(examView.examId);
+  if (!exam) { examView = { screen: "list" }; return renderExam(); }
+  if (!readingState || readingState.examId !== exam.id) readingState = { examId: exam.id, answers: {}, graded: false };
+
+  root.append(examTopbar(exam.title + " · Đọc"));
+  const form = el("div", { class: "exam-reading" });
+  for (const sec of exam.reading) {
+    form.append(el("div", { class: "exam-section-head" },
+      el("h2", {}, sec.title), sec.instruction && el("p", { class: "muted small" }, sec.instruction)));
+    for (const item of sec.items) form.append(renderReadingItem(item));
+  }
+  root.append(form);
+
+  if (readingState.graded) {
+    const pct = readingState.total ? Math.round((readingState.score / readingState.total) * 100) : 0;
+    root.append(el("div", { class: "panel result-bar" },
+      el("b", {}, `Kết quả: ${readingState.score}/${readingState.total} câu đúng · ${pct}%`),
+      el("button", { class: "btn", onclick: () => { readingState = { examId: exam.id, answers: {}, graded: false }; renderExam(); } }, "Làm lại"),
+    ));
+  } else {
+    root.append(el("div", { class: "submit-bar" },
+      el("button", { class: "btn primary", onclick: () => gradeReading(exam) }, "Nộp bài & chấm")));
+  }
+}
+
+function renderReadingItem(item) {
+  const panel = el("div", { class: "panel exam-item" });
+  if (item.type === "mcq") {
+    panel.append(el("p", { class: "exam-stem" }, item.stem || ""));
+    panel.append(mcqOptions(item.id, item.options, item.answer));
+    if (readingState.graded && item.explain) panel.append(explainBox(item.explain));
+  } else if (item.type === "cloze") {
+    panel.append(clozeRender(item, false));
+    if (readingState.graded && item.explain) panel.append(explainBox(item.explain));
+  } else if (item.type === "sentence-cloze") {
+    panel.append(clozeRender(item, true));
+    if (readingState.graded && item.explain) panel.append(explainBox(item.explain));
+  } else if (item.type === "reading") {
+    panel.append(el("div", { class: "exam-passage" }, item.passage));
+    item.questions.forEach((q, qi) => {
+      panel.append(el("p", { class: "exam-stem" }, `${qi + 1}. ${q.stem}`));
+      panel.append(mcqOptions(`${item.id}:${qi}`, q.options, q.answer));
+      if (readingState.graded && q.explain) panel.append(explainBox(q.explain));
+    });
+  }
+  return panel;
+}
+
+const LETTERS = ["A", "B", "C", "D", "E", "F"];
+function mcqOptions(key, options, correctIdx) {
+  const wrap = el("div", { class: "opts" });
+  options.forEach((opt, i) => {
+    const id = `${key}__${i}`;
+    const input = el("input", { type: "radio", name: key, id, value: i });
+    if (readingState.answers[key] === i) input.checked = true;
+    if (readingState.graded) input.disabled = true;
+    input.addEventListener("change", () => { readingState.answers[key] = i; });
+    const label = el("label", { class: "opt", for: id }, el("span", { class: "opt-mark" }, LETTERS[i]), el("span", {}, opt));
+    if (readingState.graded) {
+      if (i === correctIdx) label.classList.add("correct");
+      else if (readingState.answers[key] === i) label.classList.add("wrong");
+    }
+    wrap.append(el("div", { class: "opt-row" }, input, label));
+  });
+  return wrap;
+}
+
+// Cloze (chọn từ) và sentence-cloze (chọn câu A–D) dùng chung khung select trong đoạn.
+function clozeRender(item, isSentence) {
+  const box = el("div", {});
+  if (isSentence) {
+    const bank = el("div", { class: "sent-bank" }, el("div", { class: "muted small" }, "Ngân hàng câu:"));
+    item.bank.forEach((s, i) => bank.append(el("div", { class: "bank-row" }, el("b", {}, LETTERS[i] + ". "), s)));
+    box.append(bank);
+  }
+  const splitRe = isSentence ? /\[\d+\]/ : /_{3,}/;
+  const count = isSentence ? item.answers.length : item.blanks.length;
+  const parts = item.passage.split(splitRe);
+  const frag = el("div", { class: "cloze-passage" });
+  parts.forEach((p, i) => {
+    frag.append(document.createTextNode(p));
+    if (i < count) {
+      const key = `${item.id}:${i}`;
+      const sel = el("select", { class: "blank-sel" });
+      sel.append(el("option", { value: "" }, "—"));
+      const opts = isSentence ? item.bank.map((_, oi) => LETTERS[oi]) : item.blanks[i].options;
+      opts.forEach((o, oi) => sel.append(el("option", { value: oi, selected: String(readingState.answers[key]) === String(oi) }, o)));
+      if (readingState.graded) sel.disabled = true;
+      sel.addEventListener("change", () => { readingState.answers[key] = sel.value === "" ? undefined : Number(sel.value); });
+      frag.append(sel);
+      if (readingState.graded) {
+        const correct = isSentence ? item.answers[i] : item.blanks[i].answer;
+        sel.classList.add(readingState.answers[key] === correct ? "ok" : "bad");
+        if (readingState.answers[key] !== correct) {
+          const ans = isSentence ? LETTERS[correct] : item.blanks[i].options[correct];
+          frag.append(el("span", { class: "ans-hint" }, `(đúng: ${ans})`));
+        }
+      }
+    }
+  });
+  box.append(frag);
+  return box;
+}
+
+function explainBox(text) { return el("div", { class: "explain" }, "💡 " + text); }
+
+function gradeReading(exam) {
+  let total = 0, score = 0;
+  const a = readingState.answers;
+  for (const sec of exam.reading) for (const item of sec.items) {
+    if (item.type === "mcq") { total++; if (a[item.id] === item.answer) score++; }
+    else if (item.type === "cloze") item.blanks.forEach((b, i) => { total++; if (a[`${item.id}:${i}`] === b.answer) score++; });
+    else if (item.type === "sentence-cloze") item.answers.forEach((ans, i) => { total++; if (a[`${item.id}:${i}`] === ans) score++; });
+    else if (item.type === "reading") item.questions.forEach((q, i) => { total++; if (a[`${item.id}:${i}`] === q.answer) score++; });
+  }
+  readingState.graded = true; readingState.score = score; readingState.total = total;
+  store.saveReadingResult(exam.id, { score, total, answers: a });
+  toast(`Đã chấm: ${score}/${total} câu đúng`);
+  renderExam();
+  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+}
+
+/* ---------- Phần Viết (缩写 — đọc rồi tóm tắt) ---------- */
+function countChars(s) { return [...String(s).replace(/\s/g, "")].length; }
+function fmtTime(sec) { const m = Math.floor(sec / 60), s = sec % 60; return `${m}:${String(s).padStart(2, "0")}`; }
+
+async function examWriting(root) {
+  const exam = await getExam(examView.examId);
+  if (!exam || !exam.writing) { examView = { screen: "list" }; return renderExam(); }
+  const w = exam.writing;
+  const saved = store.getExamProgress(exam.id).writing || {};
+  root.append(examTopbar(exam.title + " · Viết"));
+
+  root.append(el("div", { class: "panel" },
+    el("h2", {}, w.title || "Phần Viết"),
+    el("p", { class: "muted small" }, w.instruction || ""),
+  ));
+
+  // Bài đọc + nút ẩn (mô phỏng: đọc xong thì ẩn rồi mới viết)
+  const article = el("div", { class: "exam-passage article-box" }, w.article);
+  const hideBtn = el("button", { class: "btn ghost small" }, "Ẩn bài");
+  hideBtn.onclick = () => { const h = article.hidden = !article.hidden; hideBtn.textContent = h ? "Hiện bài" : "Ẩn bài"; };
+  root.append(el("div", { class: "panel" },
+    el("div", { class: "row spread" },
+      el("b", {}, `Bài đọc (${countChars(w.article)} chữ · đọc ~${w.readMinutes || 10} phút)`), hideBtn),
+    article,
+  ));
+
+  // Đồng hồ viết
+  let remain = (w.writeMinutes || 35) * 60;
+  const disp = el("span", { class: "timer-disp" }, fmtTime(remain));
+  const toggleBtn = el("button", { class: "btn small" }, "▶ Bắt đầu");
+  toggleBtn.onclick = () => {
+    if (writeTimer) { clearWriteTimer(); toggleBtn.textContent = "▶ Tiếp tục"; return; }
+    toggleBtn.textContent = "⏸ Tạm dừng";
+    writeTimer = setInterval(() => {
+      remain = Math.max(0, remain - 1); disp.textContent = fmtTime(remain);
+      if (remain === 0) { clearWriteTimer(); toggleBtn.textContent = "Hết giờ"; toggleBtn.disabled = true; toast("Hết giờ làm bài Viết!"); }
+    }, 1000);
+  };
+
+  // Soạn bài
+  const titleInput = el("input", { type: "text", placeholder: "Tiêu đề bài tóm tắt…", value: saved.title || "" });
+  const ta = el("textarea", { rows: "10", placeholder: "Viết bản tóm tắt của bạn ở đây…" });
+  ta.value = saved.text || "";
+  const target = w.targetChars || 400;
+  const counter = el("span", { class: "muted small" });
+  const updateCount = () => {
+    const n = countChars(ta.value);
+    counter.textContent = `${n} / ~${target} chữ`;
+    counter.classList.toggle("count-ok", n >= target * 0.8);
+  };
+  updateCount();
+  let saveT = null;
+  const autosave = () => {
+    clearTimeout(saveT);
+    saveT = setTimeout(() => { store.saveWritingDraft(exam.id, { title: titleInput.value, text: ta.value }); }, 800);
+    updateCount();
+  };
+  ta.addEventListener("input", autosave);
+  titleInput.addEventListener("input", autosave);
+
+  root.append(el("div", { class: "panel" },
+    el("div", { class: "row spread" }, el("div", { class: "row" }, el("b", {}, "⏱ "), disp, toggleBtn), counter),
+    el("div", { class: "field" }, titleInput),
+    el("div", { class: "field" }, ta),
+    el("div", { class: "row" },
+      el("button", { class: "btn", onclick: () => { store.saveWritingDraft(exam.id, { title: titleInput.value, text: ta.value }); toast("Đã lưu bản nháp."); } }, "💾 Lưu nháp"),
+      el("button", { class: "btn primary", onclick: () => toast("Chấm tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, "🤖 Chấm bằng Qwen3"),
+    ),
+    el("p", { class: "muted small" }, "Bản nháp tự lưu vào máy. Khi có Qwen3, app sẽ chấm bố cục, ngữ pháp và gợi ý sửa."),
+  ));
+}

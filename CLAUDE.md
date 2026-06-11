@@ -31,7 +31,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | Module | Tab con | Trạng thái |
 |--------|---------|-----------|
 | **Từ vựng** 🎴 | Học thẻ · Danh sách · Quiz · Nghe · Nguồn từ | ✅ đã có (trừ đổi tên) |
-| **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | ⬜ chưa xây |
+| **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) đã có; HSKK chưa |
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | ⬜ chưa xây |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | ⬜ chưa xây |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
@@ -115,7 +115,9 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
 [x] Chốt IA 5 module (chưa dựng nav 2 tầng — hoãn tới khi có nội dung module mới)
 [x] Tinh chỉnh Từ vựng: thẻ giàu hơn (HV/nhóm/tô đậm ví dụ), trạng thái+sắp xếp+đếm Danh sách, tiến độ theo cấp & nhóm
 [~] Task 3c — script Qwen3 (scripts/classify-qwen.mjs) SẴN SÀNG; chờ chạy trên máy có Ollama (npm run classify:qwen)
-[ ] Luyện đề HSK6 (đọc + viết)  ← làm tiếp (Task 3b)
+[x] Task 3b — Luyện đề HSK6: tab "🧩 Luyện đề" (phẳng); Đọc 4 phần trắc nghiệm tự chấm
+    (病句/选词/选句/阅读) + Viết 缩写 (bài đọc, đồng hồ, đếm chữ, lưu nháp, chỗ chấm Qwen3);
+    đề mẫu data/exam-hsk6.json + nhập đề JSON (js/exams.js). Chấm Viết bằng Qwen3 & HSKK chờ làm.
 [ ] Giao tiếp — HSKK 高级 + luyện phát âm
 [ ] Dịch thuật — Trung↔Việt + Qwen3 chấm
 [ ] Phồn thể — module độc lập

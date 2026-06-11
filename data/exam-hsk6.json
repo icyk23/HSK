@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "exams": [
+    {
+      "id": "hsk6-mau-1",
+      "title": "Đề mẫu HSK6 — số 1",
+      "note": "Đề mẫu do app soạn (kiểu HSK6). Có thể nhập thêm đề bằng nút Nhập đề JSON.",
+      "reading": [
+        {
+          "part": 1,
+          "title": "Phần 1 · Chọn câu SAI ngữ pháp (病句)",
+          "instruction": "Trong mỗi câu hỏi có 4 câu A–D, hãy chọn câu CÓ LỖI ngữ pháp.",
+          "items": [
+            {
+              "id": "r1-1",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "通过这次活动，使我们增长了知识。",
+                "这本书的内容很丰富。",
+                "他每天坚持锻炼身体。",
+                "我们应该保护环境。"
+              ],
+              "answer": 0,
+              "explain": "“通过…使…” khiến câu thiếu chủ ngữ. Bỏ “通过” hoặc bỏ “使”."
+            },
+            {
+              "id": "r1-2",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "春天来了，天气渐渐暖和起来。",
+                "为了防止这类事故不再发生，我们加强了管理。",
+                "他的汉语水平提高得很快。",
+                "这部电影值得一看。"
+              ],
+              "answer": 1,
+              "explain": "“防止…不再…” phủ định trùng (sai nghĩa). Sửa thành “防止这类事故再次发生”."
+            },
+            {
+              "id": "r1-3",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "会议室里坐满了人。",
+                "这个问题值得我们认真思考。",
+                "大约有五十多个学生参加了比赛。",
+                "老师耐心地回答了我们的问题。"
+              ],
+              "answer": 2,
+              "explain": "“大约” và “多” đều chỉ sự ước lượng → trùng nghĩa. Bỏ một trong hai."
+            }
+          ]
+        },
+        {
+          "part": 2,
+          "title": "Phần 2 · Chọn từ điền vào chỗ trống (选词填空)",
+          "instruction": "Mỗi chỗ trống ____ chọn 1 từ phù hợp nhất.",
+          "items": [
+            {
+              "id": "r2-1",
+              "type": "cloze",
+              "passage": "现代社会，人们的生活节奏越来越快，很多人因此感到____。专家建议，适当的休息和运动能够有效地____压力，让身心得到放松。",
+              "blanks": [
+                { "options": ["焦虑", "高兴", "安静", "简单"], "answer": 0 },
+                { "options": ["增加", "缓解", "制造", "提高"], "answer": 1 }
+              ],
+              "explain": "焦虑 = lo âu (hợp với nhịp sống nhanh); 缓解压力 = giảm bớt áp lực."
+            },
+            {
+              "id": "r2-2",
+              "type": "cloze",
+              "passage": "阅读是一种重要的学习____。坚持阅读不仅能____知识，还能提高一个人的思维能力。",
+              "blanks": [
+                { "options": ["方式", "方向", "态度", "结果"], "answer": 0 },
+                { "options": ["浪费", "积累", "减少", "忘记"], "answer": 1 }
+              ],
+              "explain": "学习方式 = cách thức học; 积累知识 = tích lũy kiến thức."
+            }
+          ]
+        },
+        {
+          "part": 3,
+          "title": "Phần 3 · Chọn câu điền vào đoạn (选句填空)",
+          "instruction": "Chọn câu trong ngân hàng (A–D) điền vào các chỗ [1] [2] [3]. Có 1 câu thừa.",
+          "items": [
+            {
+              "id": "r3-1",
+              "type": "sentence-cloze",
+              "passage": "茶文化在中国有着悠久的历史。对很多人来说，[1]。在忙碌的工作之余，泡一杯茶，[2]，是一种享受。[3]，所以适量饮茶对身体也有好处。",
+              "bank": [
+                "茶不仅是一种饮品，更是一种生活方式",
+                "慢慢品味其中的香味",
+                "茶中含有对人体有益的成分",
+                "它的价格也越来越贵"
+              ],
+              "answers": [0, 1, 2],
+              "explain": "Câu D (价格越来越贵) là câu thừa, không hợp mạch văn nói về văn hóa & lợi ích của trà."
+            }
+          ]
+        },
+        {
+          "part": 4,
+          "title": "Phần 4 · Đọc hiểu (阅读理解)",
+          "instruction": "Đọc đoạn văn rồi trả lời câu hỏi.",
+          "items": [
+            {
+              "id": "r4-1",
+              "type": "reading",
+              "passage": "随着科技的发展，智能手机已经成为人们生活中不可缺少的一部分。它给我们带来了许多便利，比如随时随地与他人沟通、获取信息、处理工作等。然而，过度依赖手机也带来了一些问题。许多人养成了不停查看手机的习惯，这不仅影响了工作和学习的效率，还可能对身体健康造成不良影响，例如视力下降、睡眠质量变差等。因此，合理使用手机，才能让它真正为我们的生活服务。",
+              "questions": [
+                {
+                  "stem": "这段话主要谈的是什么？",
+                  "options": ["手机的价格", "手机的好处和问题", "如何购买手机", "手机的发展历史"],
+                  "answer": 1,
+                  "explain": "Đoạn văn nêu cả tiện lợi lẫn vấn đề của điện thoại."
+                },
+                {
+                  "stem": "过度使用手机可能带来什么影响？",
+                  "options": ["视力变好", "睡眠质量变差", "工作效率提高", "身体更健康"],
+                  "answer": 1,
+                  "explain": "Văn bản nêu rõ: 视力下降、睡眠质量变差."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "writing": {
+        "type": "summary",
+        "title": "Phần Viết · 缩写 (Tóm tắt)",
+        "instruction": "Đọc bài trong khoảng 10 phút (không chép lại khi viết), sau đó tóm tắt thành một đoạn khoảng 150 chữ và đặt tiêu đề. Đề thi thật yêu cầu ~400 chữ.",
+        "article": "从前，有一个年轻人想要学习画画。他找到一位有名的画家，希望拜他为师。画家答应了，但要求他先用一年的时间只画鸡蛋。年轻人觉得很奇怪，画鸡蛋有什么用呢？但他还是照做了。一开始，他画得很认真，可是时间一长，就渐渐失去了耐心，画得越来越马虎。画家看出了他的心思，对他说：“每一个鸡蛋的形状都不一样，只有把最简单的东西画好，才能画好复杂的东西。”年轻人听后深受启发，从此专心练习基本功。许多年后，他终于成为了一位出色的画家。这个故事告诉我们，做任何事情都要从基础做起，只有打好基础，坚持不懈，才能取得成功。",
+        "readMinutes": 10,
+        "writeMinutes": 35,
+        "targetChars": 150
+      }
+    }
+  ]
+}

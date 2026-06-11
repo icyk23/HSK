@@ -7,6 +7,7 @@ const VIEWS = {
   study: ui.renderStudy,
   vocab: ui.renderVocab,
   quiz: ui.renderQuiz,
+  exam: ui.renderExam,
   listen: ui.renderListen,
   manage: ui.renderManage,
   stats: ui.renderStats,

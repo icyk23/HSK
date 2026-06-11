@@ -6,6 +6,8 @@ const KEYS = {
   progress: "hsk.progress",  // SRS state keyed by cardId
   stats: "hsk.stats",        // daily review log
   classOverrides: "hsk.classOverrides", // sửa nhóm thủ công, keyed by cardId
+  exams: "hsk.exams",        // đề luyện thi do người dùng nhập
+  examProgress: "hsk.examProgress", // kết quả Đọc + bản nháp Viết, keyed by examId
 };
 
 export const DEFAULT_SETTINGS = {
@@ -122,6 +124,41 @@ export function mergeClassification(card) {
   return o ? { ...card, ...o } : card;
 }
 
+/* ---------------- Luyện đề (exams) ----------------
+ * Đề tĩnh nạp từ /data/exam-*.json (qua exams.js). Đề người dùng nhập lưu ở
+ * KEYS.exams. Tiến độ làm bài (Đọc: đáp án + điểm; Viết: bản nháp) lưu ở
+ * KEYS.examProgress keyed theo examId. */
+export function getUserExams() {
+  return read(KEYS.exams, []);
+}
+export function saveUserExam(exam) {
+  const exams = getUserExams();
+  const idx = exams.findIndex((e) => e.id === exam.id);
+  if (idx >= 0) exams[idx] = exam;
+  else exams.push(exam);
+  write(KEYS.exams, exams);
+}
+export function deleteUserExam(id) {
+  write(KEYS.exams, getUserExams().filter((e) => e.id !== id));
+}
+export function getExamProgress(examId) {
+  return read(KEYS.examProgress, {})[examId] || {};
+}
+function patchExamProgress(examId, patch) {
+  const all = read(KEYS.examProgress, {});
+  all[examId] = { ...(all[examId] || {}), ...patch, updatedAt: new Date().toISOString() };
+  write(KEYS.examProgress, all);
+  return all[examId];
+}
+// Lưu kết quả phần Đọc: { answers, score, total, at }
+export function saveReadingResult(examId, result) {
+  return patchExamProgress(examId, { reading: { ...result, at: new Date().toISOString() } });
+}
+// Lưu bản nháp phần Viết: { title, text }
+export function saveWritingDraft(examId, draft) {
+  return patchExamProgress(examId, { writing: { ...draft } });
+}
+
 /* ---------------- Daily stats ---------------- */
 export function logReview(correct) {
   const stats = read(KEYS.stats, {});
@@ -142,6 +179,8 @@ export function exportAll() {
     progress: getProgress(),
     stats: getStats(),
     classOverrides: getClassOverrides(),
+    exams: getUserExams(),
+    examProgress: read(KEYS.examProgress, {}),
     exportedAt: new Date().toISOString(),
   };
 }
@@ -151,4 +190,6 @@ export function importAll(data) {
   if (data.progress) write(KEYS.progress, data.progress);
   if (data.stats) write(KEYS.stats, data.stats);
   if (data.classOverrides) write(KEYS.classOverrides, data.classOverrides);
+  if (data.exams) write(KEYS.exams, data.exams);
+  if (data.examProgress) write(KEYS.examProgress, data.examProgress);
 }
