@@ -35,7 +35,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | 🟡 Workspace 2 chiều + lưu/ôn (Bài đã dịch) đã có; chấm/sửa cần Qwen3 (/grade) |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | 🟡 Bài học (993 chữ giản→phồn theo cấp) + Nhận diện (quiz + bộ thủ) đã có |
-| **Nạp nội dung** 📥 *(global)* | Nạp mới · Thư viện bài học | 🟡 Browser: nạp text → tài liệu tự map vào Từ vựng/Giao tiếp/Dịch thuật; thư viện = xem tiến độ; link/media chờ Qwen3 |
+| **Nạp tài liệu** 📥 *(global)* | Nạp mới · Thư viện tài liệu | 🟡 CỬA NẠP DUY NHẤT: nạp text → Tài liệu → map vào Từ vựng/Giao tiếp/Dịch (module hết ô upload); link/media chờ Qwen3 |
 | **Tiến độ** 📊 · **Cài đặt** ⚙️ *(global)* | — | ✅ đã có |
 
 Khớp **3 trụ cột** (Từ vựng · Dịch thuật · Giao tiếp) + Luyện đề + Phồn thể độc lập.
@@ -67,7 +67,7 @@ js/audio.js             phát âm (Web Speech API)
 js/decks.js             nạp deck + parse CSV import
 js/classify.js          pipeline phân loại Lớp 1+2 (dùng cả browser lẫn build script)
 js/comm.js              Giao tiếp: nạp cảnh mẫu + tách câu (text/.srt/song ngữ) + lấy câu từ thư viện
-js/lessons.js           Nạp nội dung: phân tích văn bản → vocab xếp nhóm HSK (quy tắc) + tách câu; lưu Bài học (IndexedDB)
+js/lessons.js           Nạp tài liệu: phân tích văn bản → vocab xếp nhóm HSK (quy tắc) + tách câu; lưu Tài liệu (IndexedDB store "materials")
 js/trad.js              Phồn thể: bóc cặp chữ Giản→Phồn từ deck + bảng bộ thủ giản↔phồn
 data/comm-scenes.json   6 cảnh mẫu khẩu ngữ (hỏi-đáp · câu lẻ · mẫu câu thay thế)
 data/hsk-words.json     5.002 từ HSK1–6 đã phân loại (sinh bởi build script)
@@ -113,6 +113,21 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
 5. Cập nhật TRẠNG THÁI sau khi xong.
 
 ---
+
+## REFACTOR CẤU TRÚC (đang làm — duyệt từng bước)
+
+Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 cửa → bóc tách → phân vào module dạng thư mục).
+```
+[x] Bước 0–1 — Mô hình "Tài liệu" (store IndexedDB "materials", bỏ "hsk-lessons" cũ) +
+    HUB HÓA NẠP: gỡ ô upload/dán ở Giao tiếp (giữ bộ chọn Tài liệu); đổi tên "Nạp tài liệu",
+    "Tài liệu" (thay "Bài học"). Upload chỉ qua Nạp (Luyện đề up đề riêng = ngoại lệ).
+[ ] Bước 2 — Từ vựng: cây THƯ MỤC (HSK/chủ đề/tài liệu) + CHECKBOX chọn từ nhiều nhóm →
+    "Bộ học đã chọn" (phiên học RIÊNG, không trộn SRS chính).
+[ ] Bước 3 — Giao tiếp: 4 PHƯƠNG THỨC → mỗi cái có NHÁNH CON (chủ đề/tài liệu/cấp câu), không ép thứ tự.
+[ ] Bước 4 — Dịch thuật: THƯ MỤC theo truyện → chuỗi TASK nhỏ (chương→khúc) có tiến độ + Luyện tự do.
+[ ] Bước 5 — Phồn thể: LỘ TRÌNH newbie (① quy luật bộ thủ → ② thẻ nhớ SRS 简→繁 → ③ quiz).
+[ ] Bước 6 — Dọn dẹp, nhất quán tên tab, cập nhật doc.
+```
 
 ## TRẠNG THÁI HIỆN TẠI
 

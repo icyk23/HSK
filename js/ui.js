@@ -1374,7 +1374,6 @@ function patternBank(scenes) { const o = []; for (const s of selectedScenes(scen
 
 async function commHome(root, scenes) {
   root.append(el("h1", { class: "view-title" }, "🗣️ Giao tiếp — luyện phản xạ"));
-  const backend = await comm.pingBackend(); // null nếu chưa bật / không tới được
 
   const src = el("div", { class: "panel comm-source" });
   src.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
@@ -1388,9 +1387,7 @@ async function commHome(root, scenes) {
   src.append(chips);
   const matBar = commMaterialBar();
   if (matBar) src.append(matBar);
-  src.append(commPersonalBar(backend));
-  const libBar = await commLibraryBar(backend);
-  if (libBar) src.append(libBar);
+  else src.append(el("p", { class: "muted small" }, "Muốn luyện theo truyện/tài liệu của bạn? Vào 📥 Nạp tài liệu để thêm — sẽ hiện ở đây."));
   root.append(src);
 
   const nQa = qaBank(scenes).length, nLine = lineBank(scenes).length, nVi = viLineBank(scenes).length, nPat = patternBank(scenes).length;
@@ -1447,88 +1444,12 @@ function commDrillCard(icon, title, badge, desc, enabled, screen) {
 }
 
 // Backend có xử lý được loại file này không (theo năng lực /health).
-function backendHandles(backend, kind) {
-  if (!backend) return false;
-  const caps = backend.caps || {};
-  if (kind === "pdf") return !!(caps.pdf_text || caps.ocr);
-  if (kind === "image") return !!caps.ocr;
-  if (kind === "audio" || kind === "video") return !!caps.asr;
-  return false;
-}
 function setPersonalSource(items, label) {
   commPersonal = items; commPersonalLabel = label;
   toast(`Đã thêm ${items.length} câu vào nguồn.`);
   renderComm();
 }
 
-function commPersonalBar(backend) {
-  const ta = el("textarea", { rows: "3", placeholder: "Dán văn bản tiếng Trung, phụ đề .srt, hoặc cặp song ngữ:  中文 ||| Tiếng Việt" });
-  const fileInput = el("input", { type: "file", accept: ".txt,.srt,.lrc,.csv" });
-  fileInput.addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) ta.value = await f.text(); });
-  const add = () => {
-    const items = comm.parseUserText(ta.value.trim());
-    if (!items.length) return toast("Không tách được câu tiếng Trung nào.");
-    setPersonalSource(items, "đã dán");
-  };
-  const clearBtn = commPersonal.length ? el("button", { class: "btn ghost small", onclick: () => { commPersonal = []; commPersonalLabel = ""; renderComm(); } }, "Xóa câu cá nhân") : null;
-
-  // Nếu backend Qwen3 đang bật → cho upload thẳng ảnh/PDF/audio/video để bóc tự động.
-  let mediaRow = null;
-  if (backend) {
-    const mediaInput = el("input", { type: "file", accept: "image/*,.pdf,audio/*,video/*" });
-    mediaInput.addEventListener("change", async (e) => {
-      const f = e.target.files[0]; if (!f) return;
-      toast("Đang bóc bằng Qwen3… có thể mất một lúc.");
-      try {
-        const items = await comm.extractViaBackend(f, f.name, "auto");
-        if (!items.length) return toast("Không bóc được câu nào.");
-        setPersonalSource(items, f.name);
-      } catch (err) { toast("Lỗi: " + err.message); }
-    });
-    mediaRow = el("div", { class: "row" }, el("span", { class: "small muted" }, "🤖 Bóc ảnh/PDF/audio/video:"), mediaInput);
-  }
-
-  return el("details", { class: "comm-personal" },
-    el("summary", {}, "➕ Thêm nguồn cá nhân (dán văn bản / phụ đề" + (backend ? " / ảnh · video" : "") + ")"),
-    el("p", { class: "muted small" }, backend
-      ? "Dán text/.srt, hoặc upload ảnh/PDF/audio/video để Qwen3 bóc câu và tự dịch Việt."
-      : "Văn bản chỉ có tiếng Trung dùng được cho Shadowing/Phát âm. Muốn luyện Việt→Trung thì dán kèm bản dịch dạng “中文 ||| Tiếng Việt”, hoặc bật backend Qwen3 trong Cài đặt để tự dịch & bóc ảnh/video."),
-    el("div", { class: "field" }, ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: add }, "Thêm vào nguồn"), clearBtn),
-    mediaRow);
-}
-
-async function commLibraryBar(backend) {
-  let files = [];
-  try { files = await comm.listLibraryFiles(); } catch {}
-  if (!files.length) return null;
-  const list = el("div", { class: "comm-libfiles" });
-  for (const f of files) {
-    let action;
-    if (f.kind === "text") {
-      action = el("button", { class: "btn ghost small", onclick: async () => {
-        const items = await comm.extractFileLines(f.id, f.kind);
-        if (!items.length) return toast("File không có câu tiếng Trung.");
-        setPersonalSource(items, f.name);
-      } }, "Dùng");
-    } else if (backendHandles(backend, f.kind)) {
-      action = el("button", { class: "btn ghost small", onclick: async () => {
-        toast("Đang bóc bằng Qwen3… có thể mất một lúc.");
-        try {
-          const blob = await lib.getFileBlob(f.id);
-          const items = await comm.extractViaBackend(blob, f.name, f.kind);
-          if (!items.length) return toast("Không bóc được câu nào.");
-          setPersonalSource(items, f.name);
-        } catch (err) { toast("Lỗi: " + err.message); }
-      } }, "🤖 Bóc tự động");
-    } else {
-      action = el("span", { class: "muted small" }, "Bóc bằng Qwen3 (sắp có)");
-    }
-    list.append(el("div", { class: "row spread comm-librow" }, el("span", { class: "small" }, `${libIcon(f.kind)} ${f.name}`), action));
-  }
-  return el("details", { class: "comm-personal" }, el("summary", {}, `📂 Lấy câu từ thư viện đã nạp (${files.length} file)`), list);
-}
-function libIcon(kind) { return ({ text: "📄", pdf: "📕", audio: "🎧", image: "🖼️", video: "🎬", ebook: "📘" })[kind] || "📎"; }
 
 /* ---------- Chấm phát âm (so khớp chữ Hán) ---------- */
 function scorePronun(target, said) {
@@ -1955,7 +1876,7 @@ function loadTransDraft(t) {
 }
 
 /* ============================================================
-   NẠP NỘI DUNG (nguồn → Bài học gồm task) — js/lessons.js
+   NẠP TÀI LIỆU (cửa nạp duy nhất → Tài liệu) — js/lessons.js
    ============================================================ */
 let ingestView = { screen: "new", lessonId: null };
 const LV_LABEL = { 1: "HSK 1", 2: "HSK 2", 3: "HSK 3", 4: "HSK 4", 5: "HSK 5", 6: "HSK 6" };
@@ -1966,7 +1887,7 @@ let materialCardIds = {};    // id → Set(cardId) để lọc Từ vựng
 let materialsLoaded = false;
 async function ensureMaterials() {
   if (materialsLoaded) return;
-  try { materialList = await lessons.listLessons(); } catch { materialList = []; }
+  try { materialList = await lessons.listMaterials(); } catch { materialList = []; }
   materialCardIds = {};
   for (const l of materialList) materialCardIds[l.id] = new Set((l.vocab || []).filter((v) => v.cardId).map((v) => v.cardId));
   materialsLoaded = true;
@@ -1985,7 +1906,7 @@ export async function renderIngest() {
 function ingestNav(active) {
   return el("div", { class: "comm-chips" },
     commChip("📝 Nạp mới", active === "new", () => { ingestView = { screen: "new" }; renderIngest(); }),
-    commChip("📚 Thư viện bài học", active === "library", () => { ingestView = { screen: "library" }; renderIngest(); }));
+    commChip("📚 Thư viện tài liệu", active === "library", () => { ingestView = { screen: "library" }; renderIngest(); }));
 }
 
 function splitVi(text) {
@@ -1993,9 +1914,9 @@ function splitVi(text) {
 }
 
 async function ingestNew(root) {
-  root.append(el("h1", { class: "view-title" }, "📥 Nạp nội dung"));
+  root.append(el("h1", { class: "view-title" }, "📥 Nạp tài liệu"));
   root.append(ingestNav("new"));
-  const titleInput = el("input", { type: "text", placeholder: "Tên bài học (tùy chọn)" });
+  const titleInput = el("input", { type: "text", placeholder: "Tên tài liệu (tùy chọn)" });
   const ta = el("textarea", { rows: "7", placeholder: "Dán truyện / bài viết / phụ đề tiếng Trung (hoặc văn bản tiếng Việt)…" });
   const fileInput = el("input", { type: "file", accept: ".txt,.srt,.lrc" });
   fileInput.addEventListener("change", async (e) => {
@@ -2007,7 +1928,7 @@ async function ingestNew(root) {
     el("b", {}, "Nguồn"),
     el("div", { class: "field" }, titleInput),
     el("div", { class: "field" }, ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, "🔍 Phân tích & tạo bài học")),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, "🔍 Phân tích & tạo tài liệu")),
     el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật — học thẳng tại các module đó. Văn bản .txt/.srt xử lý ngay; ảnh/PDF/audio/video & link truyện cần backend Qwen3 (sẽ thêm)."),
   ));
 }
@@ -2027,7 +1948,7 @@ async function createLesson(text, title) {
     lesson.sentences = splitVi(text).map((vi) => ({ vi }));
     lesson.chapters = lessons.detectChapters(lesson.sentences, "vi");
   }
-  await lessons.saveLesson(lesson);
+  await lessons.saveMaterial(lesson);
   invalidateMaterials();
   toast("Đã nạp & thêm vào Từ vựng · Giao tiếp · Dịch thuật.");
   ingestView = { screen: "lesson", lessonId: lesson.id };
@@ -2035,25 +1956,25 @@ async function createLesson(text, title) {
 }
 
 async function ingestLibrary(root) {
-  root.append(el("h1", { class: "view-title" }, "📥 Nạp nội dung"));
+  root.append(el("h1", { class: "view-title" }, "📥 Nạp tài liệu"));
   root.append(ingestNav("library"));
-  const list = await lessons.listLessons();
-  if (!list.length) { root.append(emptyState("Chưa có bài học", "Vào “Nạp mới” để tạo từ văn bản.")); return; }
+  const list = await lessons.listMaterials();
+  if (!list.length) { root.append(emptyState("Chưa có tài liệu", "Vào “Nạp mới” để tạo từ văn bản.")); return; }
   for (const l of list) {
     root.append(el("div", { class: "panel exam-card" },
       el("div", { class: "exam-head" }, el("h3", {}, l.title), el("span", { class: "chip" }, l.lang === "zh" ? "中文" : "Tiếng Việt")),
       el("p", { class: "muted small" }, `${new Date(l.createdAt).toLocaleDateString("vi")} · ${(l.vocab || []).length} từ · ${(l.sentences || []).length} câu`),
       el("div", { class: "exam-actions" },
         el("button", { class: "btn primary", onclick: () => { ingestView = { screen: "lesson", lessonId: l.id }; renderIngest(); } }, "Mở"),
-        el("button", { class: "btn ghost", onclick: async () => { if (confirm("Xóa bài học?")) { await lessons.deleteLesson(l.id); invalidateMaterials(); renderIngest(); } } }, "Xóa"))));
+        el("button", { class: "btn ghost", onclick: async () => { if (confirm("Xóa tài liệu?")) { await lessons.deleteMaterial(l.id); invalidateMaterials(); renderIngest(); } } }, "Xóa"))));
   }
 }
 
 async function ingestLesson(root) {
-  const lesson = await lessons.getLesson(ingestView.lessonId);
+  const lesson = await lessons.getMaterial(ingestView.lessonId);
   if (!lesson) { ingestView = { screen: "library" }; return renderIngest(); }
   root.append(el("div", { class: "exam-topbar" },
-    el("button", { class: "btn ghost", onclick: () => { ingestView = { screen: "library" }; renderIngest(); } }, "← Bài học"),
+    el("button", { class: "btn ghost", onclick: () => { ingestView = { screen: "library" }; renderIngest(); } }, "← Thư viện"),
     el("span", { class: "muted" }, lesson.title)));
   root.append(el("p", { class: "muted small" }, "Tài liệu này đã có sẵn trong Từ vựng · Giao tiếp · Dịch thuật (chọn theo nguồn). Bảng dưới để xem nhanh & theo dõi tiến độ."));
   if (lesson.lang === "zh" && lesson.vocab.length) root.append(lessonVocabPanel(lesson));
@@ -2085,7 +2006,7 @@ function buildTasks(lesson) {
     const prog = store.getProgress();
     const done = dictWords.filter((v) => { const st = prog[v.cardId]; return st && (st.known || st.reps > 0); }).length;
     tasks.push({ label: `🎴 Học ${dictWords.length} từ trong bài`, total: dictWords.length, done,
-      start: () => { const ids = new Set(dictWords.map((v) => v.cardId)); setStudyFilter((c) => ids.has(c.id), `Bài học: ${lesson.title}`); navigate("study"); } });
+      start: () => { const ids = new Set(dictWords.map((v) => v.cardId)); setStudyFilter((c) => ids.has(c.id), `Tài liệu: ${lesson.title}`); navigate("study"); } });
   }
   const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
   if (zhS.length) {
@@ -2150,7 +2071,7 @@ function taskRow(lesson, t) {
   const actions = el("div", { class: "row" }, el("button", { class: "btn small primary", onclick: t.start }, "Bắt đầu"));
   if (t.manual === "shadow") {
     const flag = !!lesson.manual.shadow;
-    actions.append(el("button", { class: "btn small ghost", onclick: async () => { lesson.manual.shadow = !flag; await lessons.saveLesson(lesson); renderIngest(); } }, flag ? "Bỏ đánh dấu" : "✓ Đã luyện xong"));
+    actions.append(el("button", { class: "btn small ghost", onclick: async () => { lesson.manual.shadow = !flag; await lessons.saveMaterial(lesson); renderIngest(); } }, flag ? "Bỏ đánh dấu" : "✓ Đã luyện xong"));
   }
   row.append(actions);
   return row;
@@ -2171,7 +2092,7 @@ function transConfigRow(lesson) {
   const val = el("input", { type: "number", min: "1", value: String(cfg.value), class: "chunk-val" });
   const apply = el("button", { class: "btn small primary", onclick: async () => {
     lesson.transChunk = { mode: mode.value, value: Math.max(1, parseInt(val.value, 10) || 1) };
-    await lessons.saveLesson(lesson); renderIngest();
+    await lessons.saveMaterial(lesson); renderIngest();
   } }, "Áp dụng");
   wrap.append(el("div", { class: "row" }, mode, val, apply));
   if (nChap) wrap.append(el("p", { class: "muted small" }, "Chia trong từng chương — không gộp câu giữa các chương."));

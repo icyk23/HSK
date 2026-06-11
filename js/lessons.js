@@ -108,14 +108,16 @@ export async function analyzeText(text) {
   return { vocab: analyzeVocab(text, idx), sentences, chapters: detectChapters(sentences, "zh") };
 }
 
-/* ---------------- Lưu Bài học (IndexedDB) ---------------- */
-const DB = "hsk-lessons";
+/* ---------------- Lưu Tài liệu (IndexedDB) ---------------- */
+// Store mới "materials"; bản test cũ ("hsk-lessons") bỏ — bắt đầu sạch theo mô hình Tài liệu.
+const DB = "hsk-materials";
+const STORE = "materials";
 let dbP = null;
 function openDB() {
   if (dbP) return dbP;
   dbP = new Promise((res, rej) => {
     const r = indexedDB.open(DB, 1);
-    r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains("lessons")) r.result.createObjectStore("lessons", { keyPath: "id" }); };
+    r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE, { keyPath: "id" }); };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
@@ -123,24 +125,24 @@ function openDB() {
 }
 function reqP(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 
-export async function saveLesson(l) {
+export async function saveMaterial(m) {
   const db = await openDB();
-  const t = db.transaction("lessons", "readwrite");
-  t.objectStore("lessons").put(l);
+  const t = db.transaction(STORE, "readwrite");
+  t.objectStore(STORE).put(m);
   return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
 }
-export async function listLessons() {
+export async function listMaterials() {
   const db = await openDB();
-  const all = await reqP(db.transaction("lessons", "readonly").objectStore("lessons").getAll());
+  const all = await reqP(db.transaction(STORE, "readonly").objectStore(STORE).getAll());
   return all.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
-export async function getLesson(id) {
+export async function getMaterial(id) {
   const db = await openDB();
-  return reqP(db.transaction("lessons", "readonly").objectStore("lessons").get(id));
+  return reqP(db.transaction(STORE, "readonly").objectStore(STORE).get(id));
 }
-export async function deleteLesson(id) {
+export async function deleteMaterial(id) {
   const db = await openDB();
-  const t = db.transaction("lessons", "readwrite");
-  t.objectStore("lessons").delete(id);
+  const t = db.transaction(STORE, "readwrite");
+  t.objectStore(STORE).delete(id);
   return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
 }

@@ -36,7 +36,7 @@ const NAV = [
     { view: "tradLessons", label: "Bài học" },
     { view: "tradComp", label: "Nhận diện thành phần" },
   ] },
-  { id: "ingest", label: "📥 Nạp nội dung", tabs: [{ view: "ingest", label: "Nạp nội dung" }] },
+  { id: "ingest", label: "📥 Nạp tài liệu", tabs: [{ view: "ingest", label: "Nạp nội dung" }] },
   { id: "stats", label: "📊 Tiến độ", tabs: [{ view: "stats", label: "Tiến độ" }] },
   { id: "settings", label: "⚙️ Cài đặt", tabs: [{ view: "settings", label: "Cài đặt" }] },
 ];
