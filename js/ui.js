@@ -1990,7 +1990,7 @@ async function ingestLesson(root) {
 function lessonVocabPanel(lesson) {
   const box = el("div", { class: "panel stack" });
   box.append(el("b", {}, `Từ vựng trong bài — ${lesson.vocab.length} từ, xếp theo nhóm HSK`));
-  box.append(el("p", { class: "muted small" }, "Từ trong danh sách HSK giữ cấp gốc; từ ngoài danh sách xếp theo độ khó vào HSK 1–6 = cấp cao nhất của các chữ Hán (chữ ngoài HSK coi như khó nhất → HSK 6)."));
+  box.append(el("p", { class: "muted small" }, "Từ trong danh sách HSK giữ cấp gốc; từ ngoài danh sách xếp vào HSK 1–6 theo độ thông dụng (tần suất, calibrate theo bộ HSK); chữ hiếm/lóng/thuật ngữ → HSK 6."));
   const groups = {};
   for (const v of lesson.vocab) (groups[v.level] = groups[v.level] || []).push(v);
   for (let lv = 1; lv <= 6; lv++) {

@@ -15,6 +15,12 @@ export async function loadVocabIndex() {
     const data = await r.json();
     cards = Array.isArray(data) ? data : data.cards || data.words || [];
   } catch {}
+  // Bảng tần suất chữ NGOÀI HSK (sinh bởi scripts/build-charstats.mjs) để xếp theo độ thông dụng.
+  let outRanks = {}, outThresholds = [482, 783, 957, 1263, 1756];
+  try {
+    const r = await fetch("./data/char-rank.json");
+    if (r.ok) { const d = await r.json(); outRanks = d.ranks || {}; outThresholds = d.thresholds || outThresholds; }
+  } catch {}
   const wordMap = new Map();   // simplified → { level, meaning, id }
   const charLevel = new Map(); // chữ Hán → cấp HSK thấp nhất (sớm nhất gặp)
   let maxLen = 1;
@@ -30,21 +36,31 @@ export async function loadVocabIndex() {
       if (cur == null || lv < cur) charLevel.set(ch, lv);
     }
   }
-  _idx = { wordMap, charLevel, maxLen: Math.min(maxLen, 6) };
+  _idx = { wordMap, charLevel, maxLen: Math.min(maxLen, 6), outRanks, outThresholds };
   return _idx;
 }
 
-// Quy tắc xếp nhóm cho token KHÔNG có trong danh sách HSK (luôn rơi vào HSK 1–6 theo độ khó):
-// level = cấp HSK CAO NHẤT trong các chữ Hán cấu thành (biết hết chữ thì học được từ);
-// chữ ngoài HSK = coi như khó nhất → HSK 6.
+// Độ khó một CHỮ → cấp HSK 1–6:
+// - chữ trong HSK: cấp gốc;
+// - chữ ngoài HSK: xếp theo ĐỘ THÔNG DỤNG (thứ hạng tần suất Jun Da, ngưỡng calibrate theo phân bố
+//   tần suất của chính bộ HSK); chữ hiếm/lóng/thuật ngữ (không có trong bảng tần suất) → HSK 6.
+function charLevelOf(ch, idx) {
+  const cl = idx.charLevel.get(ch);
+  if (cl != null) return cl;
+  const r = idx.outRanks[ch];
+  if (r == null) return 6;
+  const t = idx.outThresholds;
+  for (let i = 0; i < t.length; i++) if (r <= t[i]) return i + 1;
+  return 6;
+}
+
+// Quy tắc xếp nhóm token (luôn rơi vào HSK 1–6):
+// từ trong danh sách giữ cấp gốc; từ ngoài = cấp CAO NHẤT trong các chữ cấu thành.
 function tokenLevel(tok, idx) {
   const w = idx.wordMap.get(tok);
   if (w) return w.level;
   let lv = 1;
-  for (const ch of tok) {
-    const cl = idx.charLevel.get(ch) ?? 6;
-    if (cl > lv) lv = cl;
-  }
+  for (const ch of tok) { const d = charLevelOf(ch, idx); if (d > lv) lv = d; }
   return lv;
 }
 

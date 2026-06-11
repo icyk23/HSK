@@ -70,8 +70,10 @@ js/comm.js              Giao tiếp: nạp cảnh mẫu + tách câu (text/.srt/
 js/lessons.js           Nạp nội dung: phân tích văn bản → vocab xếp nhóm HSK (quy tắc) + tách câu; lưu Bài học (IndexedDB)
 data/comm-scenes.json   6 cảnh mẫu khẩu ngữ (hỏi-đáp · câu lẻ · mẫu câu thay thế)
 data/hsk-words.json     5.002 từ HSK1–6 đã phân loại (sinh bởi build script)
+data/char-rank.json     thứ hạng tần suất chữ NGOÀI HSK + ngưỡng (xếp chữ ngoài HSK vào 1–6 theo độ thông dụng)
 data/vocab.xlsx         nguồn gốc 5.002 từ (để build lại)
 scripts/build-words.mjs TOOL build: xlsx → phân loại → hsk-words.json (npm run build:words)
+scripts/build-charstats.mjs TOOL build: hanzi (Jun Da) → calibrate theo HSK → char-rank.json (npm run build:charstats)
 package.json            CHỈ cho build tooling (xlsx, opencc-js); app không dùng
 sw.js, manifest.*       offline / cài như app
 backend/                Backend Qwen3 (FastAPI) — TÙY CHỌN, chạy ở máy người dùng
@@ -150,7 +152,8 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     tầng 2 = tab con (chỉ Từ vựng có 5 tab; module đơn ẩn tầng 2). Nhớ tab con gần nhất/module.
 [x] Nạp nội dung (bản browser) — module "📥 Nạp nội dung" (global, nav tầng 1). Dán/upload text
     (.txt/.srt) → js/lessons.js phân tích: bóc TỪ VỰNG xếp theo nhóm HSK 1–6 (từ trong list giữ cấp
-    gốc; từ NGOÀI list xếp theo ĐỘ KHÓ vào 1–6 = cấp cao nhất của các chữ Hán, chữ ngoài HSK → HSK6)
+    gốc; từ NGOÀI list = cấp cao nhất của các chữ; CHỮ ngoài HSK xếp 1–6 theo ĐỘ THÔNG DỤNG — thứ hạng
+    tần suất Jun Da calibrate theo phân bố của bộ HSK, data/char-rank.json; chữ hiếm/lóng/thuật ngữ → HSK6)
     + tách câu + nhận diện CHƯƠNG (第X章 / Chương N) → tạo "Bài học" (IndexedDB) gồm task vocab/shadow/
     translate nối thẳng Học thẻ/Giao tiếp/Dịch thuật (qua main.navigate). Task DỊCH chia theo chương →
     khúc, cấu hình Số phần (½,⅓)/Số câu/Số chữ (transConfigRow). Tiến độ: vocab+translate tự đếm, shadow

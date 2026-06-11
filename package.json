@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "build:words": "node scripts/build-words.mjs",
+    "build:charstats": "node scripts/build-charstats.mjs",
     "classify:qwen": "node scripts/classify-qwen.mjs"
   },
   "devDependencies": {
+    "hanzi": "^2.1.5",
     "opencc-js": "^1.0.5",
     "xlsx": "^0.18.5"
   }
