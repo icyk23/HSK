@@ -4,6 +4,8 @@ import * as store from "./store.js";
 import * as srs from "./srs.js";
 import { speak, hasChineseVoice, hasRecognition, recognizeChinese, stopSpeaking } from "./audio.js";
 import * as comm from "./comm.js";
+import * as lessons from "./lessons.js";
+import { navigate } from "./main.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
 import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExams, getHskk } from "./exams.js";
 import { unzip } from "./unzip.js";
@@ -1894,4 +1896,160 @@ function loadTransDraft(t) {
   transDraft = { id: t.id, dir: t.dir, source: t.source, sourcePinyin: t.sourcePinyin || "", user: t.user || "", ref: t.ref || "", refPinyin: t.refPinyin || "", grade: t.grade || null, createdAt: t.createdAt };
   transView = { screen: "home" };
   renderTrans();
+}
+
+/* ============================================================
+   NẠP NỘI DUNG (nguồn → Bài học gồm task) — js/lessons.js
+   ============================================================ */
+let ingestView = { screen: "new", lessonId: null };
+const LV_LABEL = { 1: "HSK 1", 2: "HSK 2", 3: "HSK 3", 4: "HSK 4", 5: "HSK 5", 6: "HSK 6", 7: "6+ / Ngoài HSK" };
+
+export async function renderIngest() {
+  clearCommState();
+  const root = clear();
+  if (ingestView.screen === "lesson") return ingestLesson(root);
+  if (ingestView.screen === "library") return ingestLibrary(root);
+  return ingestNew(root);
+}
+
+function ingestNav(active) {
+  return el("div", { class: "comm-chips" },
+    commChip("📝 Nạp mới", active === "new", () => { ingestView = { screen: "new" }; renderIngest(); }),
+    commChip("📚 Thư viện bài học", active === "library", () => { ingestView = { screen: "library" }; renderIngest(); }));
+}
+
+function splitVi(text) {
+  return String(text).replace(/\r/g, "").split(/(?<=[.!?…\n])/).map((s) => s.trim()).filter((s) => s.length > 1);
+}
+
+async function ingestNew(root) {
+  root.append(el("h1", { class: "view-title" }, "📥 Nạp nội dung"));
+  root.append(ingestNav("new"));
+  const titleInput = el("input", { type: "text", placeholder: "Tên bài học (tùy chọn)" });
+  const ta = el("textarea", { rows: "7", placeholder: "Dán truyện / bài viết / phụ đề tiếng Trung (hoặc văn bản tiếng Việt)…" });
+  const fileInput = el("input", { type: "file", accept: ".txt,.srt,.lrc" });
+  fileInput.addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    ta.value = await f.text();
+    if (!titleInput.value) titleInput.value = f.name.replace(/\.[^.]+$/, "");
+  });
+  root.append(el("div", { class: "panel stack" },
+    el("b", {}, "Nguồn"),
+    el("div", { class: "field" }, titleInput),
+    el("div", { class: "field" }, ta),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, "🔍 Phân tích & tạo bài học")),
+    el("p", { class: "muted small" }, "Văn bản .txt/.srt xử lý ngay trong trình duyệt. Ảnh/PDF/audio/video & link truyện cần backend Qwen3 (sẽ thêm)."),
+  ));
+}
+
+async function createLesson(text, title) {
+  text = (text || "").trim();
+  if (!text) return toast("Chưa có nội dung.");
+  const hanCount = (text.match(/[一-鿿]/g) || []).length;
+  const lang = hanCount >= 5 ? "zh" : "vi";
+  toast("Đang phân tích…");
+  const lesson = { id: "ls-" + Date.now().toString(36), title: (title || "").trim() || text.slice(0, 24), lang, source: { type: "paste" }, createdAt: new Date().toISOString(), manual: {} };
+  if (lang === "zh") {
+    const { vocab, sentences } = await lessons.analyzeText(text);
+    lesson.vocab = vocab; lesson.sentences = sentences;
+  } else {
+    lesson.vocab = []; lesson.sentences = splitVi(text).map((vi) => ({ vi }));
+  }
+  await lessons.saveLesson(lesson);
+  ingestView = { screen: "lesson", lessonId: lesson.id };
+  renderIngest();
+}
+
+async function ingestLibrary(root) {
+  root.append(el("h1", { class: "view-title" }, "📥 Nạp nội dung"));
+  root.append(ingestNav("library"));
+  const list = await lessons.listLessons();
+  if (!list.length) { root.append(emptyState("Chưa có bài học", "Vào “Nạp mới” để tạo từ văn bản.")); return; }
+  for (const l of list) {
+    root.append(el("div", { class: "panel exam-card" },
+      el("div", { class: "exam-head" }, el("h3", {}, l.title), el("span", { class: "chip" }, l.lang === "zh" ? "中文" : "Tiếng Việt")),
+      el("p", { class: "muted small" }, `${new Date(l.createdAt).toLocaleDateString("vi")} · ${(l.vocab || []).length} từ · ${(l.sentences || []).length} câu`),
+      el("div", { class: "exam-actions" },
+        el("button", { class: "btn primary", onclick: () => { ingestView = { screen: "lesson", lessonId: l.id }; renderIngest(); } }, "Mở"),
+        el("button", { class: "btn ghost", onclick: async () => { if (confirm("Xóa bài học?")) { await lessons.deleteLesson(l.id); renderIngest(); } } }, "Xóa"))));
+  }
+}
+
+async function ingestLesson(root) {
+  const lesson = await lessons.getLesson(ingestView.lessonId);
+  if (!lesson) { ingestView = { screen: "library" }; return renderIngest(); }
+  root.append(el("div", { class: "exam-topbar" },
+    el("button", { class: "btn ghost", onclick: () => { ingestView = { screen: "library" }; renderIngest(); } }, "← Bài học"),
+    el("span", { class: "muted" }, lesson.title)));
+  if (lesson.lang === "zh" && lesson.vocab.length) root.append(lessonVocabPanel(lesson));
+  root.append(lessonTasksPanel(lesson));
+}
+
+function lessonVocabPanel(lesson) {
+  const box = el("div", { class: "panel stack" });
+  box.append(el("b", {}, `Từ vựng trong bài — ${lesson.vocab.length} từ, xếp theo nhóm HSK`));
+  box.append(el("p", { class: "muted small" }, "Từ trong danh sách HSK giữ cấp gốc; từ ngoài danh sách xếp theo quy tắc = cấp cao nhất của các chữ Hán cấu thành."));
+  const groups = {};
+  for (const v of lesson.vocab) (groups[v.level] = groups[v.level] || []).push(v);
+  for (let lv = 1; lv <= 7; lv++) {
+    const arr = groups[lv]; if (!arr || !arr.length) continue;
+    const list = el("div", { class: "lesson-vlist" });
+    for (const v of arr) list.append(el("span", { class: "lesson-vword" + (v.inDict ? "" : " out"), title: v.meaning || "(từ ngoài danh sách HSK)" }, v.word + (v.freq > 1 ? ` ·${v.freq}` : "")));
+    box.append(el("details", { class: "lesson-vgroup" },
+      el("summary", {}, el("span", { class: "chip lvl" }, LV_LABEL[lv]), ` ${arr.length} từ`), list));
+  }
+  return box;
+}
+
+function buildTasks(lesson) {
+  const tasks = [];
+  if (lesson.lang === "zh") {
+    const dictWords = lesson.vocab.filter((v) => v.cardId);
+    if (dictWords.length) {
+      const prog = store.getProgress();
+      const done = dictWords.filter((v) => { const st = prog[v.cardId]; return st && (st.known || st.reps > 0); }).length;
+      tasks.push({ icon: "🎴", label: `Học ${dictWords.length} từ trong bài`, total: dictWords.length, done,
+        start: () => { const ids = new Set(dictWords.map((v) => v.cardId)); setStudyFilter((c) => ids.has(c.id), `Bài học: ${lesson.title}`); navigate("study"); } });
+    }
+    const zhS = lesson.sentences.filter((s) => s.zh);
+    if (zhS.length) {
+      tasks.push({ icon: "🗣️", label: `Luyện nói ${zhS.length} câu (Shadowing)`, total: zhS.length, done: lesson.manual.shadow ? zhS.length : 0, manual: "shadow",
+        start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh })); commPersonalLabel = lesson.title; commView = { screen: "shadow" }; navigate("comm"); } });
+    }
+  }
+  const sents = lesson.sentences;
+  if (sents.length) {
+    const srcKey = lesson.lang === "zh" ? "zh" : "vi";
+    const savedSources = new Set(store.getTranslations().map((t) => t.source));
+    const done = sents.filter((s) => savedSources.has(s[srcKey])).length;
+    const dir = lesson.lang === "zh" ? "zh2vi" : "vi2zh";
+    tasks.push({ icon: "🌐", label: `Dịch ${sents.length} câu (${dir === "zh2vi" ? "中→Việt" : "Việt→中"})`, total: sents.length, done,
+      start: () => { transDraft = newTransDraft(dir); transDraft.source = sents[0][srcKey] || ""; transView = { screen: "home" }; navigate("trans"); } });
+  }
+  return tasks;
+}
+
+function lessonTasksPanel(lesson) {
+  const box = el("div", { class: "panel stack" });
+  box.append(el("b", {}, "Nhiệm vụ"));
+  const tasks = buildTasks(lesson);
+  if (!tasks.length) { box.append(el("p", { class: "muted small" }, "Chưa tạo được nhiệm vụ từ nội dung này.")); return box; }
+  const totalDone = tasks.reduce((s, t) => s + t.done, 0), totalAll = tasks.reduce((s, t) => s + t.total, 0);
+  const pct = totalAll ? Math.round((totalDone / totalAll) * 100) : 0;
+  box.append(el("div", { class: "progress" }, el("span", { style: `width:${pct}%` })));
+  box.append(el("div", { class: "muted small" }, `Hoàn thành ${pct}%`));
+  for (const t of tasks) {
+    const row = el("div", { class: "lesson-task" });
+    row.append(el("div", { class: "row spread" },
+      el("span", {}, `${t.icon} ${t.label}`),
+      el("span", { class: "chip" + (t.total && t.done >= t.total ? " st known" : "") }, `${t.done}/${t.total}`)));
+    const actions = el("div", { class: "row" }, el("button", { class: "btn small primary", onclick: t.start }, "Bắt đầu"));
+    if (t.manual === "shadow") {
+      const flag = !!lesson.manual.shadow;
+      actions.append(el("button", { class: "btn small ghost", onclick: async () => { lesson.manual.shadow = !flag; await lessons.saveLesson(lesson); renderIngest(); } }, flag ? "Bỏ đánh dấu" : "✓ Đã luyện xong"));
+    }
+    row.append(actions);
+    box.append(row);
+  }
+  return box;
 }

@@ -35,7 +35,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | 🟡 Workspace 2 chiều + lưu/ôn (Bài đã dịch) đã có; chấm/sửa cần Qwen3 (/grade) |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
-| **Nạp nội dung** 📥 *(global)* | Video · Truyện · Tài liệu | ⬜ chưa xây |
+| **Nạp nội dung** 📥 *(global)* | Nạp mới · Thư viện bài học | 🟡 Bản browser: dán text → bóc vocab theo nhóm HSK + task; link/media chờ Qwen3 |
 | **Tiến độ** 📊 · **Cài đặt** ⚙️ *(global)* | — | ✅ đã có |
 
 Khớp **3 trụ cột** (Từ vựng · Dịch thuật · Giao tiếp) + Luyện đề + Phồn thể độc lập.
@@ -67,6 +67,7 @@ js/audio.js             phát âm (Web Speech API)
 js/decks.js             nạp deck + parse CSV import
 js/classify.js          pipeline phân loại Lớp 1+2 (dùng cả browser lẫn build script)
 js/comm.js              Giao tiếp: nạp cảnh mẫu + tách câu (text/.srt/song ngữ) + lấy câu từ thư viện
+js/lessons.js           Nạp nội dung: phân tích văn bản → vocab xếp nhóm HSK (quy tắc) + tách câu; lưu Bài học (IndexedDB)
 data/comm-scenes.json   6 cảnh mẫu khẩu ngữ (hỏi-đáp · câu lẻ · mẫu câu thay thế)
 data/hsk-words.json     5.002 từ HSK1–6 đã phân loại (sinh bởi build script)
 data/vocab.xlsx         nguồn gốc 5.002 từ (để build lại)
@@ -147,8 +148,12 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
 [x] Dựng nav 2 tầng (js/main.js NAV config) + đổi tên: "Học tiếng Trung", "Danh sách",
     "Nguồn từ". Tầng 1 = module (Từ vựng·Luyện đề·Giao tiếp·Dịch thuật·Tiến độ·Cài đặt),
     tầng 2 = tab con (chỉ Từ vựng có 5 tab; module đơn ẩn tầng 2). Nhớ tab con gần nhất/module.
-[~] Nạp nội dung — ĐÃ CHỐT THIẾT KẾ (NAP_NOI_DUNG_DESIGN.md): nguồn→Bài học gồm task (vocab/
-    shadow/translate/qa) nối các module; bóc vocab browser bằng từ điển 5002 từ; link/dịch/câu hỏi
-    cần backend /ingest (Qwen3). Tiến độ: tự đếm + thủ công. CHỜ CODE.
+[x] Nạp nội dung (bản browser) — module "📥 Nạp nội dung" (global, nav tầng 1). Dán/upload text
+    (.txt/.srt) → js/lessons.js phân tích: bóc TỪ VỰNG xếp theo nhóm HSK 1–6 (từ trong list giữ cấp
+    gốc; từ NGOÀI list xếp theo quy tắc = cấp cao nhất của các chữ Hán; chữ ngoài HSK → "6+/Ngoài")
+    + tách câu → tạo "Bài học" (IndexedDB) gồm task vocab/shadow/translate nối thẳng Học thẻ/Giao tiếp/
+    Dịch thuật (qua main.navigate). Tiến độ: vocab+translate tự đếm, shadow thủ công. Thiết kế đầy đủ:
+    NAP_NOI_DUNG_DESIGN.md. CHỜ Qwen3: gửi LINK (/ingest trafilatura/yt-dlp), tự dịch, sinh câu hỏi,
+    ghép từ ghép ngoài từ điển (jieba); bóc media dùng /extract đã có.
 [ ] Phồn thể — module độc lập (sẽ thêm vào nav tầng 1 khi xong)
 ```

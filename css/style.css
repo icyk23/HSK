@@ -415,3 +415,12 @@ button.btn.big { padding: 12px 22px; font-size: 16px; margin-top: 10px; }
 /* ============ Dịch thuật ============ */
 .trans-notes { margin: 4px 0 0; padding-left: 20px; }
 .trans-notes li { font-size: 13px; margin-bottom: 4px; }
+
+/* ============ Nạp nội dung (Bài học) ============ */
+.lesson-vgroup { border-top: 1px solid var(--border); padding: 6px 0; }
+.lesson-vgroup summary { cursor: pointer; font-size: 14px; }
+.lesson-vlist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.lesson-vword { font-size: calc(15px * var(--hanzi-scale)); padding: 3px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.lesson-vword.out { border-style: dashed; color: var(--text-muted); }
+.lesson-task { border-top: 1px solid var(--border); padding: 10px 0; display: grid; gap: 8px; }
+.lesson-task:first-of-type { border-top: none; }

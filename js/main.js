@@ -12,6 +12,7 @@ const VIEWS = {
   trans: ui.renderTrans,
   listen: ui.renderListen,
   manage: ui.renderManage,
+  ingest: ui.renderIngest,
   stats: ui.renderStats,
   settings: ui.renderSettings,
 };
@@ -29,6 +30,7 @@ const NAV = [
   { id: "exam", label: "📝 Luyện đề", tabs: [{ view: "exam", label: "Luyện đề" }] },
   { id: "comm", label: "🗣️ Giao tiếp", tabs: [{ view: "comm", label: "Giao tiếp" }] },
   { id: "trans", label: "🌐 Dịch thuật", tabs: [{ view: "trans", label: "Dịch thuật" }] },
+  { id: "ingest", label: "📥 Nạp nội dung", tabs: [{ view: "ingest", label: "Nạp nội dung" }] },
   { id: "stats", label: "📊 Tiến độ", tabs: [{ view: "stats", label: "Tiến độ" }] },
   { id: "settings", label: "⚙️ Cài đặt", tabs: [{ view: "settings", label: "Cài đặt" }] },
 ];
@@ -47,6 +49,9 @@ function go(view) {
   (VIEWS[view] || ui.renderStudy)();
   window.scrollTo({ top: 0 });
 }
+
+// Cho phép các module (ui.js) chuyển sang module/tab khác — vd Bài học → Học thẻ/Giao tiếp/Dịch thuật.
+export function navigate(view) { go(view); }
 
 function tabBtn(label, active, onclick) {
   const b = document.createElement("button");
