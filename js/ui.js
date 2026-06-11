@@ -1902,7 +1902,7 @@ function loadTransDraft(t) {
    NẠP NỘI DUNG (nguồn → Bài học gồm task) — js/lessons.js
    ============================================================ */
 let ingestView = { screen: "new", lessonId: null };
-const LV_LABEL = { 1: "HSK 1", 2: "HSK 2", 3: "HSK 3", 4: "HSK 4", 5: "HSK 5", 6: "HSK 6", 7: "6+ / Ngoài HSK" };
+const LV_LABEL = { 1: "HSK 1", 2: "HSK 2", 3: "HSK 3", 4: "HSK 4", 5: "HSK 5", 6: "HSK 6" };
 
 export async function renderIngest() {
   clearCommState();
@@ -1950,10 +1950,12 @@ async function createLesson(text, title) {
   toast("Đang phân tích…");
   const lesson = { id: "ls-" + Date.now().toString(36), title: (title || "").trim() || text.slice(0, 24), lang, source: { type: "paste" }, createdAt: new Date().toISOString(), manual: {} };
   if (lang === "zh") {
-    const { vocab, sentences } = await lessons.analyzeText(text);
-    lesson.vocab = vocab; lesson.sentences = sentences;
+    const { vocab, sentences, chapters } = await lessons.analyzeText(text);
+    lesson.vocab = vocab; lesson.sentences = sentences; lesson.chapters = chapters;
   } else {
-    lesson.vocab = []; lesson.sentences = splitVi(text).map((vi) => ({ vi }));
+    lesson.vocab = [];
+    lesson.sentences = splitVi(text).map((vi) => ({ vi }));
+    lesson.chapters = lessons.detectChapters(lesson.sentences, "vi");
   }
   await lessons.saveLesson(lesson);
   ingestView = { screen: "lesson", lessonId: lesson.id };
@@ -1988,10 +1990,10 @@ async function ingestLesson(root) {
 function lessonVocabPanel(lesson) {
   const box = el("div", { class: "panel stack" });
   box.append(el("b", {}, `Từ vựng trong bài — ${lesson.vocab.length} từ, xếp theo nhóm HSK`));
-  box.append(el("p", { class: "muted small" }, "Từ trong danh sách HSK giữ cấp gốc; từ ngoài danh sách xếp theo quy tắc = cấp cao nhất của các chữ Hán cấu thành."));
+  box.append(el("p", { class: "muted small" }, "Từ trong danh sách HSK giữ cấp gốc; từ ngoài danh sách xếp theo độ khó vào HSK 1–6 = cấp cao nhất của các chữ Hán (chữ ngoài HSK coi như khó nhất → HSK 6)."));
   const groups = {};
   for (const v of lesson.vocab) (groups[v.level] = groups[v.level] || []).push(v);
-  for (let lv = 1; lv <= 7; lv++) {
+  for (let lv = 1; lv <= 6; lv++) {
     const arr = groups[lv]; if (!arr || !arr.length) continue;
     const list = el("div", { class: "lesson-vlist" });
     for (const v of arr) list.append(el("span", { class: "lesson-vword" + (v.inDict ? "" : " out"), title: v.meaning || "(từ ngoài danh sách HSK)" }, v.word + (v.freq > 1 ? ` ·${v.freq}` : "")));
@@ -2001,55 +2003,121 @@ function lessonVocabPanel(lesson) {
   return box;
 }
 
+// Task Học từ + Shadowing (task Dịch tách riêng để chia theo khúc).
 function buildTasks(lesson) {
   const tasks = [];
-  if (lesson.lang === "zh") {
-    const dictWords = lesson.vocab.filter((v) => v.cardId);
-    if (dictWords.length) {
-      const prog = store.getProgress();
-      const done = dictWords.filter((v) => { const st = prog[v.cardId]; return st && (st.known || st.reps > 0); }).length;
-      tasks.push({ icon: "🎴", label: `Học ${dictWords.length} từ trong bài`, total: dictWords.length, done,
-        start: () => { const ids = new Set(dictWords.map((v) => v.cardId)); setStudyFilter((c) => ids.has(c.id), `Bài học: ${lesson.title}`); navigate("study"); } });
-    }
-    const zhS = lesson.sentences.filter((s) => s.zh);
-    if (zhS.length) {
-      tasks.push({ icon: "🗣️", label: `Luyện nói ${zhS.length} câu (Shadowing)`, total: zhS.length, done: lesson.manual.shadow ? zhS.length : 0, manual: "shadow",
-        start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh })); commPersonalLabel = lesson.title; commView = { screen: "shadow" }; navigate("comm"); } });
-    }
+  if (lesson.lang !== "zh") return tasks;
+  const dictWords = lesson.vocab.filter((v) => v.cardId);
+  if (dictWords.length) {
+    const prog = store.getProgress();
+    const done = dictWords.filter((v) => { const st = prog[v.cardId]; return st && (st.known || st.reps > 0); }).length;
+    tasks.push({ label: `🎴 Học ${dictWords.length} từ trong bài`, total: dictWords.length, done,
+      start: () => { const ids = new Set(dictWords.map((v) => v.cardId)); setStudyFilter((c) => ids.has(c.id), `Bài học: ${lesson.title}`); navigate("study"); } });
   }
-  const sents = lesson.sentences;
-  if (sents.length) {
-    const srcKey = lesson.lang === "zh" ? "zh" : "vi";
-    const savedSources = new Set(store.getTranslations().map((t) => t.source));
-    const done = sents.filter((s) => savedSources.has(s[srcKey])).length;
-    const dir = lesson.lang === "zh" ? "zh2vi" : "vi2zh";
-    tasks.push({ icon: "🌐", label: `Dịch ${sents.length} câu (${dir === "zh2vi" ? "中→Việt" : "Việt→中"})`, total: sents.length, done,
-      start: () => { transDraft = newTransDraft(dir); transDraft.source = sents[0][srcKey] || ""; transView = { screen: "home" }; navigate("trans"); } });
+  const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
+  if (zhS.length) {
+    tasks.push({ label: `🗣️ Luyện nói ${zhS.length} câu (Shadowing)`, total: zhS.length, done: lesson.manual.shadow ? zhS.length : 0, manual: "shadow",
+      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh })); commPersonalLabel = lesson.title; commView = { screen: "shadow" }; navigate("comm"); } });
   }
   return tasks;
+}
+
+// Chia danh sách chỉ số câu trong 1 chương thành nhiều khúc theo cấu hình.
+function chunkIdxs(idxs, sentences, cfg, key) {
+  if (cfg.mode === "parts") {
+    const k = Math.max(1, Math.min(cfg.value, idxs.length));
+    const out = Array.from({ length: k }, () => []);
+    idxs.forEach((id, n) => out[Math.floor((n * k) / idxs.length)].push(id));
+    return out.filter((p) => p.length);
+  }
+  if (cfg.mode === "chars") {
+    const out = []; let cur = [], sum = 0;
+    for (const id of idxs) {
+      const len = [...(sentences[id][key] || "")].length;
+      if (cur.length && sum + len > cfg.value) { out.push(cur); cur = []; sum = 0; }
+      cur.push(id); sum += len;
+    }
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  const n = Math.max(1, cfg.value), out = [];
+  for (let i = 0; i < idxs.length; i += n) out.push(idxs.slice(i, i + n));
+  return out;
+}
+
+// Task Dịch: chia theo chương (nếu có) → theo khúc (số phần / số câu / số chữ).
+function translateTasks(lesson) {
+  const key = lesson.lang === "zh" ? "zh" : "vi";
+  const dir = lesson.lang === "zh" ? "zh2vi" : "vi2zh";
+  const cfg = lesson.transChunk || { mode: "parts", value: 3 };
+  const chapters = lesson.chapters && lesson.chapters.length ? lesson.chapters : [{ title: null, start: 0, end: lesson.sentences.length }];
+  const saved = new Set(store.getTranslations().map((t) => t.source));
+  const tasks = [];
+  for (const ch of chapters) {
+    const idxs = [];
+    for (let i = ch.start; i < ch.end; i++) { const s = lesson.sentences[i]; if (s && !s.chapter && (s[key] || "").trim()) idxs.push(i); }
+    if (!idxs.length) continue;
+    const parts = chunkIdxs(idxs, lesson.sentences, cfg, key);
+    parts.forEach((p, pi) => {
+      const done = p.filter((id) => saved.has(lesson.sentences[id][key])).length;
+      const chapLbl = ch.title || (chapters.length > 1 ? "Mở đầu" : "");
+      const partLbl = parts.length > 1 ? `${chapLbl ? " · " : ""}phần ${pi + 1}/${parts.length}` : "";
+      tasks.push({ label: `🌐 Dịch ${chapLbl}${partLbl} (${p.length} câu)`.replace(/\s+/g, " "), total: p.length, done,
+        start: () => { const next = p.find((id) => !saved.has(lesson.sentences[id][key])) ?? p[0]; transDraft = newTransDraft(dir); transDraft.source = lesson.sentences[next][key] || ""; transView = { screen: "home" }; navigate("trans"); } });
+    });
+  }
+  return tasks;
+}
+
+function taskRow(lesson, t) {
+  const row = el("div", { class: "lesson-task" });
+  row.append(el("div", { class: "row spread" },
+    el("span", {}, t.label),
+    el("span", { class: "chip" + (t.total && t.done >= t.total ? " st known" : "") }, `${t.done}/${t.total}`)));
+  const actions = el("div", { class: "row" }, el("button", { class: "btn small primary", onclick: t.start }, "Bắt đầu"));
+  if (t.manual === "shadow") {
+    const flag = !!lesson.manual.shadow;
+    actions.append(el("button", { class: "btn small ghost", onclick: async () => { lesson.manual.shadow = !flag; await lessons.saveLesson(lesson); renderIngest(); } }, flag ? "Bỏ đánh dấu" : "✓ Đã luyện xong"));
+  }
+  row.append(actions);
+  return row;
+}
+
+// Bộ chỉnh cách chia nhiệm vụ Dịch.
+function transConfigRow(lesson) {
+  const key = lesson.lang === "zh" ? "zh" : "vi";
+  const cfg = lesson.transChunk || { mode: "parts", value: 3 };
+  const nCau = (lesson.sentences || []).filter((s) => !s.chapter && (s[key] || "").trim()).length;
+  const nChap = (lesson.chapters || []).filter((c) => c.title).length;
+  const wrap = el("div", { class: "lesson-task" });
+  wrap.append(el("div", { class: "row spread" },
+    el("span", {}, "🌐 Dịch — chia nhiệm vụ"),
+    el("span", { class: "muted small" }, `${nCau} câu${nChap ? ` · ${nChap} chương` : ""}`)));
+  const mode = el("select", { class: "chunk-mode" },
+    ...[["parts", "Số phần (½, ⅓…)"], ["sentences", "Số câu / phần"], ["chars", "Số chữ / phần"]].map(([v, l]) => el("option", { value: v, selected: cfg.mode === v }, l)));
+  const val = el("input", { type: "number", min: "1", value: String(cfg.value), class: "chunk-val" });
+  const apply = el("button", { class: "btn small primary", onclick: async () => {
+    lesson.transChunk = { mode: mode.value, value: Math.max(1, parseInt(val.value, 10) || 1) };
+    await lessons.saveLesson(lesson); renderIngest();
+  } }, "Áp dụng");
+  wrap.append(el("div", { class: "row" }, mode, val, apply));
+  if (nChap) wrap.append(el("p", { class: "muted small" }, "Chia trong từng chương — không gộp câu giữa các chương."));
+  return wrap;
 }
 
 function lessonTasksPanel(lesson) {
   const box = el("div", { class: "panel stack" });
   box.append(el("b", {}, "Nhiệm vụ"));
-  const tasks = buildTasks(lesson);
-  if (!tasks.length) { box.append(el("p", { class: "muted small" }, "Chưa tạo được nhiệm vụ từ nội dung này.")); return box; }
-  const totalDone = tasks.reduce((s, t) => s + t.done, 0), totalAll = tasks.reduce((s, t) => s + t.total, 0);
+  const core = buildTasks(lesson);
+  const tTasks = translateTasks(lesson);
+  const all = [...core, ...tTasks];
+  if (!all.length) { box.append(el("p", { class: "muted small" }, "Chưa tạo được nhiệm vụ từ nội dung này.")); return box; }
+  const totalDone = all.reduce((s, t) => s + t.done, 0), totalAll = all.reduce((s, t) => s + t.total, 0);
   const pct = totalAll ? Math.round((totalDone / totalAll) * 100) : 0;
   box.append(el("div", { class: "progress" }, el("span", { style: `width:${pct}%` })));
   box.append(el("div", { class: "muted small" }, `Hoàn thành ${pct}%`));
-  for (const t of tasks) {
-    const row = el("div", { class: "lesson-task" });
-    row.append(el("div", { class: "row spread" },
-      el("span", {}, `${t.icon} ${t.label}`),
-      el("span", { class: "chip" + (t.total && t.done >= t.total ? " st known" : "") }, `${t.done}/${t.total}`)));
-    const actions = el("div", { class: "row" }, el("button", { class: "btn small primary", onclick: t.start }, "Bắt đầu"));
-    if (t.manual === "shadow") {
-      const flag = !!lesson.manual.shadow;
-      actions.append(el("button", { class: "btn small ghost", onclick: async () => { lesson.manual.shadow = !flag; await lessons.saveLesson(lesson); renderIngest(); } }, flag ? "Bỏ đánh dấu" : "✓ Đã luyện xong"));
-    }
-    row.append(actions);
-    box.append(row);
-  }
+  for (const t of core) box.append(taskRow(lesson, t));
+  box.append(transConfigRow(lesson));
+  for (const t of tTasks) box.append(taskRow(lesson, t));
   return box;
 }

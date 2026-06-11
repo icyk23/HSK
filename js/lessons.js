@@ -34,19 +34,18 @@ export async function loadVocabIndex() {
   return _idx;
 }
 
-// Quy tắc xếp nhóm cho token KHÔNG có trong danh sách HSK:
+// Quy tắc xếp nhóm cho token KHÔNG có trong danh sách HSK (luôn rơi vào HSK 1–6 theo độ khó):
 // level = cấp HSK CAO NHẤT trong các chữ Hán cấu thành (biết hết chữ thì học được từ);
-// nếu có chữ ngoài HSK → nhóm 7 ("6+ / Ngoài HSK").
+// chữ ngoài HSK = coi như khó nhất → HSK 6.
 function tokenLevel(tok, idx) {
   const w = idx.wordMap.get(tok);
   if (w) return w.level;
-  let lv = 1, unknown = false;
+  let lv = 1;
   for (const ch of tok) {
-    const cl = idx.charLevel.get(ch);
-    if (cl == null) unknown = true;
-    else if (cl > lv) lv = cl;
+    const cl = idx.charLevel.get(ch) ?? 6;
+    if (cl > lv) lv = cl;
   }
-  return unknown ? 7 : lv;
+  return lv;
 }
 
 // Tách từ bằng khớp-dài-nhất với từ điển; token lạ giữ ở mức 1 chữ.
@@ -75,9 +74,22 @@ export function analyzeVocab(text, idx) {
   return [...tokens.values()].sort((a, b) => a.level - b.level || b.freq - a.freq);
 }
 
+// Nhận diện ranh giới chương ("第X章/回/节", "Chương/Phần/Tập N") để chia nhiệm vụ dịch.
+const CHAP_RE = /^(第[〇零一二三四五六七八九十百千两0-9]+\s*[章回节節卷篇]|chương\s*\d+|phần\s*\d+|tập\s*\d+)/i;
+export function detectChapters(sentences, key = "zh") {
+  const heads = [];
+  sentences.forEach((s, i) => { if (CHAP_RE.test((s[key] || "").trim())) { s.chapter = true; heads.push(i); } });
+  const chapters = [];
+  if (!heads.length) { chapters.push({ title: null, start: 0, end: sentences.length }); return chapters; }
+  if (heads[0] > 0) chapters.push({ title: null, start: 0, end: heads[0] });
+  heads.forEach((h, k) => chapters.push({ title: (sentences[h][key] || "").trim().slice(0, 30), start: h + 1, end: k + 1 < heads.length ? heads[k + 1] : sentences.length }));
+  return chapters;
+}
+
 export async function analyzeText(text) {
   const idx = await loadVocabIndex();
-  return { vocab: analyzeVocab(text, idx), sentences: splitChinese(text).map((zh) => ({ zh })) };
+  const sentences = splitChinese(text).map((zh) => ({ zh }));
+  return { vocab: analyzeVocab(text, idx), sentences, chapters: detectChapters(sentences, "zh") };
 }
 
 /* ---------------- Lưu Bài học (IndexedDB) ---------------- */

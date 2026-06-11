@@ -150,10 +150,11 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     tầng 2 = tab con (chỉ Từ vựng có 5 tab; module đơn ẩn tầng 2). Nhớ tab con gần nhất/module.
 [x] Nạp nội dung (bản browser) — module "📥 Nạp nội dung" (global, nav tầng 1). Dán/upload text
     (.txt/.srt) → js/lessons.js phân tích: bóc TỪ VỰNG xếp theo nhóm HSK 1–6 (từ trong list giữ cấp
-    gốc; từ NGOÀI list xếp theo quy tắc = cấp cao nhất của các chữ Hán; chữ ngoài HSK → "6+/Ngoài")
-    + tách câu → tạo "Bài học" (IndexedDB) gồm task vocab/shadow/translate nối thẳng Học thẻ/Giao tiếp/
-    Dịch thuật (qua main.navigate). Tiến độ: vocab+translate tự đếm, shadow thủ công. Thiết kế đầy đủ:
-    NAP_NOI_DUNG_DESIGN.md. CHỜ Qwen3: gửi LINK (/ingest trafilatura/yt-dlp), tự dịch, sinh câu hỏi,
-    ghép từ ghép ngoài từ điển (jieba); bóc media dùng /extract đã có.
+    gốc; từ NGOÀI list xếp theo ĐỘ KHÓ vào 1–6 = cấp cao nhất của các chữ Hán, chữ ngoài HSK → HSK6)
+    + tách câu + nhận diện CHƯƠNG (第X章 / Chương N) → tạo "Bài học" (IndexedDB) gồm task vocab/shadow/
+    translate nối thẳng Học thẻ/Giao tiếp/Dịch thuật (qua main.navigate). Task DỊCH chia theo chương →
+    khúc, cấu hình Số phần (½,⅓)/Số câu/Số chữ (transConfigRow). Tiến độ: vocab+translate tự đếm, shadow
+    thủ công. Thiết kế: NAP_NOI_DUNG_DESIGN.md. CHỜ Qwen3: gửi LINK (/ingest trafilatura/yt-dlp), tự
+    dịch, sinh câu hỏi, ghép từ ghép ngoài từ điển (jieba); bóc media dùng /extract đã có.
 [ ] Phồn thể — module độc lập (sẽ thêm vào nav tầng 1 khi xong)
 ```

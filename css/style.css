@@ -424,3 +424,5 @@ button.btn.big { padding: 12px 22px; font-size: 16px; margin-top: 10px; }
 .lesson-vword.out { border-style: dashed; color: var(--text-muted); }
 .lesson-task { border-top: 1px solid var(--border); padding: 10px 0; display: grid; gap: 8px; }
 .lesson-task:first-of-type { border-top: none; }
+.chunk-mode, .chunk-val { padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; }
+.chunk-val { width: 76px; }
