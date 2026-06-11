@@ -258,7 +258,7 @@ export async function renderVocab() {
   const root = clear();
   const s = store.getSettings();
   const deck = await getDeck(s.activeDeckId);
-  root.append(el("h1", { class: "view-title" }, "📖 Từ vựng"));
+  root.append(el("h1", { class: "view-title" }, "📖 Danh sách từ"));
   if (!deck) { root.append(emptyState("Chưa chọn bộ thẻ", "Vào tab 📚 Bộ thẻ để chọn bộ thẻ.")); return; }
 
   // Áp override sửa tay lên từng thẻ
@@ -541,7 +541,7 @@ export async function renderManage() {
   const s = store.getSettings();
   const decks = await getAllDecks();
 
-  root.append(el("h1", { class: "view-title" }, "📚 Bộ thẻ"));
+  root.append(el("h1", { class: "view-title" }, "📚 Nguồn từ"));
 
   const list = el("div", { class: "stack" });
   decks.forEach((d) => {

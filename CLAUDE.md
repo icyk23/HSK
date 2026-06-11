@@ -19,8 +19,8 @@
 
 ## Kiến trúc thông tin (IA) — 5 module + global
 
-Hiện app vẫn dùng **1 hàng tab phẳng** (chưa refactor). Khi có nội dung module mới
-thì dựng **nav 2 tầng** theo cấu trúc đã chốt dưới đây:
+App đã dùng **nav 2 tầng** (js/main.js: NAV config — tầng 1 module, tầng 2 tab con; module
+1 tab con tự ẩn tầng 2). Phồn thể & Nạp nội dung sẽ thêm vào nav khi xây xong. Cấu trúc:
 
 ```
 Tầng 1 (module):  🎴 Từ vựng   📝 Luyện đề   🗣️ Giao tiếp   🌐 Dịch thuật   繁 Phồn thể
@@ -47,10 +47,10 @@ Khớp **3 trụ cột** (Từ vựng · Dịch thuật · Giao tiếp) + Luyệ
 - **Bài đã dịch** (trong Dịch thuật) = kho lưu bản dịch của người dùng + bản Qwen3
   chấm/sửa, để xem lại và ôn lỗi.
 
-### Đổi tên khi dựng nav (chưa làm)
-- App: **"Học HSK6"** → **"Học tiếng Trung"**
-- Tab **"Từ vựng"** (trình duyệt lọc) → **"Danh sách"** (vì "Từ vựng" là tên module)
-- Tab **"Bộ thẻ"** → **"Nguồn từ"**
+### Đổi tên (ĐÃ LÀM khi dựng nav 2 tầng)
+- App: **"Học HSK6"** → **"Học tiếng Trung"** ✅
+- Tab **"Từ vựng"** (trình duyệt lọc) → **"Danh sách"** ✅
+- Tab **"Bộ thẻ"** → **"Nguồn từ"** ✅
 
 ---
 
@@ -144,7 +144,11 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     nguồn hoặc 🎲 câu mẫu từ thẻ (kèm bản tham khảo + pinyin + TTS) → viết bản dịch → 💾 lưu vào
     "Bài đã dịch" (store.translations) để ôn lại. Nút "🤖 Chấm & sửa (Qwen3)" gọi backend POST
     /grade → điểm 0-10 + bản sửa + bản tham khảo + nhận xét tiếng Việt (chờ bật Ollama).
-[ ] Phồn thể — module độc lập
-[ ] Nạp nội dung — video / truyện / tài liệu
-[ ] Dựng nav 2 tầng + đổi tên (khi đã có ≥1 module mới)
+[x] Dựng nav 2 tầng (js/main.js NAV config) + đổi tên: "Học tiếng Trung", "Danh sách",
+    "Nguồn từ". Tầng 1 = module (Từ vựng·Luyện đề·Giao tiếp·Dịch thuật·Tiến độ·Cài đặt),
+    tầng 2 = tab con (chỉ Từ vựng có 5 tab; module đơn ẩn tầng 2). Nhớ tab con gần nhất/module.
+[~] Nạp nội dung — ĐÃ CHỐT THIẾT KẾ (NAP_NOI_DUNG_DESIGN.md): nguồn→Bài học gồm task (vocab/
+    shadow/translate/qa) nối các module; bóc vocab browser bằng từ điển 5002 từ; link/dịch/câu hỏi
+    cần backend /ingest (Qwen3). Tiến độ: tự đếm + thủ công. CHỜ CODE.
+[ ] Phồn thể — module độc lập (sẽ thêm vào nav tầng 1 khi xong)
 ```
