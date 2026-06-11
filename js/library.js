@@ -85,6 +85,7 @@ export function fileKind(meta) {
   const ext = (meta.name.split(".").pop() || "").toLowerCase();
   if (t === "application/pdf" || ext === "pdf") return "pdf";
   if (t.startsWith("audio/") || ["mp3", "m4a", "wav", "ogg", "aac", "flac"].includes(ext)) return "audio";
+  if (t.startsWith("video/") || ["mp4", "mkv", "mov", "webm", "avi"].includes(ext)) return "video";
   if (t.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(ext)) return "image";
   if (t.startsWith("text/") || ["txt", "srt", "lrc"].includes(ext)) return "text";
   if (ext === "epub" || ext === "mobi") return "ebook";

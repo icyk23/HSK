@@ -73,6 +73,10 @@ data/vocab.xlsx         nguồn gốc 5.002 từ (để build lại)
 scripts/build-words.mjs TOOL build: xlsx → phân loại → hsk-words.json (npm run build:words)
 package.json            CHỈ cho build tooling (xlsx, opencc-js); app không dùng
 sw.js, manifest.*       offline / cài như app
+backend/                Backend Qwen3 (FastAPI) — TÙY CHỌN, chạy ở máy người dùng
+  app.py                /extract bóc ảnh·PDF·audio·video → tách câu → dịch Việt (Ollama); /health
+  requirements.txt      fastapi/uvicorn/httpx + pymupdf + rapidocr(OCR) + faster-whisper(ASR)
+  README.md             hướng dẫn cài & chạy (ollama pull qwen2.5 → uvicorn app:app)
 ```
 
 ## Mô hình dữ liệu thẻ (card)
@@ -127,6 +131,11 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     (Web Speech Recognition zh-CN, chấm % khớp chữ Hán) · Sprint Việt→Trung (đếm giờ) · Thay thế
     mẫu câu (句型替换). Nguồn câu: 6 cảnh mẫu data/comm-scenes.json + dán văn bản/.srt/cặp song ngữ
     + bóc từ file .txt thư viện (js/comm.js). Bóc ảnh/video/PDF & tự dịch Việt→Trung chờ Qwen3.
+[~] Backend Qwen3 (backend/ — FastAPI) SẴN SÀNG, chờ chạy trên máy có Ollama:
+    POST /extract bóc ảnh (OCR RapidOCR) · PDF (PyMuPDF, scan→OCR) · audio/video (faster-whisper)
+    → tách câu → dịch Việt bằng Qwen3; GET /health báo năng lực. Frontend đã nối: Cài đặt → "AI ·
+    Qwen3" (dán URL + kiểm tra); Giao tiếp hiện nút "🤖 Bóc tự động" cho file media khi backend bật
+    (thay nhãn "sắp có"), và upload thẳng ảnh/video ở ô nguồn cá nhân. OCR/ASR là lib tùy chọn.
 [ ] Giao tiếp — HSKK 高级 (nói theo đề thi) + cá nhân hóa bằng Qwen3 (tự dịch, sinh câu hỏi)
 [ ] Dịch thuật — Trung↔Việt + Qwen3 chấm
 [ ] Phồn thể — module độc lập

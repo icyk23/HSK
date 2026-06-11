@@ -741,6 +741,26 @@ export async function renderSettings() {
     numberRow("Giới hạn ôn mỗi ngày", s.reviewLimit, (v) => update({ reviewLimit: v })),
   ));
 
+  // AI backend (Qwen3) — tùy chọn, dùng cho Giao tiếp (bóc ảnh/PDF/audio/video + dịch)
+  const backendInput = el("input", { type: "text", value: s.commBackendUrl || "", placeholder: "http://localhost:8000" });
+  const backendStatus = el("span", { class: "muted small" });
+  const testBackend = async () => {
+    update({ commBackendUrl: backendInput.value.trim() });
+    if (!backendInput.value.trim()) { backendStatus.textContent = "Đã tắt (chạy thuần trình duyệt)."; return; }
+    backendStatus.textContent = "Đang kiểm tra…";
+    const h = await comm.pingBackend();
+    if (!h) { backendStatus.innerHTML = '<span style="color:var(--bad)">Không kết nối được. Kiểm tra backend đã chạy chưa.</span>'; return; }
+    const caps = h.caps || {};
+    const yn = (b) => (b ? "✓" : "✗");
+    backendStatus.innerHTML = `<span style="color:var(--ok)">Đã kết nối</span> · Ollama ${yn(h.ollama)} (${h.model || "?"}) · PDF ${yn(caps.pdf_text)} · OCR ảnh ${yn(caps.ocr)} · Nghe video/audio ${yn(caps.asr)}`;
+  };
+  root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
+    el("b", {}, "AI · Qwen3 (tùy chọn)"),
+    el("p", { class: "muted small" }, "Backend local để Giao tiếp tự bóc câu từ ảnh/PDF/audio/video và dịch Việt. Để trống thì app vẫn chạy đủ trong trình duyệt (chỉ text/.srt). Hướng dẫn cài: thư mục backend/."),
+    el("div", { class: "field" }, el("label", {}, "Địa chỉ backend"), backendInput),
+    el("div", { class: "row" }, el("button", { class: "btn", onclick: testBackend }, "🔌 Lưu & kiểm tra"), backendStatus),
+  ));
+
   // data
   root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
     el("b", {}, "Dữ liệu"),
@@ -894,6 +914,8 @@ async function renderFileViewer(host, fm) {
     host.append(el("button", { class: "btn ghost small", onclick: () => toast("Bóc đề tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, "🤖 Bóc đề từ PDF (sắp có)"));
   } else if (kind === "audio") {
     host.append(el("audio", { controls: "", src: viewerUrl, style: "width:100%" }));
+  } else if (kind === "video") {
+    host.append(el("video", { controls: "", src: viewerUrl, class: "lib-img" }));
   } else if (kind === "image") {
     host.append(el("img", { src: viewerUrl, class: "lib-img" }));
   } else if (kind === "text") {
@@ -1219,6 +1241,7 @@ function patternBank(scenes) { const o = []; for (const s of selectedScenes(scen
 
 async function commHome(root, scenes) {
   root.append(el("h1", { class: "view-title" }, "🗣️ Giao tiếp — luyện phản xạ"));
+  const backend = await comm.pingBackend(); // null nếu chưa bật / không tới được
 
   const src = el("div", { class: "panel comm-source" });
   src.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
@@ -1230,8 +1253,8 @@ async function commHome(root, scenes) {
     chips.append(commChip(`${s.icon} ${s.title}`, on, () => toggleScene(s.id, scenes)));
   }
   src.append(chips);
-  src.append(commPersonalBar());
-  const libBar = await commLibraryBar();
+  src.append(commPersonalBar(backend));
+  const libBar = await commLibraryBar(backend);
   if (libBar) src.append(libBar);
   root.append(src);
 
@@ -1273,44 +1296,89 @@ function commDrillCard(icon, title, badge, desc, enabled, screen) {
       el("div", { class: "muted small" }, desc)));
 }
 
-function commPersonalBar() {
+// Backend có xử lý được loại file này không (theo năng lực /health).
+function backendHandles(backend, kind) {
+  if (!backend) return false;
+  const caps = backend.caps || {};
+  if (kind === "pdf") return !!(caps.pdf_text || caps.ocr);
+  if (kind === "image") return !!caps.ocr;
+  if (kind === "audio" || kind === "video") return !!caps.asr;
+  return false;
+}
+function setPersonalSource(items, label) {
+  commPersonal = items; commPersonalLabel = label;
+  toast(`Đã thêm ${items.length} câu vào nguồn.`);
+  renderComm();
+}
+
+function commPersonalBar(backend) {
   const ta = el("textarea", { rows: "3", placeholder: "Dán văn bản tiếng Trung, phụ đề .srt, hoặc cặp song ngữ:  中文 ||| Tiếng Việt" });
   const fileInput = el("input", { type: "file", accept: ".txt,.srt,.lrc,.csv" });
   fileInput.addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) ta.value = await f.text(); });
   const add = () => {
     const items = comm.parseUserText(ta.value.trim());
     if (!items.length) return toast("Không tách được câu tiếng Trung nào.");
-    commPersonal = items; commPersonalLabel = "đã dán";
-    toast(`Đã thêm ${items.length} câu vào nguồn.`);
-    renderComm();
+    setPersonalSource(items, "đã dán");
   };
   const clearBtn = commPersonal.length ? el("button", { class: "btn ghost small", onclick: () => { commPersonal = []; commPersonalLabel = ""; renderComm(); } }, "Xóa câu cá nhân") : null;
+
+  // Nếu backend Qwen3 đang bật → cho upload thẳng ảnh/PDF/audio/video để bóc tự động.
+  let mediaRow = null;
+  if (backend) {
+    const mediaInput = el("input", { type: "file", accept: "image/*,.pdf,audio/*,video/*" });
+    mediaInput.addEventListener("change", async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      toast("Đang bóc bằng Qwen3… có thể mất một lúc.");
+      try {
+        const items = await comm.extractViaBackend(f, f.name, "auto");
+        if (!items.length) return toast("Không bóc được câu nào.");
+        setPersonalSource(items, f.name);
+      } catch (err) { toast("Lỗi: " + err.message); }
+    });
+    mediaRow = el("div", { class: "row" }, el("span", { class: "small muted" }, "🤖 Bóc ảnh/PDF/audio/video:"), mediaInput);
+  }
+
   return el("details", { class: "comm-personal" },
-    el("summary", {}, "➕ Thêm nguồn cá nhân (dán văn bản / phụ đề)"),
-    el("p", { class: "muted small" }, "Văn bản chỉ có tiếng Trung dùng được cho Shadowing/Phát âm. Muốn luyện Việt→Trung thì dán kèm bản dịch dạng “中文 ||| Tiếng Việt”. (Tự dịch & sinh câu hỏi sẽ thêm khi có Qwen3.)"),
+    el("summary", {}, "➕ Thêm nguồn cá nhân (dán văn bản / phụ đề" + (backend ? " / ảnh · video" : "") + ")"),
+    el("p", { class: "muted small" }, backend
+      ? "Dán text/.srt, hoặc upload ảnh/PDF/audio/video để Qwen3 bóc câu và tự dịch Việt."
+      : "Văn bản chỉ có tiếng Trung dùng được cho Shadowing/Phát âm. Muốn luyện Việt→Trung thì dán kèm bản dịch dạng “中文 ||| Tiếng Việt”, hoặc bật backend Qwen3 trong Cài đặt để tự dịch & bóc ảnh/video."),
     el("div", { class: "field" }, ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: add }, "Thêm vào nguồn"), clearBtn));
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: add }, "Thêm vào nguồn"), clearBtn),
+    mediaRow);
 }
 
-async function commLibraryBar() {
+async function commLibraryBar(backend) {
   let files = [];
   try { files = await comm.listLibraryFiles(); } catch {}
   if (!files.length) return null;
   const list = el("div", { class: "comm-libfiles" });
   for (const f of files) {
-    const action = f.kind === "text"
-      ? el("button", { class: "btn ghost small", onclick: async () => {
-          const items = await comm.extractFileLines(f.id, f.kind);
-          if (!items.length) return toast("File không có câu tiếng Trung.");
-          commPersonal = items; commPersonalLabel = f.name;
-          toast(`Đã lấy ${items.length} câu từ ${f.name}.`); renderComm();
-        } }, "Dùng")
-      : el("span", { class: "muted small" }, "Bóc bằng Qwen3 (sắp có)");
+    let action;
+    if (f.kind === "text") {
+      action = el("button", { class: "btn ghost small", onclick: async () => {
+        const items = await comm.extractFileLines(f.id, f.kind);
+        if (!items.length) return toast("File không có câu tiếng Trung.");
+        setPersonalSource(items, f.name);
+      } }, "Dùng");
+    } else if (backendHandles(backend, f.kind)) {
+      action = el("button", { class: "btn ghost small", onclick: async () => {
+        toast("Đang bóc bằng Qwen3… có thể mất một lúc.");
+        try {
+          const blob = await lib.getFileBlob(f.id);
+          const items = await comm.extractViaBackend(blob, f.name, f.kind);
+          if (!items.length) return toast("Không bóc được câu nào.");
+          setPersonalSource(items, f.name);
+        } catch (err) { toast("Lỗi: " + err.message); }
+      } }, "🤖 Bóc tự động");
+    } else {
+      action = el("span", { class: "muted small" }, "Bóc bằng Qwen3 (sắp có)");
+    }
     list.append(el("div", { class: "row spread comm-librow" }, el("span", { class: "small" }, `${libIcon(f.kind)} ${f.name}`), action));
   }
   return el("details", { class: "comm-personal" }, el("summary", {}, `📂 Lấy câu từ thư viện đã nạp (${files.length} file)`), list);
 }
-function libIcon(kind) { return ({ text: "📄", pdf: "📕", audio: "🎧", image: "🖼️", ebook: "📘" })[kind] || "📎"; }
+function libIcon(kind) { return ({ text: "📄", pdf: "📕", audio: "🎧", image: "🖼️", video: "🎬", ebook: "📘" })[kind] || "📎"; }
 
 /* ---------- Chấm phát âm (so khớp chữ Hán) ---------- */
 function scorePronun(target, said) {

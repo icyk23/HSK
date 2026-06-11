@@ -22,6 +22,7 @@ export const DEFAULT_SETTINGS = {
   newPerDay: 15,
   reviewLimit: 100,
   activeDeckId: "hsk-1-6",
+  commBackendUrl: "",        // URL backend Qwen3 (Giao tiếp). Rỗng = chưa bật.
 };
 
 function read(key, fallback) {

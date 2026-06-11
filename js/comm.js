@@ -4,6 +4,7 @@
 // Ảnh / video / PDF cần Qwen3 bóc chữ → để sau (khi có backend).
 
 import * as lib from "./library.js";
+import { getSettings } from "./store.js";
 
 let scenesCache = null;
 
@@ -101,4 +102,42 @@ export function sceneLineBank(scene) {
 
 export function fillFrame(frame, slot) {
   return String(frame).replace("{}", slot);
+}
+
+/* ---------- Backend Qwen3 (bóc ảnh/PDF/audio/video + dịch Việt) ---------- */
+// Backend là TÙY CHỌN. Rỗng = chưa bật → UI dùng nhãn "sắp có".
+export function backendUrl() {
+  return (getSettings().commBackendUrl || "").replace(/\/+$/, "");
+}
+export function hasBackend() {
+  return !!backendUrl();
+}
+
+// Kiểm tra backend sống không + năng lực nào (ocr/asr/pdf). Trả null nếu không tới được.
+export async function pingBackend() {
+  const url = backendUrl();
+  if (!url) return null;
+  try {
+    const res = await fetch(url + "/health", { signal: AbortSignal.timeout(4000) });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+// Gửi 1 blob lên backend → trả mảng { zh, vi }.
+export async function extractViaBackend(blob, name, kind, translate = true) {
+  const url = backendUrl();
+  if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");
+  const fd = new FormData();
+  fd.append("file", blob, name || "file");
+  fd.append("kind", kind || "auto");
+  fd.append("translate", translate ? "true" : "false");
+  const res = await fetch(url + "/extract", { method: "POST", body: fd });
+  if (!res.ok) {
+    let msg = "Lỗi backend (" + res.status + ")";
+    try { msg = (await res.json()).detail || msg; } catch {}
+    throw new Error(msg);
+  }
+  return (await res.json()).lines || [];
 }
