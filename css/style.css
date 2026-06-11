@@ -337,3 +337,19 @@ mark.hl { background: var(--accent-soft); color: var(--accent); border-radius: 3
 
 .timer-disp { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; }
 .count-ok { color: var(--ok); font-weight: 600; }
+
+/* Kho tài liệu (zip → PDF/audio/ảnh) */
+.lib-list { display: grid; gap: 8px; margin-top: 12px; }
+.lib-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; }
+.lib-layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+.lib-files { display: grid; gap: 6px; max-height: 70vh; overflow: auto; }
+.lib-file { display: flex; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); cursor: pointer; }
+.lib-file:hover { border-color: var(--accent); }
+.lib-file.active { border-color: var(--accent); background: var(--accent-soft); }
+.lf-icon { font-size: 18px; }
+.lf-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.lib-viewer { display: grid; gap: 12px; min-width: 0; }
+.pdf-frame { width: 100%; height: 75vh; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.lib-img { max-width: 100%; border-radius: 10px; }
+.lib-text { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; max-height: 75vh; overflow: auto; font-size: 14px; }
+@media (max-width: 640px) { .lib-layout { grid-template-columns: 1fr; } }

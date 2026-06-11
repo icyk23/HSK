@@ -117,7 +117,10 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
 [~] Task 3c — script Qwen3 (scripts/classify-qwen.mjs) SẴN SÀNG; chờ chạy trên máy có Ollama (npm run classify:qwen)
 [x] Task 3b — Luyện đề HSK6: tab "🧩 Luyện đề" (phẳng); Đọc 4 phần trắc nghiệm tự chấm
     (病句/选词/选句/阅读) + Viết 缩写 (bài đọc, đồng hồ, đếm chữ, lưu nháp, chỗ chấm Qwen3);
-    đề mẫu data/exam-hsk6.json + nhập đề JSON (js/exams.js). Chấm Viết bằng Qwen3 & HSKK chờ làm.
+    đề mẫu data/exam-hsk6.json (3 đề) + nhập đề JSON (js/exams.js). Chấm Viết bằng Qwen3 & HSKK chờ làm.
+[x] Kho tài liệu đề thi (trong Luyện đề): tải .zip → tự giải nén thuần trình duyệt
+    (js/unzip.js dùng DecompressionStream, KHÔNG cần thư viện) → lưu IndexedDB (js/library.js)
+    → xem PDF (iframe), nghe audio, xem ảnh/txt offline. Bóc đề từ PDF bằng Qwen3 chờ backend.
 [ ] Giao tiếp — HSKK 高级 + luyện phát âm
 [ ] Dịch thuật — Trung↔Việt + Qwen3 chấm
 [ ] Phồn thể — module độc lập

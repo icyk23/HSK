@@ -5,6 +5,8 @@ import * as srs from "./srs.js";
 import { speak, hasChineseVoice } from "./audio.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
 import { getAllExams, getExam, countReadingQuestions, parseExamJson } from "./exams.js";
+import { unzip } from "./unzip.js";
+import * as lib from "./library.js";
 import { STRUCT_LABELS, SEMANTIC_LABELS } from "./classify.js";
 
 const app = () => document.getElementById("app");
@@ -799,6 +801,108 @@ function emptyState(title, msg) {
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
+/* ---------- Kho tài liệu đề thi (zip → PDF/audio/ảnh, lưu IndexedDB) ---------- */
+let viewerUrl = null;
+function revokeViewerUrl() { if (viewerUrl) { URL.revokeObjectURL(viewerUrl); viewerUrl = null; } }
+
+async function libraryBar() {
+  const wrap = el("details", { class: "panel exam-import", open: true });
+  wrap.append(el("summary", {}, "📂 Tài liệu đề thi (PDF · ebook · audio)"));
+  wrap.append(el("p", { class: "muted small" }, "Tải lên file .zip (đề / sách / audio). App tự giải nén & lưu vào máy (IndexedDB) để xem offline. Bóc đề tự động bằng Qwen3 sẽ thêm sau."));
+
+  const fileInput = el("input", { type: "file", accept: ".zip" });
+  const status = el("span", { class: "muted small" });
+  fileInput.addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    status.textContent = "Đang đọc file…";
+    try {
+      const buf = await f.arrayBuffer();
+      status.textContent = "Đang giải nén…";
+      const files = await unzip(buf, (d) => { status.textContent = `Đang giải nén… ${d} file`; });
+      if (!files.length) { status.textContent = "Zip rỗng hoặc không có file hỗ trợ."; return; }
+      const name = f.name.replace(/\.zip$/i, "");
+      await lib.createCollection(name, files);
+      toast(`Đã nạp “${name}”: ${files.length} file`);
+      renderExam();
+    } catch (err) {
+      status.textContent = "Lỗi: " + err.message;
+      toast("Không giải nén được: " + err.message);
+    }
+  });
+  wrap.append(el("div", { class: "row" }, fileInput, status));
+
+  const colls = await lib.listCollections();
+  if (colls.length) {
+    const list = el("div", { class: "lib-list" });
+    for (const c of colls) {
+      list.append(el("div", { class: "lib-row" },
+        el("div", {}, el("b", {}, "📦 " + c.name),
+          el("div", { class: "muted small" }, `${c.fileMeta.length} file · ${lib.humanSize(lib.collectionSize(c))}`)),
+        el("div", { class: "row" },
+          el("button", { class: "btn small", onclick: () => { examView = { screen: "library", collId: c.id }; renderExam(); } }, "Mở"),
+          el("button", { class: "btn ghost small", onclick: async () => { if (confirm("Xóa bộ tài liệu này?")) { await lib.deleteCollection(c.id); renderExam(); } } }, "Xóa")),
+      ));
+    }
+    wrap.append(list);
+  }
+  return wrap;
+}
+
+const KIND_ICON = { pdf: "📕", audio: "🎧", image: "🖼️", text: "📄", ebook: "📘", other: "📎" };
+
+async function examLibrary(root) {
+  const coll = await lib.getCollection(examView.collId);
+  if (!coll) { examView = { screen: "list" }; return renderExam(); }
+  root.append(examTopbar("📦 " + coll.name));
+
+  const layout = el("div", { class: "lib-layout" });
+  const fileList = el("div", { class: "lib-files" });
+  for (const fm of coll.fileMeta) {
+    const kind = lib.fileKind(fm);
+    const active = examView.fileId === fm.id;
+    fileList.append(el("button", { class: "lib-file" + (active ? " active" : ""), onclick: () => { examView = { ...examView, fileId: fm.id }; renderExam(); } },
+      el("span", { class: "lf-icon" }, KIND_ICON[kind] || "📎"),
+      el("span", { class: "lf-name" }, fm.name),
+      el("span", { class: "muted small" }, lib.humanSize(fm.size)),
+    ));
+  }
+  layout.append(fileList);
+
+  const viewer = el("div", { class: "lib-viewer" });
+  if (examView.fileId) {
+    const fm = coll.fileMeta.find((x) => x.id === examView.fileId);
+    if (fm) await renderFileViewer(viewer, fm);
+    else viewer.append(el("div", { class: "muted" }, "Chọn một file bên trái để xem."));
+  } else {
+    viewer.append(el("div", { class: "muted" }, "Chọn một file bên trái để xem."));
+  }
+  layout.append(viewer);
+  root.append(layout);
+}
+
+async function renderFileViewer(host, fm) {
+  const blob = await lib.getFileBlob(fm.id);
+  if (!blob) { host.append(el("div", { class: "muted" }, "Không tìm thấy file.")); return; }
+  revokeViewerUrl();
+  viewerUrl = URL.createObjectURL(blob);
+  const kind = lib.fileKind(fm);
+  host.append(el("div", { class: "row spread" }, el("b", {}, fm.name),
+    el("a", { class: "btn small", href: viewerUrl, download: fm.name }, "⬇ Tải về")));
+  if (kind === "pdf") {
+    host.append(el("iframe", { class: "pdf-frame", src: viewerUrl }));
+    host.append(el("button", { class: "btn ghost small", onclick: () => toast("Bóc đề tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, "🤖 Bóc đề từ PDF (sắp có)"));
+  } else if (kind === "audio") {
+    host.append(el("audio", { controls: "", src: viewerUrl, style: "width:100%" }));
+  } else if (kind === "image") {
+    host.append(el("img", { src: viewerUrl, class: "lib-img" }));
+  } else if (kind === "text") {
+    const txt = await blob.text();
+    host.append(el("pre", { class: "lib-text" }, txt.slice(0, 20000)));
+  } else {
+    host.append(el("p", { class: "muted" }, "Định dạng này chưa xem trực tiếp được trong app — hãy bấm “Tải về”."));
+  }
+}
+
 /* ============================================================
    LUYỆN ĐỀ (HSK6 — Đọc trắc nghiệm + Viết 缩写)
    ============================================================ */
@@ -809,9 +913,11 @@ function clearWriteTimer() { if (writeTimer) { clearInterval(writeTimer); writeT
 
 export async function renderExam() {
   clearWriteTimer();
+  revokeViewerUrl();
   const root = clear();
   if (examView.screen === "reading") return examReading(root);
   if (examView.screen === "writing") return examWriting(root);
+  if (examView.screen === "library") return examLibrary(root);
   return examList(root);
 }
 
@@ -825,6 +931,7 @@ function examTopbar(title) {
 async function examList(root) {
   root.append(el("h1", { class: "view-title" }, "📝 Luyện đề HSK6"));
   root.append(examImportBar());
+  root.append(await libraryBar());
   const exams = await getAllExams();
   if (!exams.length) { root.append(emptyState("Chưa có đề", "Nhập đề JSON ở trên để bắt đầu.")); return; }
 
