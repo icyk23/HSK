@@ -31,14 +31,21 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | Module | Tab con | Trạng thái |
 |--------|---------|-----------|
 | **Từ vựng** 🎴 | Học thẻ · Danh sách · Quiz · Nghe · Nguồn từ | ✅ đã có (trừ đổi tên) |
-| **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết | ⬜ chưa xây |
-| **Giao tiếp** 🗣️ | HSKK 高级 · Luyện phát âm | ⬜ chưa xây |
-| **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Lịch sử | ⬜ chưa xây |
+| **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | ⬜ chưa xây |
+| **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | ⬜ chưa xây |
+| **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | ⬜ chưa xây |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
 | **Nạp nội dung** 📥 *(global)* | Video · Truyện · Tài liệu | ⬜ chưa xây |
 | **Tiến độ** 📊 · **Cài đặt** ⚙️ *(global)* | — | ✅ đã có |
 
 Khớp **3 trụ cột** (Từ vựng · Dịch thuật · Giao tiếp) + Luyện đề + Phồn thể độc lập.
+
+- **Luyện đề** gom mọi dạng luyện thi: HSK6 đọc/viết **và HSKK 高级** (nói theo đề thi).
+- **Giao tiếp** ≠ luyện đề: tập **phản xạ** (Việt→Trung tức thì / nghe→dịch nhanh) và
+  **phát âm**. Ngân hàng câu lấy từ **tài liệu chuyên ngành / video / truyện đã nạp**
+  → luyện theo chủ đề. (Chi tiết hóa khi bắt đầu xây.)
+- **Bài đã dịch** (trong Dịch thuật) = kho lưu bản dịch của người dùng + bản Qwen3
+  chấm/sửa, để xem lại và ôn lỗi.
 
 ### Đổi tên khi dựng nav (chưa làm)
 - App: **"Học HSK6"** → **"Học tiếng Trung"**
