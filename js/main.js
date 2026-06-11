@@ -9,6 +9,7 @@ const VIEWS = {
   quiz: ui.renderQuiz,
   exam: ui.renderExam,
   comm: ui.renderComm,
+  trans: ui.renderTrans,
   listen: ui.renderListen,
   manage: ui.renderManage,
   stats: ui.renderStats,

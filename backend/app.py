@@ -26,6 +26,7 @@ from typing import Dict, List
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 QWEN_MODEL = os.environ.get("QWEN_MODEL", "qwen2.5:7b")
@@ -248,6 +249,57 @@ async def extract(
     return {"lines": lines, "count": len(lines), "kind": k, "caps": caps}
 
 
+class GradeReq(BaseModel):
+    source: str
+    user: str = ""
+    dir: str = "zh2vi"  # zh2vi | vi2zh
+
+
+@app.post("/grade")
+def grade(req: GradeReq):
+    """Chấm & sửa bản dịch của người học bằng Qwen3 (cho module Dịch thuật)."""
+    src = (req.source or "").strip()
+    if not src:
+        raise HTTPException(400, "Thiếu văn bản nguồn.")
+    if req.dir == "vi2zh":
+        task = "Người học dịch từ tiếng Việt sang tiếng Trung."
+        ref_lang = "tiếng Trung giản thể"
+    else:
+        task = "Người học dịch từ tiếng Trung sang tiếng Việt."
+        ref_lang = "tiếng Việt"
+    prompt = (
+        "Bạn là giáo viên dịch thuật Trung–Việt. " + task + "\n\n"
+        f"NGUỒN:\n{src}\n\n"
+        f"BẢN DỊCH CỦA NGƯỜI HỌC:\n{req.user or '(chưa dịch)'}\n\n"
+        "Trả về DUY NHẤT một JSON gồm:\n"
+        f'  "reference": bản dịch chuẩn sang {ref_lang};\n'
+        '  "score": điểm số 0-10 cho bản dịch của người học (0 nếu chưa dịch);\n'
+        '  "corrected": bản dịch của người học sau khi sửa lỗi (rỗng nếu chưa dịch);\n'
+        '  "notes": mảng các nhận xét NGẮN bằng tiếng Việt về lỗi và cách cải thiện.\n'
+        "Không viết gì ngoài JSON."
+    )
+    body = {
+        "model": QWEN_MODEL,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",
+        "options": {"temperature": 0.3},
+    }
+    try:
+        r = httpx.post(f"{OLLAMA_URL}/api/generate", json=body, timeout=600)
+        r.raise_for_status()
+        data = json.loads(r.json().get("response", "") or "{}")
+    except Exception as e:
+        raise HTTPException(502, f"Không gọi được Qwen3/Ollama: {e}")
+    notes = data.get("notes")
+    return {
+        "reference": str(data.get("reference", "")),
+        "score": data.get("score"),
+        "corrected": str(data.get("corrected", "")),
+        "notes": [str(n) for n in notes] if isinstance(notes, list) else [],
+    }
+
+
 @app.get("/")
 def root():
-    return {"name": "HSK Giao tiếp backend", "endpoints": ["/health", "/extract"], "model": QWEN_MODEL}
+    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade"], "model": QWEN_MODEL}

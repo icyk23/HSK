@@ -33,7 +33,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | **Từ vựng** 🎴 | Học thẻ · Danh sách · Quiz · Nghe · Nguồn từ | ✅ đã có (trừ đổi tên) |
 | **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) + HSKK 高级 khung 3 phần đã có |
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
-| **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | ⬜ chưa xây |
+| **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | 🟡 Workspace 2 chiều + lưu/ôn (Bài đã dịch) đã có; chấm/sửa cần Qwen3 (/grade) |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
 | **Nạp nội dung** 📥 *(global)* | Video · Truyện · Tài liệu | ⬜ chưa xây |
 | **Tiến độ** 📊 · **Cài đặt** ⚙️ *(global)* | — | ✅ đã có |
@@ -140,7 +140,10 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     · 朗读 (đọc to, chấm phát âm % khớp chữ Hán) · 回答问题 (bấm giờ nói 2′ + gợi ý dàn ý). Đề mẫu
     ngắn data/hskk-gaoji.json (1 đề) qua js/exams.js (getHskkExams). Đề đầy đủ chờ Qwen3 sinh / nhập.
 [ ] Giao tiếp/HSKK — cá nhân hóa bằng Qwen3 (tự dịch, sinh đề/câu hỏi theo chủ đề người dùng)
-[ ] Dịch thuật — Trung↔Việt + Qwen3 chấm
+[x] Dịch thuật — tab "🌐 Dịch thuật" (phẳng); workspace 2 chiều (中→Việt / Việt→中): chọn/dán
+    nguồn hoặc 🎲 câu mẫu từ thẻ (kèm bản tham khảo + pinyin + TTS) → viết bản dịch → 💾 lưu vào
+    "Bài đã dịch" (store.translations) để ôn lại. Nút "🤖 Chấm & sửa (Qwen3)" gọi backend POST
+    /grade → điểm 0-10 + bản sửa + bản tham khảo + nhận xét tiếng Việt (chờ bật Ollama).
 [ ] Phồn thể — module độc lập
 [ ] Nạp nội dung — video / truyện / tài liệu
 [ ] Dựng nav 2 tầng + đổi tên (khi đã có ≥1 module mới)

@@ -141,3 +141,21 @@ export async function extractViaBackend(blob, name, kind, translate = true) {
   }
   return (await res.json()).lines || [];
 }
+
+// Chấm & sửa bản dịch (Dịch thuật). dir: "zh2vi" | "vi2zh".
+// Trả { reference, score, corrected, notes:[] }.
+export async function gradeTranslation(source, user, dir) {
+  const url = backendUrl();
+  if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");
+  const res = await fetch(url + "/grade", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source, user, dir }),
+  });
+  if (!res.ok) {
+    let msg = "Lỗi backend (" + res.status + ")";
+    try { msg = (await res.json()).detail || msg; } catch {}
+    throw new Error(msg);
+  }
+  return await res.json();
+}

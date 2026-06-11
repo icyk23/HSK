@@ -8,6 +8,7 @@ const KEYS = {
   classOverrides: "hsk.classOverrides", // sửa nhóm thủ công, keyed by cardId
   exams: "hsk.exams",        // đề luyện thi do người dùng nhập
   examProgress: "hsk.examProgress", // kết quả Đọc + bản nháp Viết, keyed by examId
+  translations: "hsk.translations", // Dịch thuật — "Bài đã dịch" của người dùng (+ Qwen3 chấm)
 };
 
 export const DEFAULT_SETTINGS = {
@@ -160,6 +161,23 @@ export function saveWritingDraft(examId, draft) {
   return patchExamProgress(examId, { writing: { ...draft } });
 }
 
+/* ---------------- Dịch thuật ("Bài đã dịch") ----------------
+ * Mỗi bản: { id, dir:"zh2vi"|"vi2zh", source, sourcePinyin?, user, ref?,
+ *   grade?:{ score, corrected, notes:[] }, createdAt }. Lưu local. */
+export function getTranslations() {
+  return read(KEYS.translations, []);
+}
+export function saveTranslation(rec) {
+  const all = getTranslations();
+  const idx = all.findIndex((t) => t.id === rec.id);
+  if (idx >= 0) all[idx] = rec; else all.unshift(rec);
+  write(KEYS.translations, all);
+  return rec;
+}
+export function deleteTranslation(id) {
+  write(KEYS.translations, getTranslations().filter((t) => t.id !== id));
+}
+
 /* ---------------- Daily stats ---------------- */
 export function logReview(correct) {
   const stats = read(KEYS.stats, {});
@@ -182,6 +200,7 @@ export function exportAll() {
     classOverrides: getClassOverrides(),
     exams: getUserExams(),
     examProgress: read(KEYS.examProgress, {}),
+    translations: getTranslations(),
     exportedAt: new Date().toISOString(),
   };
 }
@@ -193,4 +212,5 @@ export function importAll(data) {
   if (data.classOverrides) write(KEYS.classOverrides, data.classOverrides);
   if (data.exams) write(KEYS.exams, data.exams);
   if (data.examProgress) write(KEYS.examProgress, data.examProgress);
+  if (data.translations) write(KEYS.translations, data.translations);
 }

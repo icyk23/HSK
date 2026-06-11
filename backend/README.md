@@ -52,3 +52,5 @@ Sau đó ở **🗣️ Giao tiếp**, file ảnh/PDF/audio/video trong thư vi�
 - `GET /health` → `{ status, caps:{pdf_text,ocr,asr}, ollama, model }`
 - `POST /extract` (multipart): `file`, `kind` (`auto`|`pdf`|`image`|`audio`|`video`|`text`),
   `translate` (`true`/`false`) → `{ lines:[{zh,vi}], count, kind }`
+- `POST /grade` (JSON): `{ source, user, dir }` với `dir` = `zh2vi`|`vi2zh` →
+  `{ reference, score, corrected, notes:[] }` (Dịch thuật — chấm & sửa bản dịch)

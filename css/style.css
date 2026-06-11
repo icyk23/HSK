@@ -404,3 +404,7 @@ button.btn.big { padding: 12px 22px; font-size: 16px; margin-top: 10px; }
 .hskk-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .hskk-passage { font-size: calc(20px * var(--hanzi-scale)); line-height: 1.9; text-align: left; }
 .hskk-big { font-size: 46px; }
+
+/* ============ Dịch thuật ============ */
+.trans-notes { margin: 4px 0 0; padding-left: 20px; }
+.trans-notes li { font-size: 13px; margin-bottom: 4px; }

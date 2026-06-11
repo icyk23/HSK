@@ -1744,3 +1744,154 @@ function commDrillPattern(root, scenes) {
   }
   renderBody(); paintControls();
 }
+
+/* ============================================================
+   DỊCH THUẬT (Trung↔Việt + Qwen3 chấm) — store.translations
+   ============================================================ */
+let transView = { screen: "home" };
+let transDraft = newTransDraft();
+function newTransDraft(dir = "zh2vi") {
+  return { id: null, dir, source: "", sourcePinyin: "", user: "", ref: "", refPinyin: "", grade: null, createdAt: null };
+}
+
+export async function renderTrans() {
+  clearCommState();
+  const root = clear();
+  if (transView.screen === "saved") return transSaved(root);
+  return transHome(root);
+}
+
+// Lấy 1 câu mẫu (ví dụ trong thẻ) làm văn bản nguồn + bản tham khảo.
+async function randomExample(dir) {
+  const deck = await getDeck(store.getSettings().activeDeckId);
+  if (!deck) return null;
+  const pool = deck.cards.filter((c) => c.example && c.example_vi);
+  const c = pool[Math.floor(Math.random() * pool.length)];
+  if (!c) return null;
+  if (dir === "vi2zh") return { source: c.example_vi, ref: c.example, refPinyin: c.example_pinyin };
+  return { source: c.example, sourcePinyin: c.example_pinyin, ref: c.example_vi };
+}
+
+async function transHome(root) {
+  const s = store.getSettings();
+  const backend = await comm.pingBackend();
+  root.append(el("h1", { class: "view-title" }, "🌐 Dịch thuật"));
+
+  const dirRow = el("div", { class: "comm-chips" });
+  const setDir = (d) => { if (transDraft.dir !== d) transDraft = newTransDraft(d); renderTrans(); };
+  dirRow.append(commChip("中文 → Tiếng Việt", transDraft.dir === "zh2vi", () => setDir("zh2vi")));
+  dirRow.append(commChip("Tiếng Việt → 中文", transDraft.dir === "vi2zh", () => setDir("vi2zh")));
+  root.append(dirRow);
+
+  const srcIsZh = transDraft.dir === "zh2vi";
+
+  const srcTa = el("textarea", { rows: "3", placeholder: srcIsZh ? "Văn bản tiếng Trung cần dịch…" : "Văn bản tiếng Việt cần dịch…" });
+  srcTa.value = transDraft.source;
+  srcTa.addEventListener("input", () => { transDraft.source = srcTa.value; });
+  const srcBtns = el("div", { class: "row" },
+    el("button", { class: "btn", onclick: async () => {
+      const ex = await randomExample(transDraft.dir);
+      if (!ex) return toast("Không lấy được câu mẫu.");
+      Object.assign(transDraft, { source: ex.source, sourcePinyin: ex.sourcePinyin || "", ref: ex.ref || "", refPinyin: ex.refPinyin || "", grade: null });
+      renderTrans();
+    } }, "🎲 Câu mẫu từ thẻ"));
+  if (srcIsZh) srcBtns.append(el("button", { class: "btn", onclick: () => transDraft.source && speak(transDraft.source, { rate: s.speechRate }) }, "🔊 Nghe"));
+  root.append(el("div", { class: "panel stack" },
+    el("b", {}, srcIsZh ? "Nguồn · 中文" : "Nguồn · Tiếng Việt"),
+    transDraft.sourcePinyin && el("div", { class: "pinyin", style: "text-align:left" }, transDraft.sourcePinyin),
+    el("div", { class: "field" }, srcTa), srcBtns));
+
+  const userTa = el("textarea", { rows: "3", placeholder: srcIsZh ? "Bản dịch tiếng Việt của bạn…" : "你的中文翻译…" });
+  userTa.value = transDraft.user;
+  userTa.addEventListener("input", () => { transDraft.user = userTa.value; });
+  root.append(el("div", { class: "panel stack" }, el("b", {}, "Bản dịch của bạn"), el("div", { class: "field" }, userTa)));
+
+  if (transDraft.ref) {
+    root.append(el("details", { class: "panel comm-personal" },
+      el("summary", {}, "👁 Xem bản tham khảo (câu mẫu)"),
+      el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, transDraft.ref),
+      transDraft.refPinyin && el("div", { class: "pinyin", style: "text-align:left" }, transDraft.refPinyin)));
+  }
+
+  const actions = el("div", { class: "row", style: "margin-top:4px" });
+  actions.append(el("button", { class: "btn", onclick: () => saveTransDraft(false) }, "💾 Lưu"));
+  if (backend) actions.append(el("button", { class: "btn primary", onclick: gradeTransDraft }, "🤖 Chấm & sửa (Qwen3)"));
+  else actions.append(el("button", { class: "btn", onclick: () => toast("Bật backend Qwen3 trong Cài đặt để chấm tự động.") }, "🤖 Chấm (cần Qwen3)"));
+  actions.append(el("button", { class: "btn ghost", onclick: () => { transDraft = newTransDraft(transDraft.dir); renderTrans(); } }, "🔄 Mới"));
+  actions.append(el("button", { class: "btn ghost", onclick: () => { transView = { screen: "saved" }; renderTrans(); } }, `📚 Bài đã dịch (${store.getTranslations().length})`));
+  root.append(actions);
+
+  if (transDraft.grade) root.append(transGradeBox(transDraft.grade, srcIsZh));
+
+  if (!backend) root.append(el("p", { class: "muted small", style: "margin-top:10px" },
+    "Hiện chạy thuần trình duyệt: dịch · lưu · ôn lại · tự đối chiếu bằng câu mẫu. Bật backend Qwen3 (Cài đặt) để được chấm điểm + sửa lỗi tự động."));
+}
+
+function saveTransDraft(silent) {
+  if (!transDraft.source.trim()) { if (!silent) toast("Chưa có văn bản nguồn."); return null; }
+  if (!transDraft.id) transDraft.id = "tr-" + Date.now().toString(36);
+  if (!transDraft.createdAt) transDraft.createdAt = new Date().toISOString();
+  const rec = {
+    id: transDraft.id, dir: transDraft.dir, source: transDraft.source, sourcePinyin: transDraft.sourcePinyin,
+    user: transDraft.user, ref: transDraft.ref, refPinyin: transDraft.refPinyin, grade: transDraft.grade, createdAt: transDraft.createdAt,
+  };
+  store.saveTranslation(rec);
+  if (!silent) toast("Đã lưu vào Bài đã dịch.");
+  return rec;
+}
+
+async function gradeTransDraft() {
+  if (!transDraft.source.trim()) return toast("Chưa có văn bản nguồn.");
+  toast("Đang chấm bằng Qwen3… có thể mất một lúc.");
+  try {
+    transDraft.grade = await comm.gradeTranslation(transDraft.source, transDraft.user, transDraft.dir);
+    saveTransDraft(true);
+    renderTrans();
+  } catch (e) { toast("Lỗi: " + e.message); }
+}
+
+function transGradeBox(g, srcIsZh) {
+  const box = el("div", { class: "panel stack", style: "margin-top:12px;border-color:var(--accent)" });
+  box.append(el("div", { class: "row spread" }, el("b", {}, "🤖 Qwen3 chấm"), g.score != null ? el("span", { class: "chip lvl" }, `Điểm: ${g.score}/10`) : null));
+  if (g.corrected) box.append(el("div", {}, el("div", { class: "muted small" }, "Bản dịch đã sửa:"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.corrected)));
+  if (g.reference) box.append(el("details", {}, el("summary", { class: "small" }, "Bản dịch tham khảo"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.reference)));
+  if (Array.isArray(g.notes) && g.notes.length) {
+    const ul = el("ul", { class: "trans-notes" });
+    for (const n of g.notes) ul.append(el("li", {}, n));
+    box.append(el("div", {}, el("div", { class: "muted small" }, "Nhận xét:"), ul));
+  }
+  return box;
+}
+
+function transSaved(root) {
+  root.append(el("div", { class: "exam-topbar" },
+    el("button", { class: "btn ghost", onclick: () => { transView = { screen: "home" }; renderTrans(); } }, "← Dịch thuật"),
+    el("span", { class: "muted" }, "Bài đã dịch")));
+  const list = store.getTranslations();
+  if (!list.length) { root.append(emptyState("Chưa có bài dịch", "Dịch một câu rồi bấm 💾 Lưu.")); return; }
+  const s = store.getSettings();
+  for (const t of list) {
+    const srcIsZh = t.dir === "zh2vi";
+    const head = el("div", { class: "row spread", style: "width:100%" },
+      el("span", { class: "small" }, `${srcIsZh ? "中→Việt" : "Việt→中"} · ${new Date(t.createdAt).toLocaleDateString("vi")} · ${t.source.slice(0, 18)}…`),
+      t.grade && t.grade.score != null ? el("span", { class: "chip lvl" }, `${t.grade.score}/10`) : null);
+    const notesUl = (t.grade && Array.isArray(t.grade.notes) && t.grade.notes.length)
+      ? (() => { const ul = el("ul", { class: "trans-notes" }); for (const n of t.grade.notes) ul.append(el("li", {}, n)); return ul; })() : null;
+    const body = el("div", { class: "stack", style: "margin-top:8px" },
+      el("div", {}, el("span", { class: "muted small" }, "Nguồn: "), t.source),
+      t.user && el("div", {}, el("span", { class: "muted small" }, "Bạn dịch: "), t.user),
+      t.grade && t.grade.corrected && el("div", {}, el("span", { class: "muted small" }, "Đã sửa: "), t.grade.corrected),
+      notesUl,
+      el("div", { class: "row" },
+        srcIsZh ? el("button", { class: "btn small", onclick: () => speak(t.source, { rate: s.speechRate }) }, "🔊") : null,
+        el("button", { class: "btn small", onclick: () => loadTransDraft(t) }, "Mở lại"),
+        el("button", { class: "btn ghost small", onclick: () => { if (confirm("Xóa bài này?")) { store.deleteTranslation(t.id); renderTrans(); } } }, "Xóa")));
+    root.append(el("details", { class: "panel" }, el("summary", {}, head), body));
+  }
+}
+
+function loadTransDraft(t) {
+  transDraft = { id: t.id, dir: t.dir, source: t.source, sourcePinyin: t.sourcePinyin || "", user: t.user || "", ref: t.ref || "", refPinyin: t.refPinyin || "", grade: t.grade || null, createdAt: t.createdAt };
+  transView = { screen: "home" };
+  renderTrans();
+}
