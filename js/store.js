@@ -9,6 +9,7 @@ const KEYS = {
   exams: "hsk.exams",        // đề luyện thi do người dùng nhập
   examProgress: "hsk.examProgress", // kết quả Đọc + bản nháp Viết, keyed by examId
   translations: "hsk.translations", // Dịch thuật — "Bài đã dịch" của người dùng (+ Qwen3 chấm)
+  wordSets: "hsk.wordSets",  // bộ từ tự lưu (tick chọn) — [{id,name,cardIds,createdAt}]
 };
 
 export const DEFAULT_SETTINGS = {
@@ -164,6 +165,20 @@ export function saveWritingDraft(examId, draft) {
 /* ---------------- Dịch thuật ("Bài đã dịch") ----------------
  * Mỗi bản: { id, dir:"zh2vi"|"vi2zh", source, sourcePinyin?, user, ref?,
  *   grade?:{ score, corrected, notes:[] }, createdAt }. Lưu local. */
+// ---- Bộ từ tự lưu (Từ vựng → tick chọn → lưu thành bộ) ----
+export function getWordSets() {
+  return read(KEYS.wordSets, []);
+}
+export function saveWordSet(set) {
+  const all = getWordSets();
+  const i = all.findIndex((s) => s.id === set.id);
+  if (i >= 0) all[i] = set; else all.unshift(set);
+  write(KEYS.wordSets, all);
+}
+export function deleteWordSet(id) {
+  write(KEYS.wordSets, getWordSets().filter((s) => s.id !== id));
+}
+
 export function getTranslations() {
   return read(KEYS.translations, []);
 }

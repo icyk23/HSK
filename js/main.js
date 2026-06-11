@@ -6,6 +6,8 @@ import * as ui from "./ui.js";
 const VIEWS = {
   study: ui.renderStudy,
   vocab: ui.renderVocab,
+  wordsets: ui.renderWordsets,
+  type: ui.renderType,
   quiz: ui.renderQuiz,
   exam: ui.renderExam,
   comm: ui.renderComm,
@@ -24,7 +26,8 @@ const VIEWS = {
 const NAV = [
   { id: "vocab", label: "🎴 Từ vựng", tabs: [
     { view: "study", label: "Học thẻ" },
-    { view: "vocab", label: "Danh sách" },
+    { view: "vocab", label: "Thư mục" },
+    { view: "wordsets", label: "Bộ của tôi" },
     { view: "quiz", label: "Quiz" },
     { view: "listen", label: "Nghe" },
     { view: "manage", label: "Nguồn từ" },

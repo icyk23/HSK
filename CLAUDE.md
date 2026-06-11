@@ -121,8 +121,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 [x] Bước 0–1 — Mô hình "Tài liệu" (store IndexedDB "materials", bỏ "hsk-lessons" cũ) +
     HUB HÓA NẠP: gỡ ô upload/dán ở Giao tiếp (giữ bộ chọn Tài liệu); đổi tên "Nạp tài liệu",
     "Tài liệu" (thay "Bài học"). Upload chỉ qua Nạp (Luyện đề up đề riêng = ngoại lệ).
-[ ] Bước 2 — Từ vựng: cây THƯ MỤC (HSK/chủ đề/tài liệu) + CHECKBOX chọn từ nhiều nhóm →
-    "Bộ học đã chọn" (phiên học RIÊNG, không trộn SRS chính).
+[x] Bước 2 — Từ vựng: tab "Thư mục" (cây HSK/Nhóm nghĩa/Tài liệu + CHECKBOX, chọn từ nhiều nhóm)
+    → "💾 Lưu thành bộ" (store.wordSets). Tab "Bộ của tôi": mỗi bộ học bằng 4 phương thức —
+    🎴 Flashcard · 📝 Quiz · ⌨️ Gõ pinyin (mode mới) · 🔊 Nghe (dùng chung learnScope/scopeCards).
+    Đã sửa bug nút "Học từ này" dùng data-view (chết sau nav 2 tầng) → navigate.
 [ ] Bước 3 — Giao tiếp: 4 PHƯƠNG THỨC → mỗi cái có NHÁNH CON (chủ đề/tài liệu/cấp câu), không ép thứ tự.
 [ ] Bước 4 — Dịch thuật: THƯ MỤC theo truyện → chuỗi TASK nhỏ (chương→khúc) có tiến độ + Luyện tự do.
 [ ] Bước 5 — Phồn thể: LỘ TRÌNH newbie (① quy luật bộ thủ → ② thẻ nhớ SRS 简→繁 → ③ quiz).
