@@ -113,8 +113,9 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
 [x] Học: nút Bỏ qua (S) / Đã thuộc (K)
 [x] Phase 2 — Tab Từ vựng: lọc cấp/nhóm/cần-xem-lại + sửa nhóm thủ công + học theo lọc
 [x] Chốt IA 5 module (chưa dựng nav 2 tầng — hoãn tới khi có nội dung module mới)
-[ ] Task 3c — Cài Ollama + Qwen3, phân loại Lớp 3 cho ~76% từ còn lại
-[ ] Luyện đề HSK6 (đọc + viết)
+[x] Tinh chỉnh Từ vựng: thẻ giàu hơn (HV/nhóm/tô đậm ví dụ), trạng thái+sắp xếp+đếm Danh sách, tiến độ theo cấp & nhóm
+[~] Task 3c — script Qwen3 (scripts/classify-qwen.mjs) SẴN SÀNG; chờ chạy trên máy có Ollama (npm run classify:qwen)
+[ ] Luyện đề HSK6 (đọc + viết)  ← làm tiếp (Task 3b)
 [ ] Giao tiếp — HSKK 高级 + luyện phát âm
 [ ] Dịch thuật — Trung↔Việt + Qwen3 chấm
 [ ] Phồn thể — module độc lập
