@@ -8,6 +8,7 @@ const VIEWS = {
   vocab: ui.renderVocab,
   quiz: ui.renderQuiz,
   exam: ui.renderExam,
+  comm: ui.renderComm,
   listen: ui.renderListen,
   manage: ui.renderManage,
   stats: ui.renderStats,

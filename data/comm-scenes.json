@@ -1,0 +1,187 @@
+{
+  "scenes": [
+    {
+      "id": "restaurant",
+      "title": "Nhà hàng",
+      "icon": "🍜",
+      "qa": [
+        { "q": "你想喝点什么？", "q_pinyin": "Nǐ xiǎng hē diǎn shénme?", "q_vi": "Bạn muốn uống gì?", "a": "我要一杯热茶。", "a_pinyin": "Wǒ yào yì bēi rè chá.", "a_vi": "Cho tôi một cốc trà nóng." },
+        { "q": "您几位？", "q_pinyin": "Nín jǐ wèi?", "q_vi": "Quý khách mấy người ạ?", "a": "我们两个人。", "a_pinyin": "Wǒmen liǎng ge rén.", "a_vi": "Chúng tôi hai người." },
+        { "q": "要不要加辣？", "q_pinyin": "Yào bu yào jiā là?", "q_vi": "Có thêm cay không?", "a": "不要辣，谢谢。", "a_pinyin": "Bú yào là, xièxie.", "a_vi": "Không cay, cảm ơn." },
+        { "q": "在这儿吃还是带走？", "q_pinyin": "Zài zhèr chī háishi dài zǒu?", "q_vi": "Ăn ở đây hay mang đi?", "a": "带走，谢谢。", "a_pinyin": "Dài zǒu, xièxie.", "a_vi": "Mang đi, cảm ơn." }
+      ],
+      "lines": [
+        { "zh": "服务员，买单！", "pinyin": "Fúwùyuán, mǎidān!", "vi": "Phục vụ ơi, tính tiền!" },
+        { "zh": "请给我菜单。", "pinyin": "Qǐng gěi wǒ càidān.", "vi": "Cho tôi xin thực đơn." },
+        { "zh": "这个菜有点儿咸。", "pinyin": "Zhège cài yǒudiǎnr xián.", "vi": "Món này hơi mặn." },
+        { "zh": "可以打包吗？", "pinyin": "Kěyǐ dǎbāo ma?", "vi": "Có thể gói mang về không?" }
+      ],
+      "patterns": [
+        { "frame": "我要{}。", "frame_vi": "Cho tôi {}.", "slots": [
+          { "zh": "一碗牛肉面", "vi": "một bát mì bò" },
+          { "zh": "两瓶啤酒", "vi": "hai chai bia" },
+          { "zh": "一份饺子", "vi": "một phần sủi cảo" },
+          { "zh": "一杯咖啡", "vi": "một cốc cà phê" }
+        ] },
+        { "frame": "请问有{}吗？", "frame_vi": "Cho hỏi có {} không?", "slots": [
+          { "zh": "包间", "vi": "phòng riêng" },
+          { "zh": "儿童椅", "vi": "ghế trẻ em" },
+          { "zh": "素菜", "vi": "món chay" },
+          { "zh": "WiFi", "vi": "wifi" }
+        ] }
+      ]
+    },
+    {
+      "id": "shopping",
+      "title": "Mua sắm",
+      "icon": "🛍️",
+      "qa": [
+        { "q": "您要点儿什么？", "q_pinyin": "Nín yào diǎnr shénme?", "q_vi": "Anh/chị cần gì ạ?", "a": "我随便看看。", "a_pinyin": "Wǒ suíbiàn kànkan.", "a_vi": "Tôi xem qua thôi." },
+        { "q": "这个多少钱？", "q_pinyin": "Zhège duōshao qián?", "q_vi": "Cái này bao nhiêu tiền?", "a": "太贵了，能便宜点吗？", "a_pinyin": "Tài guì le, néng piányi diǎn ma?", "a_vi": "Đắt quá, rẻ hơn được không?" },
+        { "q": "您穿多大号？", "q_pinyin": "Nín chuān duō dà hào?", "q_vi": "Anh/chị mặc cỡ số mấy?", "a": "我穿中号。", "a_pinyin": "Wǒ chuān zhōng hào.", "a_vi": "Tôi mặc cỡ M." },
+        { "q": "可以刷卡吗？", "q_pinyin": "Kěyǐ shuākǎ ma?", "q_vi": "Có thể quẹt thẻ không?", "a": "可以，也可以扫码。", "a_pinyin": "Kěyǐ, yě kěyǐ sǎomǎ.", "a_vi": "Được, cũng có thể quét mã." }
+      ],
+      "lines": [
+        { "zh": "我可以试一下吗？", "pinyin": "Wǒ kěyǐ shì yíxià ma?", "vi": "Tôi thử được không?" },
+        { "zh": "有别的颜色吗？", "pinyin": "Yǒu biéde yánsè ma?", "vi": "Có màu khác không?" },
+        { "zh": "再便宜一点吧。", "pinyin": "Zài piányi yìdiǎn ba.", "vi": "Bớt thêm chút đi." },
+        { "zh": "给我开张发票。", "pinyin": "Gěi wǒ kāi zhāng fāpiào.", "vi": "Xuất hoá đơn cho tôi." }
+      ],
+      "patterns": [
+        { "frame": "有没有{}？", "frame_vi": "Có {} không?", "slots": [
+          { "zh": "大一点的", "vi": "cỡ to hơn một chút" },
+          { "zh": "别的款式", "vi": "kiểu khác" },
+          { "zh": "打折的", "vi": "hàng giảm giá" },
+          { "zh": "新货", "vi": "hàng mới" }
+        ] },
+        { "frame": "这个{}怎么卖？", "frame_vi": "Cái {} này bán thế nào?", "slots": [
+          { "zh": "水果", "vi": "hoa quả" },
+          { "zh": "衣服", "vi": "quần áo" },
+          { "zh": "鞋", "vi": "giày" },
+          { "zh": "包", "vi": "túi xách" }
+        ] }
+      ]
+    },
+    {
+      "id": "directions",
+      "title": "Hỏi đường",
+      "icon": "🧭",
+      "qa": [
+        { "q": "请问，地铁站怎么走？", "q_pinyin": "Qǐngwèn, dìtiě zhàn zěnme zǒu?", "q_vi": "Cho hỏi, ga tàu điện ngầm đi thế nào?", "a": "一直走，到路口右拐。", "a_pinyin": "Yìzhí zǒu, dào lùkǒu yòu guǎi.", "a_vi": "Đi thẳng, đến ngã rẽ phải." },
+        { "q": "离这儿远吗？", "q_pinyin": "Lí zhèr yuǎn ma?", "q_vi": "Cách đây có xa không?", "a": "不远，走路十分钟。", "a_pinyin": "Bù yuǎn, zǒulù shí fēnzhōng.", "a_vi": "Không xa, đi bộ mười phút." },
+        { "q": "我应该坐几号线？", "q_pinyin": "Wǒ yīnggāi zuò jǐ hào xiàn?", "q_vi": "Tôi nên đi tuyến số mấy?", "a": "坐二号线，换乘五号线。", "a_pinyin": "Zuò èr hào xiàn, huànchéng wǔ hào xiàn.", "a_vi": "Đi tuyến 2, đổi sang tuyến 5." }
+      ],
+      "lines": [
+        { "zh": "我迷路了。", "pinyin": "Wǒ mílù le.", "vi": "Tôi bị lạc đường rồi." },
+        { "zh": "请帮我叫一辆出租车。", "pinyin": "Qǐng bāng wǒ jiào yí liàng chūzūchē.", "vi": "Làm ơn gọi giúp tôi một chiếc taxi." },
+        { "zh": "到火车站大概多远？", "pinyin": "Dào huǒchē zhàn dàgài duō yuǎn?", "vi": "Đến ga tàu khoảng bao xa?" },
+        { "zh": "我要去这个地址。", "pinyin": "Wǒ yào qù zhège dìzhǐ.", "vi": "Tôi muốn đến địa chỉ này." }
+      ],
+      "patterns": [
+        { "frame": "请问，{}怎么走？", "frame_vi": "Cho hỏi, {} đi thế nào?", "slots": [
+          { "zh": "厕所", "vi": "nhà vệ sinh" },
+          { "zh": "银行", "vi": "ngân hàng" },
+          { "zh": "机场", "vi": "sân bay" },
+          { "zh": "医院", "vi": "bệnh viện" }
+        ] },
+        { "frame": "到{}要多长时间？", "frame_vi": "Đến {} mất bao lâu?", "slots": [
+          { "zh": "市中心", "vi": "trung tâm thành phố" },
+          { "zh": "学校", "vi": "trường học" },
+          { "zh": "酒店", "vi": "khách sạn" },
+          { "zh": "公司", "vi": "công ty" }
+        ] }
+      ]
+    },
+    {
+      "id": "hospital",
+      "title": "Đi khám bệnh",
+      "icon": "🏥",
+      "qa": [
+        { "q": "你哪儿不舒服？", "q_pinyin": "Nǐ nǎr bù shūfu?", "q_vi": "Anh/chị thấy khó chịu ở đâu?", "a": "我头疼，还发烧。", "a_pinyin": "Wǒ tóu téng, hái fāshāo.", "a_vi": "Tôi đau đầu, còn sốt nữa." },
+        { "q": "这种情况多久了？", "q_pinyin": "Zhè zhǒng qíngkuàng duōjiǔ le?", "q_vi": "Tình trạng này bao lâu rồi?", "a": "两三天了。", "a_pinyin": "Liǎng sān tiān le.", "a_vi": "Hai ba ngày rồi." },
+        { "q": "你对什么过敏吗？", "q_pinyin": "Nǐ duì shénme guòmǐn ma?", "q_vi": "Anh/chị dị ứng với gì không?", "a": "我对青霉素过敏。", "a_pinyin": "Wǒ duì qīngméisù guòmǐn.", "a_vi": "Tôi dị ứng với penicillin." }
+      ],
+      "lines": [
+        { "zh": "我想挂号。", "pinyin": "Wǒ xiǎng guàhào.", "vi": "Tôi muốn đăng ký khám." },
+        { "zh": "我嗓子疼。", "pinyin": "Wǒ sǎngzi téng.", "vi": "Tôi đau họng." },
+        { "zh": "这个药怎么吃？", "pinyin": "Zhège yào zěnme chī?", "vi": "Thuốc này uống thế nào?" },
+        { "zh": "我需要看急诊。", "pinyin": "Wǒ xūyào kàn jízhěn.", "vi": "Tôi cần khám cấp cứu." }
+      ],
+      "patterns": [
+        { "frame": "我{}疼。", "frame_vi": "Tôi đau {}.", "slots": [
+          { "zh": "头", "vi": "đầu" },
+          { "zh": "肚子", "vi": "bụng" },
+          { "zh": "牙", "vi": "răng" },
+          { "zh": "嗓子", "vi": "họng" }
+        ] },
+        { "frame": "我需要{}。", "frame_vi": "Tôi cần {}.", "slots": [
+          { "zh": "看医生", "vi": "gặp bác sĩ" },
+          { "zh": "量体温", "vi": "đo nhiệt độ" },
+          { "zh": "拿药", "vi": "lấy thuốc" },
+          { "zh": "休息几天", "vi": "nghỉ vài ngày" }
+        ] }
+      ]
+    },
+    {
+      "id": "intro",
+      "title": "Làm quen",
+      "icon": "🤝",
+      "qa": [
+        { "q": "你叫什么名字？", "q_pinyin": "Nǐ jiào shénme míngzi?", "q_vi": "Bạn tên gì?", "a": "我叫阮明。", "a_pinyin": "Wǒ jiào Ruǎn Míng.", "a_vi": "Tôi tên Nguyễn Minh." },
+        { "q": "你是哪国人？", "q_pinyin": "Nǐ shì nǎ guó rén?", "q_vi": "Bạn là người nước nào?", "a": "我是越南人。", "a_pinyin": "Wǒ shì Yuènán rén.", "a_vi": "Tôi là người Việt Nam." },
+        { "q": "你做什么工作？", "q_pinyin": "Nǐ zuò shénme gōngzuò?", "q_vi": "Bạn làm nghề gì?", "a": "我是一名工程师。", "a_pinyin": "Wǒ shì yì míng gōngchéngshī.", "a_vi": "Tôi là một kỹ sư." },
+        { "q": "你为什么学中文？", "q_pinyin": "Nǐ wèishéme xué Zhōngwén?", "q_vi": "Sao bạn học tiếng Trung?", "a": "因为工作需要。", "a_pinyin": "Yīnwèi gōngzuò xūyào.", "a_vi": "Vì công việc cần." }
+      ],
+      "lines": [
+        { "zh": "很高兴认识你。", "pinyin": "Hěn gāoxìng rènshi nǐ.", "vi": "Rất vui được làm quen." },
+        { "zh": "我们加个微信吧。", "pinyin": "Wǒmen jiā ge Wēixìn ba.", "vi": "Chúng ta kết bạn WeChat nhé." },
+        { "zh": "请多多关照。", "pinyin": "Qǐng duōduō guānzhào.", "vi": "Mong được chiếu cố nhiều." },
+        { "zh": "我的中文不太好。", "pinyin": "Wǒ de Zhōngwén bú tài hǎo.", "vi": "Tiếng Trung của tôi không tốt lắm." }
+      ],
+      "patterns": [
+        { "frame": "我是{}。", "frame_vi": "Tôi là {}.", "slots": [
+          { "zh": "学生", "vi": "sinh viên" },
+          { "zh": "老师", "vi": "giáo viên" },
+          { "zh": "越南人", "vi": "người Việt Nam" },
+          { "zh": "新来的", "vi": "người mới đến" }
+        ] },
+        { "frame": "我喜欢{}。", "frame_vi": "Tôi thích {}.", "slots": [
+          { "zh": "看电影", "vi": "xem phim" },
+          { "zh": "旅游", "vi": "du lịch" },
+          { "zh": "做饭", "vi": "nấu ăn" },
+          { "zh": "打篮球", "vi": "chơi bóng rổ" }
+        ] }
+      ]
+    },
+    {
+      "id": "work",
+      "title": "Công việc",
+      "icon": "💼",
+      "qa": [
+        { "q": "这个项目什么时候完成？", "q_pinyin": "Zhège xiàngmù shénme shíhou wánchéng?", "q_vi": "Dự án này khi nào xong?", "a": "下周五之前。", "a_pinyin": "Xià zhōu wǔ zhīqián.", "a_vi": "Trước thứ Sáu tuần sau." },
+        { "q": "你能加班吗？", "q_pinyin": "Nǐ néng jiābān ma?", "q_vi": "Bạn tăng ca được không?", "a": "今天不行，我有事。", "a_pinyin": "Jīntiān bùxíng, wǒ yǒu shì.", "a_vi": "Hôm nay không được, tôi có việc." },
+        { "q": "会议几点开始？", "q_pinyin": "Huìyì jǐ diǎn kāishǐ?", "q_vi": "Cuộc họp mấy giờ bắt đầu?", "a": "下午三点。", "a_pinyin": "Xiàwǔ sān diǎn.", "a_vi": "Ba giờ chiều." }
+      ],
+      "lines": [
+        { "zh": "我把文件发给你。", "pinyin": "Wǒ bǎ wénjiàn fā gěi nǐ.", "vi": "Tôi gửi tài liệu cho bạn." },
+        { "zh": "这件事我来负责。", "pinyin": "Zhè jiàn shì wǒ lái fùzé.", "vi": "Việc này để tôi phụ trách." },
+        { "zh": "麻烦你帮我看一下。", "pinyin": "Máfan nǐ bāng wǒ kàn yíxià.", "vi": "Phiền bạn xem giúp tôi." },
+        { "zh": "我们再讨论一下。", "pinyin": "Wǒmen zài tǎolùn yíxià.", "vi": "Chúng ta thảo luận thêm chút." }
+      ],
+      "patterns": [
+        { "frame": "请帮我{}。", "frame_vi": "Làm ơn giúp tôi {}.", "slots": [
+          { "zh": "打印文件", "vi": "in tài liệu" },
+          { "zh": "订会议室", "vi": "đặt phòng họp" },
+          { "zh": "安排时间", "vi": "sắp xếp thời gian" },
+          { "zh": "翻译一下", "vi": "dịch giúp một chút" }
+        ] },
+        { "frame": "我需要{}才能完成。", "frame_vi": "Tôi cần {} mới hoàn thành được.", "slots": [
+          { "zh": "更多时间", "vi": "thêm thời gian" },
+          { "zh": "你的帮助", "vi": "sự giúp đỡ của bạn" },
+          { "zh": "一些资料", "vi": "một ít tài liệu" },
+          { "zh": "领导批准", "vi": "lãnh đạo phê duyệt" }
+        ] }
+      ]
+    }
+  ]
+}

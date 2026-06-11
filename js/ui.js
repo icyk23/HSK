@@ -2,7 +2,8 @@
 
 import * as store from "./store.js";
 import * as srs from "./srs.js";
-import { speak, hasChineseVoice } from "./audio.js";
+import { speak, hasChineseVoice, hasRecognition, recognizeChinese, stopSpeaking } from "./audio.js";
+import * as comm from "./comm.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
 import { getAllExams, getExam, countReadingQuestions, parseExamJson } from "./exams.js";
 import { unzip } from "./unzip.js";
@@ -1171,4 +1172,382 @@ async function examWriting(root) {
     ),
     el("p", { class: "muted small" }, "Bản nháp tự lưu vào máy. Khi có Qwen3, app sẽ chấm bố cục, ngữ pháp và gợi ý sửa."),
   ));
+}
+
+/* ============================================================
+   GIAO TIẾP (luyện phản xạ + phát âm) — js/comm.js + data/comm-scenes.json
+   ============================================================ */
+let commView = { screen: "home" };
+let commTimer = null;            // đồng hồ Sprint
+let commRec = null;              // nhận diện giọng nói đang chạy
+let commSel = { sceneIds: null };// null = tất cả cảnh
+let commPersonal = [];           // [{zh, pinyin?, vi?}] từ dán/thư viện
+let commPersonalLabel = "";
+
+function clearCommState() {
+  if (commTimer) { clearInterval(commTimer); commTimer = null; }
+  if (commRec) { try { commRec.abort(); } catch {} commRec = null; }
+  stopSpeaking();
+}
+
+export async function renderComm() {
+  clearCommState();
+  const root = clear();
+  const scenes = await comm.loadScenes();
+  if (commView.screen === "qa") return commDrillQA(root, scenes);
+  if (commView.screen === "shadow") return commDrillShadow(root, scenes);
+  if (commView.screen === "sprint") return commDrillSprint(root, scenes);
+  if (commView.screen === "pattern") return commDrillPattern(root, scenes);
+  return commHome(root, scenes);
+}
+
+/* ---------- Nguồn câu (chọn cảnh + cá nhân) ---------- */
+function selectedScenes(scenes) {
+  if (!commSel.sceneIds) return scenes;
+  const set = new Set(commSel.sceneIds);
+  return scenes.filter((s) => set.has(s.id));
+}
+function lineBank(scenes) {
+  const out = [];
+  for (const s of selectedScenes(scenes)) out.push(...comm.sceneLineBank(s));
+  out.push(...commPersonal);
+  return out;
+}
+function viLineBank(scenes) { return lineBank(scenes).filter((x) => x.vi); }
+function qaBank(scenes) { const o = []; for (const s of selectedScenes(scenes)) o.push(...(s.qa || [])); return o; }
+function patternBank(scenes) { const o = []; for (const s of selectedScenes(scenes)) o.push(...(s.patterns || [])); return o; }
+
+async function commHome(root, scenes) {
+  root.append(el("h1", { class: "view-title" }, "🗣️ Giao tiếp — luyện phản xạ"));
+
+  const src = el("div", { class: "panel comm-source" });
+  src.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
+  const chips = el("div", { class: "comm-chips" });
+  const allOn = !commSel.sceneIds;
+  chips.append(commChip("Tất cả cảnh", allOn, () => { commSel.sceneIds = null; renderComm(); }));
+  for (const s of scenes) {
+    const on = !allOn && commSel.sceneIds.includes(s.id);
+    chips.append(commChip(`${s.icon} ${s.title}`, on, () => toggleScene(s.id, scenes)));
+  }
+  src.append(chips);
+  src.append(commPersonalBar());
+  const libBar = await commLibraryBar();
+  if (libBar) src.append(libBar);
+  root.append(src);
+
+  const nQa = qaBank(scenes).length, nLine = lineBank(scenes).length, nVi = viLineBank(scenes).length, nPat = patternBank(scenes).length;
+  const grid = el("div", { class: "comm-grid" });
+  grid.append(commDrillCard("💬", "Hỏi–đáp tình huống", `${nQa} cặp`, "Nghe câu hỏi → bật câu trả lời trong vài giây.", nQa > 0, "qa"));
+  grid.append(commDrillCard("🎙️", "Shadowing + Phát âm", `${nLine} câu`, "Nghe mẫu → nói lại → chấm phát âm.", nLine > 0, "shadow"));
+  grid.append(commDrillCard("⏱️", "Sprint Việt→Trung", `${nVi} câu`, "Đếm giờ, bật càng nhiều câu càng tốt.", nVi > 0, "sprint"));
+  grid.append(commDrillCard("🔁", "Thay thế mẫu câu", `${nPat} mẫu`, "Giữ khung, đổi chỗ trống để nói tự động.", nPat > 0, "pattern"));
+  root.append(grid);
+
+  if (!hasRecognition()) {
+    root.append(el("p", { class: "muted small", style: "margin-top:10px" },
+      "ℹ️ Trình duyệt này chưa hỗ trợ nhận diện giọng nói (chấm phát âm). Dùng Chrome/Edge để chấm tự động; các kiểu khác vẫn luyện bình thường."));
+  }
+}
+
+function commChip(label, on, onclick) { return el("button", { class: "comm-chip" + (on ? " on" : ""), onclick }, label); }
+function toggleScene(id, scenes) {
+  if (!commSel.sceneIds) commSel.sceneIds = scenes.map((s) => s.id);
+  const i = commSel.sceneIds.indexOf(id);
+  if (i >= 0) commSel.sceneIds.splice(i, 1); else commSel.sceneIds.push(id);
+  if (!commSel.sceneIds.length || commSel.sceneIds.length === scenes.length) commSel.sceneIds = null;
+  renderComm();
+}
+function commSourceSummary(scenes) {
+  const sc = selectedScenes(scenes).length;
+  const p = commPersonal.length ? ` · ${commPersonal.length} câu cá nhân (${commPersonalLabel})` : "";
+  return `${sc} cảnh${p}`;
+}
+function commDrillCard(icon, title, badge, desc, enabled, screen) {
+  return el("button", {
+    class: "comm-drill" + (enabled ? "" : " disabled"),
+    onclick: enabled ? () => { commView = { screen }; renderComm(); } : () => toast("Nguồn hiện chưa có dữ liệu cho kiểu này."),
+  },
+    el("div", { class: "comm-drill-ic" }, icon),
+    el("div", { class: "comm-drill-body" },
+      el("div", { class: "comm-drill-title" }, title, el("span", { class: "chip" }, badge)),
+      el("div", { class: "muted small" }, desc)));
+}
+
+function commPersonalBar() {
+  const ta = el("textarea", { rows: "3", placeholder: "Dán văn bản tiếng Trung, phụ đề .srt, hoặc cặp song ngữ:  中文 ||| Tiếng Việt" });
+  const fileInput = el("input", { type: "file", accept: ".txt,.srt,.lrc,.csv" });
+  fileInput.addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) ta.value = await f.text(); });
+  const add = () => {
+    const items = comm.parseUserText(ta.value.trim());
+    if (!items.length) return toast("Không tách được câu tiếng Trung nào.");
+    commPersonal = items; commPersonalLabel = "đã dán";
+    toast(`Đã thêm ${items.length} câu vào nguồn.`);
+    renderComm();
+  };
+  const clearBtn = commPersonal.length ? el("button", { class: "btn ghost small", onclick: () => { commPersonal = []; commPersonalLabel = ""; renderComm(); } }, "Xóa câu cá nhân") : null;
+  return el("details", { class: "comm-personal" },
+    el("summary", {}, "➕ Thêm nguồn cá nhân (dán văn bản / phụ đề)"),
+    el("p", { class: "muted small" }, "Văn bản chỉ có tiếng Trung dùng được cho Shadowing/Phát âm. Muốn luyện Việt→Trung thì dán kèm bản dịch dạng “中文 ||| Tiếng Việt”. (Tự dịch & sinh câu hỏi sẽ thêm khi có Qwen3.)"),
+    el("div", { class: "field" }, ta),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: add }, "Thêm vào nguồn"), clearBtn));
+}
+
+async function commLibraryBar() {
+  let files = [];
+  try { files = await comm.listLibraryFiles(); } catch {}
+  if (!files.length) return null;
+  const list = el("div", { class: "comm-libfiles" });
+  for (const f of files) {
+    const action = f.kind === "text"
+      ? el("button", { class: "btn ghost small", onclick: async () => {
+          const items = await comm.extractFileLines(f.id, f.kind);
+          if (!items.length) return toast("File không có câu tiếng Trung.");
+          commPersonal = items; commPersonalLabel = f.name;
+          toast(`Đã lấy ${items.length} câu từ ${f.name}.`); renderComm();
+        } }, "Dùng")
+      : el("span", { class: "muted small" }, "Bóc bằng Qwen3 (sắp có)");
+    list.append(el("div", { class: "row spread comm-librow" }, el("span", { class: "small" }, `${libIcon(f.kind)} ${f.name}`), action));
+  }
+  return el("details", { class: "comm-personal" }, el("summary", {}, `📂 Lấy câu từ thư viện đã nạp (${files.length} file)`), list);
+}
+function libIcon(kind) { return ({ text: "📄", pdf: "📕", audio: "🎧", image: "🖼️", ebook: "📘" })[kind] || "📎"; }
+
+/* ---------- Chấm phát âm (so khớp chữ Hán) ---------- */
+function scorePronun(target, said) {
+  const han = (s) => [...String(s)].filter((c) => /[一-鿿]/.test(c));
+  const t = han(target), saidSet = new Set(han(said));
+  if (!t.length) return { pct: 0, marks: [] };
+  let hit = 0;
+  const marks = t.map((c) => { const ok = saidSet.has(c); if (ok) hit++; return { c, ok }; });
+  return { pct: Math.round((hit / t.length) * 100), marks };
+}
+function pronunMarks(marks) {
+  const span = el("span", { class: "comm-marks" });
+  for (const m of marks) span.append(el("span", { class: m.ok ? "ok" : "bad" }, m.c));
+  return span;
+}
+function micButton(getTarget, s) {
+  const btn = el("button", { class: "btn" }, "🎙️ Nói");
+  const out = el("span", { class: "comm-mic-out small" });
+  btn.onclick = () => {
+    if (commRec) { try { commRec.abort(); } catch {} commRec = null; btn.textContent = "🎙️ Nói"; return; }
+    btn.textContent = "● Đang nghe…"; out.textContent = "";
+    commRec = recognizeChinese({
+      onResult: (txt) => {
+        const { pct, marks } = scorePronun(getTarget(), txt);
+        out.innerHTML = "";
+        out.append(el("b", { class: pct >= 80 ? "ok" : pct >= 50 ? "" : "bad" }, `${pct}% `), pronunMarks(marks),
+          el("span", { class: "muted" }, ` · bạn nói: ${txt || "(không rõ)"}`));
+      },
+      onError: (err) => { out.textContent = err === "unsupported" ? "Trình duyệt không hỗ trợ micro." : "Lỗi micro: " + err; },
+      onEnd: () => { commRec = null; btn.textContent = "🎙️ Nói"; },
+    });
+  };
+  return el("span", { class: "comm-mic" }, btn, out);
+}
+
+function commTopbar(title) {
+  return el("div", { class: "exam-topbar" },
+    el("button", { class: "btn ghost", onclick: () => { commView = { screen: "home" }; renderComm(); } }, "← Giao tiếp"),
+    el("span", { class: "muted" }, title));
+}
+
+/* ---------- Drill: Hỏi–đáp tình huống ---------- */
+function commDrillQA(root, scenes) {
+  const bank = shuffle(qaBank(scenes).slice());
+  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
+  const s = store.getSettings();
+  root.append(commTopbar("Hỏi–đáp tình huống"));
+  const progress = el("div", { class: "comm-progress muted small" });
+  const card = el("div", { class: "panel comm-card" });
+  const controls = el("div", { class: "row comm-controls" });
+  root.append(progress, card, controls);
+
+  let idx = 0, revealed = false;
+  const cur = () => bank[idx];
+  function paint() {
+    revealed = false;
+    const qa = cur();
+    progress.textContent = `Câu ${idx + 1} / ${bank.length}`;
+    card.innerHTML = "";
+    card.append(el("div", { class: "comm-q" },
+      el("div", { class: "hanzi-line" }, qa.q),
+      qa.q_pinyin && el("div", { class: "pinyin" }, qa.q_pinyin),
+      qa.q_vi && el("div", { class: "meaning" }, qa.q_vi)));
+    card.append(el("div", { class: "comm-hint muted" }, "→ Bạn trả lời thế nào? (nói ra miệng)"));
+    speak(qa.q, { rate: s.speechRate });
+    paintControls();
+  }
+  function reveal() {
+    if (revealed) return; revealed = true;
+    const qa = cur();
+    card.append(el("div", { class: "comm-a" },
+      el("div", { class: "muted small" }, "Gợi ý đáp án:"),
+      el("div", { class: "hanzi-line" }, qa.a),
+      qa.a_pinyin && el("div", { class: "pinyin" }, qa.a_pinyin),
+      qa.a_vi && el("div", { class: "meaning" }, qa.a_vi)));
+    speak(qa.a, { rate: s.speechRate });
+    paintControls();
+  }
+  function next() {
+    idx++;
+    if (idx >= bank.length) { idx = 0; shuffle(bank); toast("Hết lượt — xáo lại từ đầu."); }
+    paint();
+  }
+  function paintControls() {
+    controls.innerHTML = "";
+    controls.append(el("button", { class: "btn", onclick: () => speak(cur().q, { rate: s.speechRate }) }, "🔁 Nghe câu hỏi"));
+    if (hasRecognition()) controls.append(micButton(() => cur().a, s));
+    if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, "💡 Gợi ý đáp án"));
+    controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp theo →"));
+  }
+  paint();
+}
+
+/* ---------- Drill: Shadowing + Phát âm ---------- */
+function commDrillShadow(root, scenes) {
+  const bank = shuffle(lineBank(scenes).slice());
+  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
+  const s = store.getSettings();
+  root.append(commTopbar("Shadowing + Phát âm"));
+  const progress = el("div", { class: "comm-progress muted small" });
+  const card = el("div", { class: "panel comm-card" });
+  const controls = el("div", { class: "row comm-controls" });
+  root.append(progress, card, controls);
+
+  let idx = 0, showAid = false;
+  const cur = () => bank[idx];
+  function renderBody() {
+    const it = cur();
+    progress.textContent = `Câu ${idx + 1} / ${bank.length}`;
+    card.innerHTML = "";
+    card.append(el("div", { class: "hanzi-line big" }, it.zh));
+    if (showAid) {
+      it.pinyin && card.append(el("div", { class: "pinyin" }, it.pinyin));
+      it.vi && card.append(el("div", { class: "meaning" }, it.vi));
+    } else {
+      card.append(el("div", { class: "comm-hint muted" }, "Lặp lại theo mẫu — chạm để hiện pinyin/nghĩa"));
+    }
+  }
+  const speakCur = () => speak(cur().zh, { rate: s.speechRate });
+  card.onclick = () => { if (!showAid) { showAid = true; renderBody(); } };
+  function next() {
+    idx++;
+    if (idx >= bank.length) { idx = 0; shuffle(bank); toast("Hết lượt — xáo lại từ đầu."); }
+    showAid = false; renderBody(); speakCur(); paintControls();
+  }
+  function paintControls() {
+    controls.innerHTML = "";
+    controls.append(el("button", { class: "btn", onclick: speakCur }, "🔁 Nghe mẫu"));
+    if (hasRecognition()) controls.append(micButton(() => cur().zh, s));
+    controls.append(el("button", { class: "btn", onclick: () => { showAid = true; renderBody(); } }, "👁 Hiện"));
+    controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp →"));
+  }
+  renderBody(); speakCur(); paintControls();
+}
+
+/* ---------- Drill: Sprint Việt→Trung (đếm giờ) ---------- */
+function commDrillSprint(root, scenes) {
+  const bank = viLineBank(scenes);
+  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
+  const s = store.getSettings();
+  root.append(commTopbar("Sprint Việt→Trung"));
+  const panel = el("div", { class: "panel comm-card" });
+  root.append(panel);
+  let dur = 60;
+
+  function showSetup() {
+    clearCommState();
+    panel.innerHTML = "";
+    panel.append(el("p", {}, "Đọc nghĩa tiếng Việt rồi bật ngay câu tiếng Trung. Mỗi câu bật được bấm “✓ Được”. Cố vượt kỷ lục của bạn!"));
+    const sel = el("div", { class: "row" });
+    [30, 60, 90].forEach((d) => sel.append(el("button", { class: "btn" + (d === dur ? " primary" : ""), onclick: () => { dur = d; showSetup(); } }, d + "s")));
+    panel.append(el("div", { class: "field" }, el("label", { class: "muted small" }, "Thời lượng"), sel));
+    panel.append(el("button", { class: "btn primary big", onclick: start }, "▶️ Bắt đầu"));
+  }
+  function start() {
+    const queue = shuffle(bank.slice());
+    let qi = 0, score = 0, revealed = false, remain = dur;
+    const timerEl = el("span", { class: "timer-disp" }, fmtTime(remain));
+    const scoreEl = el("b", {}, "0");
+    const body = el("div", { class: "comm-sprint-body" });
+    function paint() {
+      revealed = false;
+      const it = queue[qi % queue.length];
+      body.innerHTML = "";
+      body.append(el("div", { class: "meaning big" }, it.vi), el("div", { class: "comm-hint muted" }, "→ Nói bằng tiếng Trung"));
+    }
+    function reveal() {
+      if (revealed) return; revealed = true;
+      const it = queue[qi % queue.length];
+      body.append(el("div", { class: "hanzi-line" }, it.zh));
+      if (it.pinyin) body.append(el("div", { class: "pinyin" }, it.pinyin));
+      speak(it.zh, { rate: s.speechRate });
+    }
+    function adv(ok) { if (ok) { score++; scoreEl.textContent = String(score); } qi++; paint(); }
+    panel.innerHTML = "";
+    panel.append(el("div", { class: "row spread" }, el("div", { class: "row" }, el("b", {}, "⏱ "), timerEl), el("div", {}, "Đã bật: ", scoreEl)));
+    panel.append(body);
+    panel.append(el("div", { class: "row comm-controls" },
+      el("button", { class: "btn", onclick: reveal }, "👁 Hiện"),
+      el("button", { class: "btn ghost", onclick: () => adv(false) }, "Bỏ qua"),
+      el("button", { class: "btn primary", onclick: () => adv(true) }, "✓ Được")));
+    paint();
+    commTimer = setInterval(() => {
+      remain--; timerEl.textContent = fmtTime(Math.max(0, remain));
+      if (remain <= 0) { clearCommState(); finish(score); }
+    }, 1000);
+  }
+  function finish(score) {
+    panel.innerHTML = "";
+    panel.append(el("div", { class: "comm-result" },
+      el("div", { class: "big" }, "⚡"),
+      el("h2", {}, `Bật được ${score} câu trong ${dur}s`),
+      el("div", { class: "row" },
+        el("button", { class: "btn primary", onclick: showSetup }, "Làm lại"),
+        el("button", { class: "btn", onclick: () => { commView = { screen: "home" }; renderComm(); } }, "Về Giao tiếp"))));
+  }
+  showSetup();
+}
+
+/* ---------- Drill: Thay thế mẫu câu (句型替换) ---------- */
+function commDrillPattern(root, scenes) {
+  const bank = patternBank(scenes);
+  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
+  const s = store.getSettings();
+  root.append(commTopbar("Thay thế mẫu câu"));
+  const progress = el("div", { class: "comm-progress muted small" });
+  const card = el("div", { class: "panel comm-card" });
+  const controls = el("div", { class: "row comm-controls" });
+  root.append(progress, card, controls);
+
+  let pi = 0, si = 0, revealed = false;
+  const curP = () => bank[pi % bank.length];
+  const curS = () => curP().slots[si % curP().slots.length];
+  function renderBody() {
+    const p = curP(), slot = curS();
+    progress.textContent = `Mẫu ${(pi % bank.length) + 1}/${bank.length} · chỗ trống ${si + 1}/${p.slots.length}`;
+    card.innerHTML = "";
+    card.append(el("div", { class: "comm-skeleton", html: escapeHtml(p.frame).replace("{}", '<span class="blank">＿＿</span>') }));
+    card.append(el("div", { class: "meaning big", html: comm.fillFrame(escapeHtml(p.frame_vi), `<mark class="hl">${escapeHtml(slot.vi)}</mark>`) }));
+    if (revealed) {
+      card.append(el("div", { class: "comm-a" },
+        el("div", { class: "hanzi-line", html: comm.fillFrame(escapeHtml(p.frame), `<mark class="hl">${escapeHtml(slot.zh)}</mark>`) })));
+    } else {
+      card.append(el("div", { class: "comm-hint muted" }, "→ Bật câu tiếng Trung với chỗ trống này"));
+    }
+  }
+  function reveal() { if (revealed) return; revealed = true; renderBody(); speak(comm.fillFrame(curP().frame, curS().zh), { rate: s.speechRate }); paintControls(); }
+  function next() {
+    revealed = false; si++;
+    if (si >= curP().slots.length) { si = 0; pi++; }
+    renderBody(); paintControls();
+  }
+  function paintControls() {
+    controls.innerHTML = "";
+    if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, "💡 Đáp án"));
+    else controls.append(el("button", { class: "btn", onclick: () => speak(comm.fillFrame(curP().frame, curS().zh), { rate: s.speechRate }) }, "🔊 Nghe"));
+    controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp →"));
+  }
+  renderBody(); paintControls();
 }

@@ -33,3 +33,30 @@ export function speak(text, { rate = 0.9 } = {}) {
 export function hasChineseVoice() {
   return !!pickChineseVoice();
 }
+
+export function stopSpeaking() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+/* ---------- Nhận diện giọng nói (Web Speech Recognition) ----------
+ * Miễn phí, chạy trong trình duyệt. Chrome/Edge hỗ trợ tốt; Firefox/Safari
+ * (desktop) hiện chưa hỗ trợ → hasRecognition() trả false để UI báo nhẹ. */
+export function hasRecognition() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+// Bắt đầu nghe 1 lần, trả về đối tượng recognition (để .abort() nếu cần).
+export function recognizeChinese({ onResult, onError, onEnd } = {}) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { onError && onError("unsupported"); return null; }
+  stopSpeaking(); // tránh micro thu lại tiếng TTS đang đọc
+  const rec = new SR();
+  rec.lang = "zh-CN";
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+  rec.onresult = (e) => { onResult && onResult(e.results[0][0].transcript || ""); };
+  rec.onerror = (e) => { onError && onError(e.error || "error"); };
+  rec.onend = () => { onEnd && onEnd(); };
+  try { rec.start(); } catch (e) { onError && onError(String(e)); return null; }
+  return rec;
+}

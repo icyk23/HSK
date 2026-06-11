@@ -32,7 +32,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 |--------|---------|-----------|
 | **Từ vựng** 🎴 | Học thẻ · Danh sách · Quiz · Nghe · Nguồn từ | ✅ đã có (trừ đổi tên) |
 | **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) đã có; HSKK chưa |
-| **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | ⬜ chưa xây |
+| **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | ⬜ chưa xây |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
 | **Nạp nội dung** 📥 *(global)* | Video · Truyện · Tài liệu | ⬜ chưa xây |
@@ -66,6 +66,8 @@ js/srs.js               SRS kiểu SM-2 (+ trạng thái "đã thuộc")
 js/audio.js             phát âm (Web Speech API)
 js/decks.js             nạp deck + parse CSV import
 js/classify.js          pipeline phân loại Lớp 1+2 (dùng cả browser lẫn build script)
+js/comm.js              Giao tiếp: nạp cảnh mẫu + tách câu (text/.srt/song ngữ) + lấy câu từ thư viện
+data/comm-scenes.json   6 cảnh mẫu khẩu ngữ (hỏi-đáp · câu lẻ · mẫu câu thay thế)
 data/hsk-words.json     5.002 từ HSK1–6 đã phân loại (sinh bởi build script)
 data/vocab.xlsx         nguồn gốc 5.002 từ (để build lại)
 scripts/build-words.mjs TOOL build: xlsx → phân loại → hsk-words.json (npm run build:words)
@@ -121,7 +123,11 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
 [x] Kho tài liệu đề thi (trong Luyện đề): tải .zip → tự giải nén thuần trình duyệt
     (js/unzip.js dùng DecompressionStream, KHÔNG cần thư viện) → lưu IndexedDB (js/library.js)
     → xem PDF (iframe), nghe audio, xem ảnh/txt offline. Bóc đề từ PDF bằng Qwen3 chờ backend.
-[ ] Giao tiếp — HSKK 高级 + luyện phát âm
+[x] Giao tiếp — tab "🗣️ Giao tiếp" (phẳng); 4 drill: Hỏi–đáp tình huống · Shadowing+Phát âm
+    (Web Speech Recognition zh-CN, chấm % khớp chữ Hán) · Sprint Việt→Trung (đếm giờ) · Thay thế
+    mẫu câu (句型替换). Nguồn câu: 6 cảnh mẫu data/comm-scenes.json + dán văn bản/.srt/cặp song ngữ
+    + bóc từ file .txt thư viện (js/comm.js). Bóc ảnh/video/PDF & tự dịch Việt→Trung chờ Qwen3.
+[ ] Giao tiếp — HSKK 高级 (nói theo đề thi) + cá nhân hóa bằng Qwen3 (tự dịch, sinh câu hỏi)
 [ ] Dịch thuật — Trung↔Việt + Qwen3 chấm
 [ ] Phồn thể — module độc lập
 [ ] Nạp nội dung — video / truyện / tài liệu
