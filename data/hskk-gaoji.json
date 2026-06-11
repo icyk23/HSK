@@ -1,0 +1,39 @@
+{
+  "hskk": [
+    {
+      "id": "hskk-gj-1",
+      "title": "HSKK 高级 — Đề mẫu 1 (ngắn)",
+      "note": "Đề ngắn để làm quen cấu trúc thi nói HSKK 高级 (3 phần: nghe-kể lại · đọc to · trả lời câu hỏi). Đề đầy đủ sẽ do Qwen3 sinh hoặc bạn nhập sau.",
+      "retell": [
+        {
+          "zh": "有一个年轻人总是抱怨自己运气不好。一位老人对他说：“机会就像天上的雨，到处都有，但你得先准备好容器去接。”年轻人听了以后，开始努力学习、积累经验，后来果然抓住了一个很好的机会。",
+          "vi": "Có một chàng trai trẻ luôn than phiền mình không may mắn. Một ông lão nói với anh: “Cơ hội giống như mưa trên trời, ở đâu cũng có, nhưng cậu phải chuẩn bị sẵn vật chứa để hứng.” Chàng trai nghe xong bắt đầu nỗ lực học tập, tích lũy kinh nghiệm, về sau quả nhiên nắm được một cơ hội rất tốt."
+        },
+        {
+          "zh": "科学家做过一个实验：把跳蚤放进玻璃杯里，盖上盖子。跳蚤不停地往上跳，总是撞到盖子。过了一段时间，把盖子拿掉，跳蚤却再也跳不出来了，因为它已经习惯了头顶的限制。这说明环境有时会限制一个人的潜力。",
+          "vi": "Các nhà khoa học từng làm một thí nghiệm: thả con bọ chét vào cốc thủy tinh rồi đậy nắp lại. Con bọ chét liên tục nhảy lên và luôn đập vào nắp. Sau một thời gian, người ta bỏ nắp ra, nhưng con bọ chét lại không thể nhảy ra ngoài được nữa, vì nó đã quen với giới hạn phía trên đầu. Điều này cho thấy môi trường đôi khi sẽ hạn chế tiềm năng của một người."
+        },
+        {
+          "zh": "从前有位画家，画了一幅画拿到市场上，请大家指出画中的缺点，结果整幅画都被标满了记号。第二天，他又请大家标出画中的优点，没想到画上同样被标满了记号。他终于明白：同一幅作品，不同的人会有完全不同的看法，所以不必太在意别人的评价。",
+          "vi": "Ngày xưa có một họa sĩ, vẽ xong một bức tranh đem ra chợ, nhờ mọi người chỉ ra khuyết điểm trong tranh, kết quả cả bức tranh bị đánh dấu kín mít. Hôm sau, ông lại nhờ mọi người đánh dấu ưu điểm, không ngờ bức tranh cũng bị đánh dấu kín như vậy. Cuối cùng ông hiểu ra: cùng một tác phẩm, những người khác nhau sẽ có cách nhìn hoàn toàn khác nhau, nên không cần quá để tâm đến đánh giá của người khác."
+        }
+      ],
+      "read": {
+        "zh": "时间是世界上最公平的东西。无论你是谁，每天都只有二十四个小时。有的人用它来抱怨，有的人用它来努力。一年以后，这两种人之间的差距就会变得非常明显。所以，与其浪费时间去后悔，不如从现在就开始行动。",
+        "vi": "Thời gian là thứ công bằng nhất trên thế giới. Bất kể bạn là ai, mỗi ngày đều chỉ có hai mươi tư giờ. Có người dùng nó để than phiền, có người dùng nó để nỗ lực. Một năm sau, khoảng cách giữa hai loại người này sẽ trở nên vô cùng rõ rệt. Vì vậy, thay vì lãng phí thời gian để hối hận, chi bằng bắt đầu hành động ngay từ bây giờ."
+      },
+      "answer": [
+        {
+          "q_zh": "有人说“失败是成功之母”，但也有人认为只有不断的成功才能带来更大的成功。对此你有什么看法？",
+          "q_vi": "Có người nói “thất bại là mẹ thành công”, nhưng cũng có người cho rằng chỉ có những thành công liên tục mới mang lại thành công lớn hơn. Bạn nghĩ thế nào về điều này?",
+          "outline_vi": "Gợi ý dàn ý: ① nêu quan điểm của bạn; ② vì sao thất bại giúp ta rút kinh nghiệm (ví dụ cụ thể); ③ thừa nhận mặt đúng của ý kiến kia (thành công tạo tự tin/nguồn lực); ④ kết: cân bằng — quan trọng là thái độ học hỏi sau mỗi lần."
+        },
+        {
+          "q_zh": "随着科技的发展，越来越多的人习惯在网上交流。请谈谈网络交流对人际关系的影响。",
+          "q_vi": "Cùng với sự phát triển của công nghệ, ngày càng nhiều người quen giao tiếp trên mạng. Hãy nói về ảnh hưởng của giao tiếp qua mạng đối với quan hệ giữa người với người.",
+          "outline_vi": "Gợi ý dàn ý: ① mặt tích cực (kết nối khoảng cách xa, tiện lợi, nhanh); ② mặt tiêu cực (giảm gặp mặt trực tiếp, dễ hiểu lầm, lệ thuộc); ③ ví dụ bản thân; ④ kết: nên dùng mạng như công cụ hỗ trợ, không thay thế giao tiếp thật."
+        }
+      ]
+    }
+  ]
+}

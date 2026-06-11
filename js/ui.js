@@ -5,7 +5,7 @@ import * as srs from "./srs.js";
 import { speak, hasChineseVoice, hasRecognition, recognizeChinese, stopSpeaking } from "./audio.js";
 import * as comm from "./comm.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
-import { getAllExams, getExam, countReadingQuestions, parseExamJson } from "./exams.js";
+import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExams, getHskk } from "./exams.js";
 import { unzip } from "./unzip.js";
 import * as lib from "./library.js";
 import { STRUCT_LABELS, SEMANTIC_LABELS } from "./classify.js";
@@ -937,10 +937,12 @@ function clearWriteTimer() { if (writeTimer) { clearInterval(writeTimer); writeT
 export async function renderExam() {
   clearWriteTimer();
   revokeViewerUrl();
+  clearCommState(); // dừng TTS / nhận diện giọng nếu đang chạy (dùng chung với HSKK)
   const root = clear();
   if (examView.screen === "reading") return examReading(root);
   if (examView.screen === "writing") return examWriting(root);
   if (examView.screen === "library") return examLibrary(root);
+  if (examView.screen === "hskk") return examHskk(root);
   return examList(root);
 }
 
@@ -952,7 +954,8 @@ function examTopbar(title) {
 
 /* ---------- Màn hình danh sách đề ---------- */
 async function examList(root) {
-  root.append(el("h1", { class: "view-title" }, "📝 Luyện đề HSK6"));
+  root.append(el("h1", { class: "view-title" }, "📝 Luyện đề"));
+  root.append(await hskkBar());
   root.append(examImportBar());
   root.append(await libraryBar());
   const exams = await getAllExams();
@@ -979,6 +982,124 @@ async function examList(root) {
     ));
   }
   root.append(list);
+}
+
+/* ---------- HSKK 高级 (thi nói) ---------- */
+async function hskkBar() {
+  const exams = await getHskkExams();
+  const box = el("div", { class: "panel exam-import" });
+  box.append(el("div", { class: "exam-head" }, el("h3", {}, "🎓 HSKK 高级 — luyện thi nói"), el("span", { class: "chip" }, "mẫu")));
+  box.append(el("p", { class: "muted small" }, "3 phần: 听后复述 (nghe·kể lại) · 朗读 (đọc to·chấm phát âm) · 回答问题 (trả lời câu hỏi). Dùng Chrome/Edge để chấm phát âm."));
+  if (!exams.length) { box.append(el("p", { class: "muted small" }, "Chưa có đề HSKK.")); return box; }
+  const list = el("div", { class: "exam-actions" });
+  for (const ex of exams) list.append(el("button", { class: "btn primary", onclick: () => { examView = { screen: "hskk", examId: ex.id, part: "retell" }; renderExam(); } }, "🗣️ " + ex.title));
+  box.append(list);
+  return box;
+}
+
+async function examHskk(root) {
+  const ex = await getHskk(examView.examId);
+  if (!ex) { examView = { screen: "list" }; return renderExam(); }
+  const part = examView.part || "retell";
+  root.append(examTopbar(ex.title));
+  const nav = el("div", { class: "hskk-nav" });
+  for (const [id, label] of [["retell", "第一部分 · 听后复述"], ["read", "第二部分 · 朗读"], ["answer", "第三部分 · 回答问题"]])
+    nav.append(el("button", { class: "comm-chip" + (part === id ? " on" : ""), onclick: () => { examView = { ...examView, part: id }; renderExam(); } }, label));
+  root.append(nav);
+  if (ex.note && part === "retell") root.append(el("p", { class: "muted small" }, ex.note));
+  if (part === "read") return hskkRead(root, ex);
+  if (part === "answer") return hskkAnswer(root, ex);
+  return hskkRetell(root, ex);
+}
+
+// 第一部分 — nghe đoạn văn rồi kể lại (ghi âm để tự nghe lại, không chấm).
+function hskkRetell(root, ex) {
+  const items = ex.retell || [];
+  if (!items.length) { root.append(emptyState("Trống", "Phần này chưa có nội dung.")); return; }
+  const s = store.getSettings();
+  let i = 0, shown = false;
+  const progress = el("div", { class: "comm-progress muted small" });
+  const card = el("div", { class: "panel comm-card" });
+  const controls = el("div", { class: "row comm-controls" });
+  root.append(progress, card, controls);
+  function paint() {
+    const it = items[i];
+    progress.textContent = `Đoạn ${i + 1}/${items.length} · Nghe 1–2 lần rồi kể lại bằng lời của bạn`;
+    card.innerHTML = "";
+    if (shown) {
+      card.append(el("div", { class: "hskk-passage" }, it.zh));
+      it.vi && card.append(el("div", { class: "meaning", style: "margin-top:10px;text-align:left" }, it.vi));
+    } else {
+      card.append(el("div", { class: "hskk-big" }, "🎧"), el("div", { class: "comm-hint muted" }, "Bấm 🔊 nghe, tự kể lại, rồi “Hiện nguyên văn” để đối chiếu."));
+    }
+    paintControls();
+  }
+  function paintControls() {
+    controls.innerHTML = "";
+    controls.append(el("button", { class: "btn primary", onclick: () => speak(items[i].zh, { rate: s.speechRate }) }, "🔊 Nghe đoạn văn"));
+    if (hasRecognition()) controls.append(micButton(() => items[i].zh, s, { score: false }));
+    controls.append(el("button", { class: "btn", onclick: () => { shown = !shown; paint(); } }, shown ? "Ẩn nguyên văn" : "Hiện nguyên văn"));
+    if (items.length > 1) controls.append(el("button", { class: "btn ghost", onclick: () => { i = (i + 1) % items.length; shown = false; paint(); } }, "Đoạn sau →"));
+  }
+  paint();
+}
+
+// 第二部分 — đọc to một đoạn, chấm phát âm bằng so khớp chữ Hán.
+function hskkRead(root, ex) {
+  const r = ex.read;
+  if (!r) { root.append(emptyState("Trống", "Phần này chưa có nội dung.")); return; }
+  const s = store.getSettings();
+  root.append(el("p", { class: "muted small" }, "Đọc to đoạn văn. Bấm 🎙️ Nói để chấm phát âm (so khớp chữ Hán)."));
+  const card = el("div", { class: "panel comm-card" });
+  card.append(el("div", { class: "hskk-passage" }, r.zh));
+  r.vi && card.append(el("details", { class: "comm-personal" }, el("summary", {}, "Xem nghĩa tiếng Việt"), el("p", { class: "meaning", style: "text-align:left" }, r.vi)));
+  root.append(card);
+  const controls = el("div", { class: "row comm-controls" },
+    el("button", { class: "btn", onclick: () => speak(r.zh, { rate: s.speechRate }) }, "🔊 Nghe mẫu"));
+  if (hasRecognition()) controls.append(micButton(() => r.zh, s, { score: true }));
+  else controls.append(el("span", { class: "muted small" }, "Trình duyệt không hỗ trợ chấm phát âm."));
+  root.append(controls);
+}
+
+// 第三部分 — trả lời câu hỏi: bấm giờ nói ~2 phút + ghi âm + gợi ý dàn ý.
+function hskkAnswer(root, ex) {
+  const items = ex.answer || [];
+  if (!items.length) { root.append(emptyState("Trống", "Phần này chưa có nội dung.")); return; }
+  const s = store.getSettings();
+  let i = 0;
+  const progress = el("div", { class: "comm-progress muted small" });
+  const card = el("div", { class: "panel comm-card" });
+  const controls = el("div", { class: "row comm-controls" });
+  root.append(progress, card, controls);
+  function paint() {
+    clearWriteTimer();
+    const it = items[i];
+    progress.textContent = `Câu ${i + 1}/${items.length} · Chuẩn bị rồi nói khoảng 2 phút`;
+    card.innerHTML = "";
+    card.append(el("div", { class: "hskk-passage", style: "text-align:left" }, it.q_zh));
+    it.q_pinyin && card.append(el("div", { class: "pinyin", style: "text-align:left" }, it.q_pinyin));
+    it.q_vi && card.append(el("div", { class: "meaning", style: "text-align:left;margin-top:6px" }, it.q_vi));
+    if (it.outline_vi) card.append(el("details", { class: "comm-personal" }, el("summary", {}, "💡 Gợi ý dàn ý"), el("p", { class: "muted small", style: "text-align:left" }, it.outline_vi)));
+    paintControls();
+  }
+  function paintControls() {
+    controls.innerHTML = "";
+    let remain = 120;
+    const disp = el("span", { class: "timer-disp" }, fmtTime(remain));
+    const tBtn = el("button", { class: "btn" }, "▶ Bấm giờ nói");
+    tBtn.onclick = () => {
+      if (writeTimer) { clearWriteTimer(); tBtn.textContent = "▶ Tiếp tục"; return; }
+      tBtn.textContent = "⏸ Tạm dừng";
+      writeTimer = setInterval(() => {
+        remain = Math.max(0, remain - 1); disp.textContent = fmtTime(remain);
+        if (remain === 0) { clearWriteTimer(); tBtn.textContent = "Hết giờ"; tBtn.disabled = true; toast("Hết giờ nói!"); }
+      }, 1000);
+    };
+    controls.append(el("span", { class: "row" }, el("b", {}, "⏱ "), disp), tBtn);
+    if (hasRecognition()) controls.append(micButton(() => items[i].q_zh, s, { score: false }));
+    if (items.length > 1) controls.append(el("button", { class: "btn ghost", onclick: () => { i = (i + 1) % items.length; paint(); } }, "Câu sau →"));
+  }
+  paint();
 }
 
 function examImportBar() {
@@ -1394,7 +1515,7 @@ function pronunMarks(marks) {
   for (const m of marks) span.append(el("span", { class: m.ok ? "ok" : "bad" }, m.c));
   return span;
 }
-function micButton(getTarget, s) {
+function micButton(getTarget, s, { score = true } = {}) {
   const btn = el("button", { class: "btn" }, "🎙️ Nói");
   const out = el("span", { class: "comm-mic-out small" });
   btn.onclick = () => {
@@ -1402,10 +1523,14 @@ function micButton(getTarget, s) {
     btn.textContent = "● Đang nghe…"; out.textContent = "";
     commRec = recognizeChinese({
       onResult: (txt) => {
-        const { pct, marks } = scorePronun(getTarget(), txt);
         out.innerHTML = "";
-        out.append(el("b", { class: pct >= 80 ? "ok" : pct >= 50 ? "" : "bad" }, `${pct}% `), pronunMarks(marks),
-          el("span", { class: "muted" }, ` · bạn nói: ${txt || "(không rõ)"}`));
+        if (score) {
+          const { pct, marks } = scorePronun(getTarget(), txt);
+          out.append(el("b", { class: pct >= 80 ? "ok" : pct >= 50 ? "" : "bad" }, `${pct}% `), pronunMarks(marks),
+            el("span", { class: "muted" }, ` · bạn nói: ${txt || "(không rõ)"}`));
+        } else {
+          out.append(el("span", { class: "muted" }, "Bạn nói: "), el("b", {}, txt || "(không rõ)"));
+        }
       },
       onError: (err) => { out.textContent = err === "unsupported" ? "Trình duyệt không hỗ trợ micro." : "Lỗi micro: " + err; },
       onEnd: () => { commRec = null; btn.textContent = "🎙️ Nói"; },

@@ -399,3 +399,8 @@ b.bad { color: var(--bad); }
 button.btn.big { padding: 12px 22px; font-size: 16px; margin-top: 10px; }
 
 @media (max-width: 640px) { .comm-grid { grid-template-columns: 1fr; } }
+
+/* ============ HSKK 高级 (thi nói) ============ */
+.hskk-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.hskk-passage { font-size: calc(20px * var(--hanzi-scale)); line-height: 1.9; text-align: left; }
+.hskk-big { font-size: 46px; }

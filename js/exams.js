@@ -63,3 +63,21 @@ export function parseExamJson(text) {
   exam.reading = exam.reading || [];
   return { exam };
 }
+
+/* ---------------- HSKK 高级 (thi nói) ---------------- */
+let hskkCache = null;
+export async function getHskkExams() {
+  if (hskkCache) return hskkCache;
+  const out = [];
+  try {
+    const res = await fetch("./data/hskk-gaoji.json");
+    if (res.ok) for (const e of (await res.json()).hskk || []) out.push(e);
+  } catch (e) {
+    console.warn("Không tải được đề HSKK:", e);
+  }
+  hskkCache = out;
+  return out;
+}
+export async function getHskk(id) {
+  return (await getHskkExams()).find((e) => e.id === id) || null;
+}

@@ -31,7 +31,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | Module | Tab con | Trạng thái |
 |--------|---------|-----------|
 | **Từ vựng** 🎴 | Học thẻ · Danh sách · Quiz · Nghe · Nguồn từ | ✅ đã có (trừ đổi tên) |
-| **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) đã có; HSKK chưa |
+| **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) + HSKK 高级 khung 3 phần đã có |
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | ⬜ chưa xây |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
@@ -136,7 +136,10 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     → tách câu → dịch Việt bằng Qwen3; GET /health báo năng lực. Frontend đã nối: Cài đặt → "AI ·
     Qwen3" (dán URL + kiểm tra); Giao tiếp hiện nút "🤖 Bóc tự động" cho file media khi backend bật
     (thay nhãn "sắp có"), và upload thẳng ảnh/video ở ô nguồn cá nhân. OCR/ASR là lib tùy chọn.
-[ ] Giao tiếp — HSKK 高级 (nói theo đề thi) + cá nhân hóa bằng Qwen3 (tự dịch, sinh câu hỏi)
+[x] HSKK 高级 (trong Luyện đề) — khung 3 phần thi nói: 听后复述 (nghe→kể lại, ghi âm để tự nghe)
+    · 朗读 (đọc to, chấm phát âm % khớp chữ Hán) · 回答问题 (bấm giờ nói 2′ + gợi ý dàn ý). Đề mẫu
+    ngắn data/hskk-gaoji.json (1 đề) qua js/exams.js (getHskkExams). Đề đầy đủ chờ Qwen3 sinh / nhập.
+[ ] Giao tiếp/HSKK — cá nhân hóa bằng Qwen3 (tự dịch, sinh đề/câu hỏi theo chủ đề người dùng)
 [ ] Dịch thuật — Trung↔Việt + Qwen3 chấm
 [ ] Phồn thể — module độc lập
 [ ] Nạp nội dung — video / truyện / tài liệu
