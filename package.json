@@ -5,7 +5,8 @@
   "description": "Build tooling cho app học HSK (app chạy không cần dependency; đây chỉ là công cụ build dữ liệu).",
   "type": "module",
   "scripts": {
-    "build:words": "node scripts/build-words.mjs"
+    "build:words": "node scripts/build-words.mjs",
+    "classify:qwen": "node scripts/classify-qwen.mjs"
   },
   "devDependencies": {
     "opencc-js": "^1.0.5",
