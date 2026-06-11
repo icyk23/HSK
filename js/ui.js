@@ -5,6 +5,7 @@ import * as srs from "./srs.js";
 import { speak, hasChineseVoice, hasRecognition, recognizeChinese, stopSpeaking } from "./audio.js";
 import * as comm from "./comm.js";
 import * as lessons from "./lessons.js";
+import * as trad from "./trad.js";
 import { navigate } from "./main.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
 import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExams, getHskk } from "./exams.js";
@@ -2192,4 +2193,107 @@ function lessonTasksPanel(lesson) {
   box.append(transConfigRow(lesson));
   for (const t of tTasks) box.append(taskRow(lesson, t));
   return box;
+}
+
+/* ============================================================
+   PHỒN THỂ (繁) — Bài học chữ phồn thể + Nhận diện thành phần
+   ============================================================ */
+let tradCache = { deckId: null, pairs: null };
+async function tradPairs() {
+  const id = store.getSettings().activeDeckId;
+  if (tradCache.deckId === id && tradCache.pairs) return tradCache.pairs;
+  const deck = await getDeck(id);
+  const pairs = deck ? trad.buildTradPairs(deck.cards) : [];
+  tradCache = { deckId: id, pairs };
+  return pairs;
+}
+let tradFilter = { level: "all", limit: 80 };
+
+export async function renderTradLessons() {
+  clearCommState();
+  const root = clear();
+  const pairs = await tradPairs();
+  root.append(el("h1", { class: "view-title" }, "繁 Học chữ phồn thể"));
+  if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.")); return; }
+  root.append(el("p", { class: "muted small" }, `App học giản thể; mục này luyện ĐỌC phồn thể. Có ${pairs.length} chữ HSK mà dạng phồn thể khác giản thể.`));
+  const levels = [...new Set(pairs.map((p) => p.level))].sort();
+  const sel = selectRow(["all", ...levels.map(String)], ["Mọi cấp", ...levels.map((l) => "HSK" + l)], tradFilter.level, (v) => { tradFilter.level = v; tradFilter.limit = 80; renderTradLessons(); });
+  root.append(el("div", { class: "panel" }, el("div", { class: "filter-grid" }, sel)));
+  const filtered = tradFilter.level === "all" ? pairs : pairs.filter((p) => String(p.level) === tradFilter.level);
+  root.append(el("div", { class: "muted", style: "margin:12px 0 8px" }, `${filtered.length} chữ`));
+  const grid = el("div", { class: "trad-grid" });
+  const s = store.getSettings();
+  filtered.slice(0, tradFilter.limit).forEach((p) => grid.append(tradPairCard(p, s)));
+  root.append(grid);
+  if (filtered.length > tradFilter.limit) {
+    root.append(el("div", { class: "center", style: "margin-top:12px" },
+      el("button", { class: "btn", onclick: () => { tradFilter.limit += 80; renderTradLessons(); } }, `Hiện thêm (còn ${filtered.length - tradFilter.limit})`)));
+  }
+}
+
+function tradPairCard(p, s) {
+  return el("div", { class: "trad-card" },
+    el("div", { class: "trad-pair" }, el("span", { class: "trad-s" }, p.simp), el("span", { class: "trad-arrow" }, "→"), el("span", { class: "trad-t" }, p.trad)),
+    el("div", { class: "trad-meta" },
+      el("span", { class: "chip lvl" }, "HSK" + p.level),
+      p.pinyin ? el("span", { class: "pinyin" }, p.pinyin) : null,
+      el("button", { class: "btn ghost small", onclick: () => speak(p.simp, { rate: s.speechRate }) }, "🔊")),
+    (p.han_viet || p.meaning) ? el("div", { class: "muted small" }, (p.han_viet ? `[${p.han_viet}] ` : "") + (p.meaning || "")) : null,
+    p.examples.length ? el("div", { class: "trad-ex" }, "VD: " + p.examples.slice(0, 3).map((e) => `${e.s}/${e.t}`).join(" · ")) : null);
+}
+
+let tradQuiz = null;
+export async function renderTradComp() {
+  clearCommState();
+  const root = clear();
+  root.append(el("h1", { class: "view-title" }, "繁 Nhận diện thành phần"));
+  root.append(await tradQuizPanel());
+  const cs = el("div", { class: "panel stack" });
+  cs.append(el("b", {}, "Bộ thủ / thành phần Giản ↔ Phồn thông dụng"));
+  cs.append(el("p", { class: "muted small" }, "Nhận ra các thành phần lặp lại giúp đoán & đọc chữ phồn thể nhanh hơn."));
+  const tbl = el("div", { class: "trad-comp-grid" });
+  for (const c of trad.TRAD_COMPONENTS) {
+    tbl.append(el("div", { class: "trad-comp" },
+      el("div", { class: "trad-comp-head" }, el("span", { class: "trad-s" }, c.s), el("span", { class: "trad-arrow" }, "→"), el("span", { class: "trad-t" }, c.t)),
+      el("div", { class: "muted small" }, c.note),
+      el("div", { class: "trad-ex" }, c.ex.map((e) => `${e[0]}/${e[1]}`).join(" · "))));
+  }
+  cs.append(tbl);
+  root.append(cs);
+}
+
+async function tradQuizPanel() {
+  const pairs = await tradPairs();
+  const box = el("div", { class: "panel stack" });
+  box.append(el("div", { class: "row spread" }, el("b", {}, "Quiz: đọc phồn thể → chọn giản thể"), tradQuiz ? el("span", { class: "muted small" }, `Điểm ${tradQuiz.score}/${tradQuiz.total}`) : null));
+  if (!pairs.length) { box.append(el("p", { class: "muted small" }, "Chưa có dữ liệu.")); return box; }
+  if (!tradQuiz || tradQuiz.next) tradQuiz = makeTradQuestion(pairs, tradQuiz);
+  const q = tradQuiz;
+  box.append(el("div", { class: "trad-quiz-q" }, q.pair.trad));
+  box.append(el("div", { class: "muted small center" }, "Chữ phồn thể trên ứng với chữ giản thể nào?"));
+  const opts = el("div", { class: "quiz-options" });
+  for (const o of q.options) {
+    let cls = "btn quiz-opt";
+    if (q.picked) { if (o === q.pair.simp) cls += " correct"; else if (o === q.picked) cls += " wrong"; }
+    opts.append(el("button", { class: cls, disabled: !!q.picked, onclick: () => pickTrad(o) }, o));
+  }
+  box.append(opts);
+  if (q.picked) {
+    box.append(el("div", { class: "muted small" }, `${q.pair.simp} → ${q.pair.trad}${q.pair.pinyin ? ` · ${q.pair.pinyin}` : ""}${q.pair.meaning ? ` · ${q.pair.meaning}` : ""}`));
+    box.append(el("button", { class: "btn primary", onclick: () => { tradQuiz.next = true; renderTradComp(); } }, "Câu tiếp →"));
+  }
+  return box;
+}
+function makeTradQuestion(pairs, prev) {
+  const pair = pairs[Math.floor(Math.random() * pairs.length)];
+  const opts = new Set([pair.simp]);
+  while (opts.size < 4 && opts.size < pairs.length) opts.add(pairs[Math.floor(Math.random() * pairs.length)].simp);
+  return { pair, options: [...opts].sort(() => Math.random() - 0.5), picked: null, score: prev ? prev.score : 0, total: prev ? prev.total : 0, next: false };
+}
+function pickTrad(o) {
+  if (tradQuiz.picked) return;
+  tradQuiz.picked = o;
+  tradQuiz.total++;
+  if (o === tradQuiz.pair.simp) tradQuiz.score++;
+  renderTradComp();
 }

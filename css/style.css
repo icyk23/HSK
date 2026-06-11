@@ -426,3 +426,18 @@ button.btn.big { padding: 12px 22px; font-size: 16px; margin-top: 10px; }
 .lesson-task:first-of-type { border-top: none; }
 .chunk-mode, .chunk-val { padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; }
 .chunk-val { width: 76px; }
+
+/* ============ Phồn thể (繁) ============ */
+.trad-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.trad-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface); display: grid; gap: 6px; }
+.trad-pair { display: flex; align-items: center; gap: 8px; justify-content: center; }
+.trad-s { font-size: calc(30px * var(--hanzi-scale)); }
+.trad-t { font-size: calc(34px * var(--hanzi-scale)); color: var(--accent); font-weight: 600; }
+.trad-arrow { color: var(--text-muted); }
+.trad-meta { display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.trad-ex { font-size: 12px; color: var(--text-muted); }
+.trad-quiz-q { font-size: calc(72px * var(--hanzi-scale)); text-align: center; color: var(--accent); font-weight: 600; margin: 6px 0; }
+.trad-comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.trad-comp { border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: grid; gap: 4px; }
+.trad-comp-head { display: flex; align-items: center; gap: 6px; font-size: calc(22px * var(--hanzi-scale)); }
+.trad-comp-head .trad-t { font-size: calc(24px * var(--hanzi-scale)); }

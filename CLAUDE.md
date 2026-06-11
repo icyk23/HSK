@@ -20,7 +20,7 @@
 ## Kiến trúc thông tin (IA) — 5 module + global
 
 App đã dùng **nav 2 tầng** (js/main.js: NAV config — tầng 1 module, tầng 2 tab con; module
-1 tab con tự ẩn tầng 2). Phồn thể & Nạp nội dung sẽ thêm vào nav khi xây xong. Cấu trúc:
+1 tab con tự ẩn tầng 2). Cả 5 module + global đã vào nav. Cấu trúc:
 
 ```
 Tầng 1 (module):  🎴 Từ vựng   📝 Luyện đề   🗣️ Giao tiếp   🌐 Dịch thuật   繁 Phồn thể
@@ -34,7 +34,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) + HSKK 高级 khung 3 phần đã có |
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | 🟡 Workspace 2 chiều + lưu/ôn (Bài đã dịch) đã có; chấm/sửa cần Qwen3 (/grade) |
-| **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
+| **Phồn thể** 繁 | Bài học · Nhận diện thành phần | 🟡 Bài học (993 chữ giản→phồn theo cấp) + Nhận diện (quiz + bộ thủ) đã có |
 | **Nạp nội dung** 📥 *(global)* | Nạp mới · Thư viện bài học | 🟡 Browser: nạp text → tài liệu tự map vào Từ vựng/Giao tiếp/Dịch thuật; thư viện = xem tiến độ; link/media chờ Qwen3 |
 | **Tiến độ** 📊 · **Cài đặt** ⚙️ *(global)* | — | ✅ đã có |
 
@@ -68,6 +68,7 @@ js/decks.js             nạp deck + parse CSV import
 js/classify.js          pipeline phân loại Lớp 1+2 (dùng cả browser lẫn build script)
 js/comm.js              Giao tiếp: nạp cảnh mẫu + tách câu (text/.srt/song ngữ) + lấy câu từ thư viện
 js/lessons.js           Nạp nội dung: phân tích văn bản → vocab xếp nhóm HSK (quy tắc) + tách câu; lưu Bài học (IndexedDB)
+js/trad.js              Phồn thể: bóc cặp chữ Giản→Phồn từ deck + bảng bộ thủ giản↔phồn
 data/comm-scenes.json   6 cảnh mẫu khẩu ngữ (hỏi-đáp · câu lẻ · mẫu câu thay thế)
 data/hsk-words.json     5.002 từ HSK1–6 đã phân loại (sinh bởi build script)
 data/char-rank.json     thứ hạng tần suất chữ NGOÀI HSK + ngưỡng (xếp chữ ngoài HSK vào 1–6 theo độ thông dụng)
@@ -164,5 +165,8 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     nạp câu vào commPersonal/shadowing), Dịch thuật (bộ chọn tài liệu → nạp câu CHƯA dịch tiếp theo).
     Cache dùng chung ensureMaterials()/invalidateMaterials(); tab Nạp = upload + thư viện (xem tiến độ).
     Video shadowing (hiện player file/link) để sau (cần backend cho link).
-[ ] Phồn thể — module độc lập (sẽ thêm vào nav tầng 1 khi xong)
+[x] Phồn thể — module "繁 Phồn thể" (nav tầng 1, 2 tab con). Bài học: js/trad.js bóc 993 chữ HSK có
+    dạng phồn thể KHÁC giản thể (so từng chữ simplified/traditional trong deck) → thẻ 简→繁 + pinyin/
+    Hán Việt/nghĩa + ví dụ từ, lọc theo cấp HSK + TTS. Nhận diện thành phần: quiz đọc phồn thể→chọn
+    giản thể (4 đáp án, tính điểm) + bảng 16 bộ thủ giản↔phồn thông dụng kèm ví dụ. Tất cả thuần browser.
 ```
