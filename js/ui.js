@@ -239,7 +239,7 @@ export function handleStudyKey(e) {
    ============================================================ */
 const SEM_ORDER = Object.keys(SEMANTIC_LABELS); // A1..F6
 const SEM_COLORS = { A: "#d65745", B: "#d97706", C: "#7c3aed", D: "#0f766e", E: "#2563eb", F: "#6b7280" };
-let vocab = { level: "all", sem: "all", struct: "all", status: "all", review: false, sort: "level", q: "", limit: 100, editing: null };
+let vocab = { level: "all", sem: "all", struct: "all", status: "all", review: false, sort: "level", q: "", limit: 100, editing: null, material: "all" };
 
 function matchVocab(c, f) {
   if (f.level !== "all" && String(c.hsk_level) !== f.level) return false;
@@ -248,6 +248,7 @@ function matchVocab(c, f) {
   else if (f.sem !== "all" && c.semantic_group !== f.sem) return false;
   if (f.review && !c.needs_review) return false;
   if (f.status !== "all" && learnStatus(c.id) !== f.status) return false;
+  if (f.material && f.material !== "all") { const set = materialCardIds[f.material]; if (!set || !set.has(c.id)) return false; }
   if (f.q) {
     const q = f.q.toLowerCase();
     const hay = `${c.simplified} ${c.traditional || ""} ${(c.pinyin || "").toLowerCase()} ${(c.meaning || "").toLowerCase()} ${(c.han_viet || "").toLowerCase()}`;
@@ -260,8 +261,10 @@ export async function renderVocab() {
   const root = clear();
   const s = store.getSettings();
   const deck = await getDeck(s.activeDeckId);
+  await ensureMaterials();
   root.append(el("h1", { class: "view-title" }, "📖 Danh sách từ"));
   if (!deck) { root.append(emptyState("Chưa chọn bộ thẻ", "Vào tab 📚 Bộ thẻ để chọn bộ thẻ.")); return; }
+  if (vocab.material !== "all" && !materialList.some((m) => m.id === vocab.material)) vocab.material = "all";
 
   // Áp override sửa tay lên từng thẻ
   const cards = deck.cards.map(store.mergeClassification);
@@ -290,6 +293,10 @@ export async function renderVocab() {
   const statusSel = selectRow(["all", "new", "learning", "due", "known"],
     ["Mọi trạng thái", "Chưa học", "Đang học", "Đến hạn", "Đã thuộc"], vocab.status, (v) => { vocab.status = v; reRender(); });
   const sortSel = selectRow(["level", "pinyin", "length"], ["Sắp xếp: cấp HSK", "Sắp xếp: pinyin A→Z", "Sắp xếp: số chữ"], vocab.sort, (v) => { vocab.sort = v; renderVocabList(); });
+  const matSel = materialList.length ? selectRow(
+    ["all", ...materialList.map((m) => m.id)],
+    ["📥 Mọi nguồn", ...materialList.map((m) => `📥 ${m.title}`)],
+    vocab.material, (v) => { vocab.material = v; reRender(); }) : null;
 
   const reviewToggle = el("label", { class: "review-toggle" },
     (() => { const cb = el("input", { type: "checkbox", checked: vocab.review || false }); cb.addEventListener("change", () => { vocab.review = cb.checked; reRender(); }); return cb; })(),
@@ -297,7 +304,7 @@ export async function renderVocab() {
 
   root.append(el("div", { class: "panel vocab-filter" },
     el("div", { class: "field", style: "margin-bottom:10px" }, search),
-    el("div", { class: "filter-grid" }, levelSel, structSel, semSel, statusSel, sortSel),
+    el("div", { class: "filter-grid" }, levelSel, structSel, semSel, statusSel, sortSel, ...(matSel ? [matSel] : [])),
     reviewToggle,
   ));
 
@@ -345,6 +352,7 @@ function renderVocabList() {
 
 function describeFilter(n) {
   const parts = [];
+  if (vocab.material !== "all") { const m = materialList.find((x) => x.id === vocab.material); if (m) parts.push("📥 " + m.title); }
   if (vocab.level !== "all") parts.push("HSK" + vocab.level);
   if (vocab.struct !== "all") parts.push(STRUCT_LABELS[vocab.struct]);
   if (vocab.sem === "none") parts.push("chưa phân loại");
@@ -1339,6 +1347,7 @@ export async function renderComm() {
   clearCommState();
   const root = clear();
   const scenes = await comm.loadScenes();
+  await ensureMaterials();
   if (commView.screen === "qa") return commDrillQA(root, scenes);
   if (commView.screen === "shadow") return commDrillShadow(root, scenes);
   if (commView.screen === "sprint") return commDrillSprint(root, scenes);
@@ -1376,6 +1385,8 @@ async function commHome(root, scenes) {
     chips.append(commChip(`${s.icon} ${s.title}`, on, () => toggleScene(s.id, scenes)));
   }
   src.append(chips);
+  const matBar = commMaterialBar();
+  if (matBar) src.append(matBar);
   src.append(commPersonalBar(backend));
   const libBar = await commLibraryBar(backend);
   if (libBar) src.append(libBar);
@@ -1393,6 +1404,21 @@ async function commHome(root, scenes) {
     root.append(el("p", { class: "muted small", style: "margin-top:10px" },
       "ℹ️ Trình duyệt này chưa hỗ trợ nhận diện giọng nói (chấm phát âm). Dùng Chrome/Edge để chấm tự động; các kiểu khác vẫn luyện bình thường."));
   }
+}
+
+// Thanh "Tài liệu đã nạp" — chọn để nạp câu của tài liệu vào nguồn (shadowing/drill).
+function commMaterialBar() {
+  const usable = materialList.map((m) => ({ m, zh: materialZh(m) })).filter((x) => x.zh.length);
+  if (!usable.length) return null;
+  const list = el("div", { class: "comm-libfiles" });
+  for (const { m, zh } of usable) {
+    list.append(el("div", { class: "comm-libfile" },
+      el("span", {}, `📥 ${m.title}`),
+      el("span", { class: "muted small" }, `${zh.length} câu`),
+      el("button", { class: "btn ghost small", onclick: () => setPersonalSource(zh.map((s) => ({ zh: s.zh })), m.title) }, "Dùng")));
+  }
+  return el("details", { class: "comm-personal" },
+    el("summary", {}, `📥 Tài liệu đã nạp (${usable.length})`), list);
 }
 
 function commChip(label, on, onclick) { return el("button", { class: "comm-chip" + (on ? " on" : ""), onclick }, label); }
@@ -1752,15 +1778,32 @@ function commDrillPattern(root, scenes) {
    ============================================================ */
 let transView = { screen: "home" };
 let transDraft = newTransDraft();
+let transMaterialId = "";
 function newTransDraft(dir = "zh2vi") {
   return { id: null, dir, source: "", sourcePinyin: "", user: "", ref: "", refPinyin: "", grade: null, createdAt: null };
 }
 
 export async function renderTrans() {
   clearCommState();
+  await ensureMaterials();
   const root = clear();
   if (transView.screen === "saved") return transSaved(root);
   return transHome(root);
+}
+
+// Nạp câu CHƯA dịch tiếp theo của tài liệu đang chọn vào ô nguồn.
+function loadNextFromMaterial() {
+  const m = materialList.find((x) => x.id === transMaterialId);
+  if (!m) return;
+  const key = m.lang === "zh" ? "zh" : "vi";
+  const dir = m.lang === "zh" ? "zh2vi" : "vi2zh";
+  const saved = new Set(store.getTranslations().map((t) => t.source));
+  const sents = (m.sentences || []).filter((s) => !s.chapter && (s[key] || "").trim()).map((s) => s[key]);
+  const next = sents.find((src) => !saved.has(src) && src !== transDraft.source) ?? sents.find((src) => !saved.has(src));
+  if (!next) { toast("Đã dịch hết tài liệu này 🎉"); return; }
+  transDraft = newTransDraft(dir);
+  transDraft.source = next;
+  renderTrans();
 }
 
 // Lấy 1 câu mẫu (ví dụ trong thẻ) làm văn bản nguồn + bản tham khảo.
@@ -1784,6 +1827,18 @@ async function transHome(root) {
   dirRow.append(commChip("中文 → Tiếng Việt", transDraft.dir === "zh2vi", () => setDir("zh2vi")));
   dirRow.append(commChip("Tiếng Việt → 中文", transDraft.dir === "vi2zh", () => setDir("vi2zh")));
   root.append(dirRow);
+
+  if (materialList.length) {
+    const matSel = el("select", { class: "chunk-mode" },
+      el("option", { value: "" }, "— Chọn tài liệu —"),
+      ...materialList.map((m) => el("option", { value: m.id, selected: transMaterialId === m.id }, `📥 ${m.title}`)));
+    matSel.addEventListener("change", () => { transMaterialId = matSel.value; if (transMaterialId) loadNextFromMaterial(); });
+    const nextBtn = el("button", { class: "btn", onclick: () => transMaterialId ? loadNextFromMaterial() : toast("Chọn tài liệu trước.") }, "↻ Câu chưa dịch tiếp theo");
+    root.append(el("div", { class: "panel stack" },
+      el("b", {}, "📥 Dịch từ tài liệu đã nạp"),
+      el("div", { class: "row" }, matSel, nextBtn),
+      el("p", { class: "muted small" }, "Nạp câu chưa dịch của tài liệu vào ô nguồn; dịch xong bấm 💾 Lưu rồi lấy câu tiếp.")));
+  }
 
   const srcIsZh = transDraft.dir === "zh2vi";
 
@@ -1904,6 +1959,20 @@ function loadTransDraft(t) {
 let ingestView = { screen: "new", lessonId: null };
 const LV_LABEL = { 1: "HSK 1", 2: "HSK 2", 3: "HSK 3", 4: "HSK 4", 5: "HSK 5", 6: "HSK 6" };
 
+// Cache tài liệu đã nạp — dùng chung cho bộ chọn ở Từ vựng / Giao tiếp / Dịch thuật.
+let materialList = [];       // [{id,title,lang,vocab,sentences,chapters,manual}]
+let materialCardIds = {};    // id → Set(cardId) để lọc Từ vựng
+let materialsLoaded = false;
+async function ensureMaterials() {
+  if (materialsLoaded) return;
+  try { materialList = await lessons.listLessons(); } catch { materialList = []; }
+  materialCardIds = {};
+  for (const l of materialList) materialCardIds[l.id] = new Set((l.vocab || []).filter((v) => v.cardId).map((v) => v.cardId));
+  materialsLoaded = true;
+}
+function invalidateMaterials() { materialsLoaded = false; }
+const materialZh = (m) => (m.sentences || []).filter((s) => !s.chapter && s.zh);
+
 export async function renderIngest() {
   clearCommState();
   const root = clear();
@@ -1938,7 +2007,7 @@ async function ingestNew(root) {
     el("div", { class: "field" }, titleInput),
     el("div", { class: "field" }, ta),
     el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, "🔍 Phân tích & tạo bài học")),
-    el("p", { class: "muted small" }, "Văn bản .txt/.srt xử lý ngay trong trình duyệt. Ảnh/PDF/audio/video & link truyện cần backend Qwen3 (sẽ thêm)."),
+    el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật — học thẳng tại các module đó. Văn bản .txt/.srt xử lý ngay; ảnh/PDF/audio/video & link truyện cần backend Qwen3 (sẽ thêm)."),
   ));
 }
 
@@ -1958,6 +2027,8 @@ async function createLesson(text, title) {
     lesson.chapters = lessons.detectChapters(lesson.sentences, "vi");
   }
   await lessons.saveLesson(lesson);
+  invalidateMaterials();
+  toast("Đã nạp & thêm vào Từ vựng · Giao tiếp · Dịch thuật.");
   ingestView = { screen: "lesson", lessonId: lesson.id };
   renderIngest();
 }
@@ -1973,7 +2044,7 @@ async function ingestLibrary(root) {
       el("p", { class: "muted small" }, `${new Date(l.createdAt).toLocaleDateString("vi")} · ${(l.vocab || []).length} từ · ${(l.sentences || []).length} câu`),
       el("div", { class: "exam-actions" },
         el("button", { class: "btn primary", onclick: () => { ingestView = { screen: "lesson", lessonId: l.id }; renderIngest(); } }, "Mở"),
-        el("button", { class: "btn ghost", onclick: async () => { if (confirm("Xóa bài học?")) { await lessons.deleteLesson(l.id); renderIngest(); } } }, "Xóa"))));
+        el("button", { class: "btn ghost", onclick: async () => { if (confirm("Xóa bài học?")) { await lessons.deleteLesson(l.id); invalidateMaterials(); renderIngest(); } } }, "Xóa"))));
   }
 }
 
@@ -1983,6 +2054,7 @@ async function ingestLesson(root) {
   root.append(el("div", { class: "exam-topbar" },
     el("button", { class: "btn ghost", onclick: () => { ingestView = { screen: "library" }; renderIngest(); } }, "← Bài học"),
     el("span", { class: "muted" }, lesson.title)));
+  root.append(el("p", { class: "muted small" }, "Tài liệu này đã có sẵn trong Từ vựng · Giao tiếp · Dịch thuật (chọn theo nguồn). Bảng dưới để xem nhanh & theo dõi tiến độ."));
   if (lesson.lang === "zh" && lesson.vocab.length) root.append(lessonVocabPanel(lesson));
   root.append(lessonTasksPanel(lesson));
 }

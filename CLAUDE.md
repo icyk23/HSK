@@ -35,7 +35,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | 🟡 Workspace 2 chiều + lưu/ôn (Bài đã dịch) đã có; chấm/sửa cần Qwen3 (/grade) |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | ⬜ chưa xây |
-| **Nạp nội dung** 📥 *(global)* | Nạp mới · Thư viện bài học | 🟡 Bản browser: dán text → bóc vocab theo nhóm HSK + task; link/media chờ Qwen3 |
+| **Nạp nội dung** 📥 *(global)* | Nạp mới · Thư viện bài học | 🟡 Browser: nạp text → tài liệu tự map vào Từ vựng/Giao tiếp/Dịch thuật; thư viện = xem tiến độ; link/media chờ Qwen3 |
 | **Tiến độ** 📊 · **Cài đặt** ⚙️ *(global)* | — | ✅ đã có |
 
 Khớp **3 trụ cột** (Từ vựng · Dịch thuật · Giao tiếp) + Luyện đề + Phồn thể độc lập.
@@ -159,5 +159,10 @@ Pipeline 3 lớp: **Lớp 1** danh sách từ chức năng (F1–F6) · **Lớp 
     khúc, cấu hình Số phần (½,⅓)/Số câu/Số chữ (transConfigRow). Tiến độ: vocab+translate tự đếm, shadow
     thủ công. Thiết kế: NAP_NOI_DUNG_DESIGN.md. CHỜ Qwen3: gửi LINK (/ingest trafilatura/yt-dlp), tự
     dịch, sinh câu hỏi, ghép từ ghép ngoài từ điển (jieba); bóc media dùng /extract đã có.
+[x] Nạp nội dung — MAP THẲNG VÀO MODULE: tài liệu đã nạp tự hiện như "nguồn" chọn được ngay trong
+    Từ vựng (bộ lọc Nguồn tài liệu → matchVocab theo cardId), Giao tiếp (thanh "Tài liệu đã nạp" →
+    nạp câu vào commPersonal/shadowing), Dịch thuật (bộ chọn tài liệu → nạp câu CHƯA dịch tiếp theo).
+    Cache dùng chung ensureMaterials()/invalidateMaterials(); tab Nạp = upload + thư viện (xem tiến độ).
+    Video shadowing (hiện player file/link) để sau (cần backend cho link).
 [ ] Phồn thể — module độc lập (sẽ thêm vào nav tầng 1 khi xong)
 ```
