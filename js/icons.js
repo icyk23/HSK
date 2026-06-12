@@ -27,6 +27,19 @@ const ICONS = {
   check: S('<path d="M4 12.5l5 5L20 6"/>'),
   skip: S('<path d="M5 5l9 7-9 7zM18 5v14"/>'),
   headphone: S('<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/>'),
+  ai: S('<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18.5 14l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>'),
+  save: S('<path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M8 4v5h7V4M8 21v-6h8v6"/>'),
+  eye: S('<path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/>'),
+  bulb: S('<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.3 1 2.5h6c0-1.2.3-1.8 1-2.5A6 6 0 0 0 12 3z"/>'),
+  x: S('<path d="M6 6l12 12M18 6L6 18"/>'),
+  plug: S('<path d="M9 2v5M15 2v5M7 7h10v3a5 5 0 0 1-10 0V7zM12 15v5"/>'),
+  reset: S('<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M5 3v4h4"/>'),
+  download: S('<path d="M12 3v11m0 0l-4-4m4 4l4-4M4 19h16"/>'),
+  upload: S('<path d="M12 21V10m0 0L8 14m4-4l4 4M4 5h16"/>'),
+  keyboard: S('<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 9.5h.01M9.5 9.5h.01M13 9.5h.01M16.5 9.5h.01M6 13h.01M16.5 13h.01M9 13h6"/>'),
+  play: S('<path d="M6 4.5l13 7.5-13 7.5z"/>'),
+  trash: S('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
+  book: S('<path d="M4 4.5A2 2 0 0 1 6 3h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 19.5A2 2 0 0 1 6 18h13v3H6a2 2 0 0 1-2-1.5z"/>'),
 };
 
 export function icon(name) { return ICONS[name] || ""; }

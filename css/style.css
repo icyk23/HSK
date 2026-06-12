@@ -773,3 +773,11 @@ button.btn.ghost:hover { background: var(--surface-2); border-color: var(--borde
 .btn:has(.ic) { display: inline-flex; align-items: center; gap: 7px; }
 .btn .ic svg { width: 17px; height: 17px; }
 .skip-row .btn .ic { opacity: .85; }
+
+/* slider/checkbox theo màu chủ đạo (đồng bộ ngầu) */
+input[type="range"], input[type="checkbox"], input[type="radio"], progress { accent-color: var(--primary); }
+/* nút mic đang ghi âm */
+.btn.rec { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 1px var(--primary-line); }
+[data-theme="dark"] .btn.rec { background: var(--primary-tint); filter: drop-shadow(0 0 8px rgba(255,58,71,.4)); }
+.btn.rec .ic { animation: micpulse 1s ease-in-out infinite; }
+@keyframes micpulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }

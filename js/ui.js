@@ -99,14 +99,14 @@ function studyFilterBanner() {
   if (!studyFilter) return null;
   return el("div", { class: "filter-banner" },
     el("span", {}, `🔎 Đang học theo bộ lọc: ${studyFilterLabel}`),
-    el("button", { class: "btn ghost small", onclick: () => { setLearnScope(null); renderStudy(); } }, "✕ Bỏ lọc"));
+    el("button", { class: "btn ghost small", onclick: () => { setLearnScope(null); renderStudy(); } }, iconEl("x"), "Bỏ lọc"));
 }
 // Banner cho Quiz/Nghe/Gõ khi đang học theo một bộ từ.
 function scopeBanner(reRender) {
   if (!learnScope) return null;
   return el("div", { class: "filter-banner" },
     el("span", {}, `🧺 Đang học bộ: ${learnScope.label}`),
-    el("button", { class: "btn ghost small", onclick: () => { setLearnScope(null); reRender(); } }, "✕ Bỏ"));
+    el("button", { class: "btn ghost small", onclick: () => { setLearnScope(null); reRender(); } }, iconEl("x"), "Bỏ"));
 }
 
 export async function renderStudy() {
@@ -397,7 +397,7 @@ function renderSelBar() {
   host.append(el("div", { class: "selbar" },
     el("b", {}, `🧺 Đã chọn ${vocabSel.size} từ`),
     el("div", { class: "spacer" }),
-    el("button", { class: "btn primary small", onclick: saveSelAsSet }, "💾 Lưu thành bộ…"),
+    el("button", { class: "btn primary small", onclick: saveSelAsSet }, iconEl("save"), "Lưu thành bộ…"),
     el("button", { class: "btn ghost small", onclick: () => { vocabSel.clear(); renderFolders(); renderSelBar(); } }, "Bỏ chọn")));
 }
 
@@ -450,7 +450,7 @@ function renderQuizQuestion(quiz) {
   const q = el("div", { class: "panel" },
     el("div", { class: "label-tag center" }, "Nghĩa của từ này là gì?"),
     el("div", { class: "quiz-q" }, main),
-    el("button", { class: "btn ghost", style: "margin:0 auto 8px;display:block", onclick: () => speak(card.simplified, { rate: quiz.settings.speechRate }) }, "🔊 Nghe"),
+    el("button", { class: "btn ghost", style: "margin:0 auto 8px;display:block", onclick: () => speak(card.simplified, { rate: quiz.settings.speechRate }) }, iconEl("speaker"), "Nghe"),
   );
 
   const optWrap = el("div", { class: "quiz-options" });
@@ -535,8 +535,8 @@ export async function renderListen() {
   display.addEventListener("click", () => { if (card.current && !card.shown) { card.shown = true; paint(); } });
 
   controls.append(
-    el("button", { class: "btn", onclick: () => card.current && speak(card.current.simplified, { rate: s.speechRate }) }, "🔁 Nghe lại"),
-    el("button", { class: "btn primary", onclick: next }, "▶️ Từ tiếp theo"),
+    el("button", { class: "btn", onclick: () => card.current && speak(card.current.simplified, { rate: s.speechRate }) }, iconEl("replay"), "Nghe lại"),
+    el("button", { class: "btn primary", onclick: next }, iconEl("play"), "Từ tiếp theo"),
   );
 
   paint();
@@ -562,7 +562,7 @@ export async function renderManage() {
         el("small", {}, `${d.cards.length} thẻ${d.builtin ? " · có sẵn" : ""}`)),
       active ? el("span", { class: "pill" }, "Đang chọn")
              : el("button", { class: "btn", onclick: () => { store.saveSettings({ activeDeckId: d.id }); toast(`Đã chọn "${d.name}"`); renderManage(); } }, "Chọn"),
-      !d.builtin && el("button", { class: "btn ghost", title: "Xoá", onclick: () => { if (confirm(`Xoá bộ "${d.name}"?`)) { store.deleteUserDeck(d.id); toast("Đã xoá"); renderManage(); } } }, "🗑️"),
+      !d.builtin && el("button", { class: "btn ghost", title: "Xoá", onclick: () => { if (confirm(`Xoá bộ "${d.name}"?`)) { store.deleteUserDeck(d.id); toast("Đã xoá"); renderManage(); } } }, iconEl("trash")),
     ));
   });
   root.append(list);
@@ -599,7 +599,7 @@ export async function renderManage() {
     store.saveSettings({ activeDeckId: deck.id });
     toast(`Đã tạo "${name}" với ${cards.length} thẻ`);
     renderManage();
-  } }, "💾 Lưu bộ thẻ");
+  } }, iconEl("save"), "Lưu bộ thẻ");
 
   root.append(el("div", { class: "panel" },
     el("div", { class: "field" }, el("label", {}, "Tên bộ thẻ"), nameInput),
@@ -768,19 +768,19 @@ export async function renderSettings() {
     el("b", {}, "AI · Qwen3 (tùy chọn)"),
     el("p", { class: "muted small" }, "Backend local để Giao tiếp tự bóc câu từ ảnh/PDF/audio/video và dịch Việt. Để trống thì app vẫn chạy đủ trong trình duyệt (chỉ text/.srt). Hướng dẫn cài: thư mục backend/."),
     el("div", { class: "field" }, el("label", {}, "Địa chỉ backend"), backendInput),
-    el("div", { class: "row" }, el("button", { class: "btn", onclick: testBackend }, "🔌 Lưu & kiểm tra"), backendStatus),
+    el("div", { class: "row" }, el("button", { class: "btn", onclick: testBackend }, iconEl("plug"), "Lưu & kiểm tra"), backendStatus),
   ));
 
   // data
   root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
     el("b", {}, "Dữ liệu"),
     el("div", { class: "row" },
-      el("button", { class: "btn", onclick: exportData }, "⬇️ Xuất sao lưu"),
-      el("button", { class: "btn", onclick: importData }, "⬆️ Nhập sao lưu"),
+      el("button", { class: "btn", onclick: exportData }, iconEl("download"), "Xuất sao lưu"),
+      el("button", { class: "btn", onclick: importData }, iconEl("upload"), "Nhập sao lưu"),
     ),
     el("button", { class: "btn ghost", style: "color:var(--bad)", onclick: () => {
       if (confirm("Xoá toàn bộ tiến độ học (giữ lại bộ thẻ)?")) { store.resetProgress(); toast("Đã xoá tiến độ."); }
-    } }, "♻️ Đặt lại tiến độ học"),
+    } }, iconEl("reset"), "Đặt lại tiến độ học"),
   ));
 
   root.append(el("p", { class: "muted center", style: "margin-top:20px;font-size:12px" }, "Mọi dữ liệu lưu ngay trên thiết bị của bạn (offline). Nhớ xuất sao lưu định kỳ."));
@@ -918,10 +918,10 @@ async function renderFileViewer(host, fm) {
   viewerUrl = URL.createObjectURL(blob);
   const kind = lib.fileKind(fm);
   host.append(el("div", { class: "row spread" }, el("b", {}, fm.name),
-    el("a", { class: "btn small", href: viewerUrl, download: fm.name }, "⬇ Tải về")));
+    el("a", { class: "btn small", href: viewerUrl, download: fm.name }, iconEl("download"), "Tải về")));
   if (kind === "pdf") {
     host.append(el("iframe", { class: "pdf-frame", src: viewerUrl }));
-    host.append(el("button", { class: "btn ghost small", onclick: () => toast("Bóc đề tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, "🤖 Bóc đề từ PDF (sắp có)"));
+    host.append(el("button", { class: "btn ghost small", onclick: () => toast("Bóc đề tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, iconEl("ai"), "Bóc đề từ PDF (sắp có)"));
   } else if (kind === "audio") {
     host.append(el("audio", { controls: "", src: viewerUrl, style: "width:100%" }));
   } else if (kind === "video") {
@@ -1046,7 +1046,7 @@ function hskkRetell(root, ex) {
   }
   function paintControls() {
     controls.innerHTML = "";
-    controls.append(el("button", { class: "btn primary", onclick: () => speak(items[i].zh, { rate: s.speechRate }) }, "🔊 Nghe đoạn văn"));
+    controls.append(el("button", { class: "btn primary", onclick: () => speak(items[i].zh, { rate: s.speechRate }) }, iconEl("speaker"), "Nghe đoạn văn"));
     if (hasRecognition()) controls.append(micButton(() => items[i].zh, s, { score: false }));
     controls.append(el("button", { class: "btn", onclick: () => { shown = !shown; paint(); } }, shown ? "Ẩn nguyên văn" : "Hiện nguyên văn"));
     if (items.length > 1) controls.append(el("button", { class: "btn ghost", onclick: () => { i = (i + 1) % items.length; shown = false; paint(); } }, "Đoạn sau →"));
@@ -1065,7 +1065,7 @@ function hskkRead(root, ex) {
   r.vi && card.append(el("details", { class: "comm-personal" }, el("summary", {}, "Xem nghĩa tiếng Việt"), el("p", { class: "meaning", style: "text-align:left" }, r.vi)));
   root.append(card);
   const controls = el("div", { class: "row comm-controls" },
-    el("button", { class: "btn", onclick: () => speak(r.zh, { rate: s.speechRate }) }, "🔊 Nghe mẫu"));
+    el("button", { class: "btn", onclick: () => speak(r.zh, { rate: s.speechRate }) }, iconEl("speaker"), "Nghe mẫu"));
   if (hasRecognition()) controls.append(micButton(() => r.zh, s, { score: true }));
   else controls.append(el("span", { class: "muted small" }, "Trình duyệt không hỗ trợ chấm phát âm."));
   root.append(controls);
@@ -1089,7 +1089,7 @@ function hskkAnswer(root, ex) {
     card.append(el("div", { class: "hskk-passage", style: "text-align:left" }, it.q_zh));
     it.q_pinyin && card.append(el("div", { class: "pinyin", style: "text-align:left" }, it.q_pinyin));
     it.q_vi && card.append(el("div", { class: "meaning", style: "text-align:left;margin-top:6px" }, it.q_vi));
-    if (it.outline_vi) card.append(el("details", { class: "comm-personal" }, el("summary", {}, "💡 Gợi ý dàn ý"), el("p", { class: "muted small", style: "text-align:left" }, it.outline_vi)));
+    if (it.outline_vi) card.append(el("details", { class: "comm-personal" }, el("summary", {}, iconEl("bulb"), "Gợi ý dàn ý"), el("p", { class: "muted small", style: "text-align:left" }, it.outline_vi)));
     paintControls();
   }
   function paintControls() {
@@ -1105,7 +1105,7 @@ function hskkAnswer(root, ex) {
         if (remain === 0) { clearWriteTimer(); tBtn.textContent = "Hết giờ"; tBtn.disabled = true; toast("Hết giờ nói!"); }
       }, 1000);
     };
-    controls.append(el("span", { class: "row" }, el("b", {}, "⏱ "), disp), tBtn);
+    controls.append(el("span", { class: "row" }, el("b", {}, iconEl("timer")), disp), tBtn);
     if (hasRecognition()) controls.append(micButton(() => items[i].q_zh, s, { score: false }));
     if (items.length > 1) controls.append(el("button", { class: "btn ghost", onclick: () => { i = (i + 1) % items.length; paint(); } }, "Câu sau →"));
   }
@@ -1237,7 +1237,7 @@ function clozeRender(item, isSentence) {
   return box;
 }
 
-function explainBox(text) { return el("div", { class: "explain" }, "💡 " + text); }
+function explainBox(text) { return el("div", { class: "explain" }, iconEl("bulb"), "" + text); }
 
 function gradeReading(exam) {
   let total = 0, score = 0;
@@ -1316,12 +1316,12 @@ async function examWriting(root) {
   titleInput.addEventListener("input", autosave);
 
   root.append(el("div", { class: "panel" },
-    el("div", { class: "row spread" }, el("div", { class: "row" }, el("b", {}, "⏱ "), disp, toggleBtn), counter),
+    el("div", { class: "row spread" }, el("div", { class: "row" }, el("b", {}, iconEl("timer")), disp, toggleBtn), counter),
     el("div", { class: "field" }, titleInput),
     el("div", { class: "field" }, ta),
     el("div", { class: "row" },
-      el("button", { class: "btn", onclick: () => { store.saveWritingDraft(exam.id, { title: titleInput.value, text: ta.value }); toast("Đã lưu bản nháp."); } }, "💾 Lưu nháp"),
-      el("button", { class: "btn primary", onclick: () => toast("Chấm tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, "🤖 Chấm bằng Qwen3"),
+      el("button", { class: "btn", onclick: () => { store.saveWritingDraft(exam.id, { title: titleInput.value, text: ta.value }); toast("Đã lưu bản nháp."); } }, iconEl("save"), "Lưu nháp"),
+      el("button", { class: "btn primary", onclick: () => toast("Chấm tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, iconEl("ai"), "Chấm bằng Qwen3"),
     ),
     el("p", { class: "muted small" }, "Bản nháp tự lưu vào máy. Khi có Qwen3, app sẽ chấm bố cục, ngữ pháp và gợi ý sửa."),
   ));
@@ -1470,11 +1470,13 @@ function pronunMarks(marks) {
   return span;
 }
 function micButton(getTarget, s, { score = true } = {}) {
-  const btn = el("button", { class: "btn" }, "🎙️ Nói");
+  const btn = el("button", { class: "btn" });
+  const setMic = (txt, rec = false) => { btn.classList.toggle("rec", rec); btn.replaceChildren(iconEl("mic"), el("span", { class: "btn-tx" }, txt)); };
+  setMic("Nói");
   const out = el("span", { class: "comm-mic-out small" });
   btn.onclick = () => {
-    if (commRec) { try { commRec.abort(); } catch {} commRec = null; btn.textContent = "🎙️ Nói"; return; }
-    btn.textContent = "● Đang nghe…"; out.textContent = "";
+    if (commRec) { try { commRec.abort(); } catch {} commRec = null; setMic("Nói"); return; }
+    setMic("Đang nghe…", true); out.textContent = "";
     commRec = recognizeChinese({
       onResult: (txt) => {
         out.innerHTML = "";
@@ -1487,7 +1489,7 @@ function micButton(getTarget, s, { score = true } = {}) {
         }
       },
       onError: (err) => { out.textContent = err === "unsupported" ? "Trình duyệt không hỗ trợ micro." : "Lỗi micro: " + err; },
-      onEnd: () => { commRec = null; btn.textContent = "🎙️ Nói"; },
+      onEnd: () => { commRec = null; setMic("Nói"); },
     });
   };
   return el("span", { class: "comm-mic" }, btn, out);
@@ -1544,9 +1546,9 @@ function commDrillQA(root, scenes) {
   }
   function paintControls() {
     controls.innerHTML = "";
-    controls.append(el("button", { class: "btn", onclick: () => speak(cur().q, { rate: s.speechRate }) }, "🔁 Nghe câu hỏi"));
+    controls.append(el("button", { class: "btn", onclick: () => speak(cur().q, { rate: s.speechRate }) }, iconEl("replay"), "Nghe câu hỏi"));
     if (hasRecognition()) controls.append(micButton(() => cur().a, s));
-    if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, "💡 Gợi ý đáp án"));
+    if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, iconEl("bulb"), "Gợi ý đáp án"));
     controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp theo →"));
   }
   paint();
@@ -1587,9 +1589,9 @@ function commDrillShadow(root, scenes) {
   }
   function paintControls() {
     controls.innerHTML = "";
-    controls.append(el("button", { class: "btn", onclick: speakCur }, "🔁 Nghe mẫu"));
+    controls.append(el("button", { class: "btn", onclick: speakCur }, iconEl("replay"), "Nghe mẫu"));
     if (hasRecognition()) controls.append(micButton(() => cur().zh, s));
-    controls.append(el("button", { class: "btn", onclick: () => { showAid = true; renderBody(); } }, "👁 Hiện"));
+    controls.append(el("button", { class: "btn", onclick: () => { showAid = true; renderBody(); } }, iconEl("eye"), "Hiện"));
     controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp →"));
   }
   renderBody(); speakCur(); paintControls();
@@ -1613,7 +1615,7 @@ function commDrillSprint(root, scenes) {
     const sel = el("div", { class: "row" });
     [30, 60, 90].forEach((d) => sel.append(el("button", { class: "btn" + (d === dur ? " primary" : ""), onclick: () => { dur = d; showSetup(); } }, d + "s")));
     panel.append(el("div", { class: "field" }, el("label", { class: "muted small" }, "Thời lượng"), sel));
-    panel.append(el("button", { class: "btn primary big", onclick: start }, "▶️ Bắt đầu"));
+    panel.append(el("button", { class: "btn primary big", onclick: start }, iconEl("play"), "Bắt đầu"));
   }
   function start() {
     const queue = shuffle(bank.slice());
@@ -1636,12 +1638,12 @@ function commDrillSprint(root, scenes) {
     }
     function adv(ok) { if (ok) { score++; scoreEl.textContent = String(score); } qi++; paint(); }
     panel.innerHTML = "";
-    panel.append(el("div", { class: "row spread" }, el("div", { class: "row" }, el("b", {}, "⏱ "), timerEl), el("div", {}, "Đã bật: ", scoreEl)));
+    panel.append(el("div", { class: "row spread" }, el("div", { class: "row" }, el("b", {}, iconEl("timer")), timerEl), el("div", {}, "Đã bật: ", scoreEl)));
     panel.append(body);
     panel.append(el("div", { class: "row comm-controls" },
-      el("button", { class: "btn", onclick: reveal }, "👁 Hiện"),
+      el("button", { class: "btn", onclick: reveal }, iconEl("eye"), "Hiện"),
       el("button", { class: "btn ghost", onclick: () => adv(false) }, "Bỏ qua"),
-      el("button", { class: "btn primary", onclick: () => adv(true) }, "✓ Được")));
+      el("button", { class: "btn primary", onclick: () => adv(true) }, iconEl("check"), "Được")));
     paint();
     commTimer = setInterval(() => {
       remain--; timerEl.textContent = fmtTime(Math.max(0, remain));
@@ -1696,8 +1698,8 @@ function commDrillPattern(root, scenes) {
   }
   function paintControls() {
     controls.innerHTML = "";
-    if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, "💡 Đáp án"));
-    else controls.append(el("button", { class: "btn", onclick: () => speak(comm.fillFrame(curP().frame, curS().zh), { rate: s.speechRate }) }, "🔊 Nghe"));
+    if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, iconEl("bulb"), "Đáp án"));
+    else controls.append(el("button", { class: "btn", onclick: () => speak(comm.fillFrame(curP().frame, curS().zh), { rate: s.speechRate }) }, iconEl("speaker"), "Nghe"));
     controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp →"));
   }
   renderBody(); paintControls();
@@ -1781,8 +1783,8 @@ async function transHome(root) {
       if (!ex) return toast("Không lấy được câu mẫu.");
       Object.assign(transDraft, { source: ex.source, sourcePinyin: ex.sourcePinyin || "", ref: ex.ref || "", refPinyin: ex.refPinyin || "", grade: null });
       renderTrans();
-    } }, "🎲 Câu mẫu từ thẻ"));
-  if (srcIsZh) srcBtns.append(el("button", { class: "btn", onclick: () => transDraft.source && speak(transDraft.source, { rate: s.speechRate }) }, "🔊 Nghe"));
+    } }, iconEl("dice"), "Câu mẫu từ thẻ"));
+  if (srcIsZh) srcBtns.append(el("button", { class: "btn", onclick: () => transDraft.source && speak(transDraft.source, { rate: s.speechRate }) }, iconEl("speaker"), "Nghe"));
   root.append(el("div", { class: "panel stack" },
     el("b", {}, srcIsZh ? "Nguồn · 中文" : "Nguồn · Tiếng Việt"),
     transDraft.sourcePinyin && el("div", { class: "pinyin", style: "text-align:left" }, transDraft.sourcePinyin),
@@ -1795,17 +1797,17 @@ async function transHome(root) {
 
   if (transDraft.ref) {
     root.append(el("details", { class: "panel comm-personal" },
-      el("summary", {}, "👁 Xem bản tham khảo (câu mẫu)"),
+      el("summary", {}, iconEl("eye"), "Xem bản tham khảo (câu mẫu)"),
       el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, transDraft.ref),
       transDraft.refPinyin && el("div", { class: "pinyin", style: "text-align:left" }, transDraft.refPinyin)));
   }
 
   const actions = el("div", { class: "row", style: "margin-top:4px" });
-  actions.append(el("button", { class: "btn", onclick: () => saveTransDraft(false) }, "💾 Lưu"));
-  if (backend) actions.append(el("button", { class: "btn primary", onclick: gradeTransDraft }, "🤖 Chấm & sửa (Qwen3)"));
-  else actions.append(el("button", { class: "btn", onclick: () => toast("Bật backend Qwen3 trong Cài đặt để chấm tự động.") }, "🤖 Chấm (cần Qwen3)"));
-  actions.append(el("button", { class: "btn ghost", onclick: () => { transDraft = newTransDraft(transDraft.dir); renderTrans(); } }, "🔄 Mới"));
-  actions.append(el("button", { class: "btn ghost", onclick: () => { transView = { screen: "saved" }; renderTrans(); } }, `📚 Bài đã dịch (${store.getTranslations().length})`));
+  actions.append(el("button", { class: "btn", onclick: () => saveTransDraft(false) }, iconEl("save"), "Lưu"));
+  if (backend) actions.append(el("button", { class: "btn primary", onclick: gradeTransDraft }, iconEl("ai"), "Chấm & sửa (Qwen3)"));
+  else actions.append(el("button", { class: "btn", onclick: () => toast("Bật backend Qwen3 trong Cài đặt để chấm tự động.") }, iconEl("ai"), "Chấm (cần Qwen3)"));
+  actions.append(el("button", { class: "btn ghost", onclick: () => { transDraft = newTransDraft(transDraft.dir); renderTrans(); } }, iconEl("reset"), "Mới"));
+  actions.append(el("button", { class: "btn ghost", onclick: () => { transView = { screen: "saved" }; renderTrans(); } }, iconEl("book"), el("span", { class: "btn-tx" }, `Bài đã dịch (${store.getTranslations().length})`)));
   root.append(actions);
 
   if (transDraft.grade) root.append(transGradeBox(transDraft.grade, srcIsZh));
@@ -1839,7 +1841,7 @@ async function gradeTransDraft() {
 
 function transGradeBox(g, srcIsZh) {
   const box = el("div", { class: "panel stack", style: "margin-top:12px;border-color:var(--accent)" });
-  box.append(el("div", { class: "row spread" }, el("b", {}, "🤖 Qwen3 chấm"), g.score != null ? el("span", { class: "chip lvl" }, `Điểm: ${g.score}/10`) : null));
+  box.append(el("div", { class: "row spread" }, el("b", {}, iconEl("ai"), "Qwen3 chấm"), g.score != null ? el("span", { class: "chip lvl" }, `Điểm: ${g.score}/10`) : null));
   if (g.corrected) box.append(el("div", {}, el("div", { class: "muted small" }, "Bản dịch đã sửa:"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.corrected)));
   if (g.reference) box.append(el("details", {}, el("summary", { class: "small" }, "Bản dịch tham khảo"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.reference)));
   if (Array.isArray(g.notes) && g.notes.length) {
@@ -1870,7 +1872,7 @@ function transSaved(root) {
       t.grade && t.grade.corrected && el("div", {}, el("span", { class: "muted small" }, "Đã sửa: "), t.grade.corrected),
       notesUl,
       el("div", { class: "row" },
-        srcIsZh ? el("button", { class: "btn small", onclick: () => speak(t.source, { rate: s.speechRate }) }, "🔊") : null,
+        srcIsZh ? el("button", { class: "btn small", onclick: () => speak(t.source, { rate: s.speechRate }) }, iconEl("speaker")) : null,
         el("button", { class: "btn small", onclick: () => loadTransDraft(t) }, "Mở lại"),
         el("button", { class: "btn ghost small", onclick: () => { if (confirm("Xóa bài này?")) { store.deleteTranslation(t.id); renderTrans(); } } }, "Xóa")));
     root.append(el("details", { class: "panel" }, el("summary", {}, head), body));
@@ -2166,7 +2168,7 @@ function tradPairCard(p, s) {
     el("div", { class: "trad-meta" },
       el("span", { class: "chip lvl" }, "HSK" + p.level),
       p.pinyin ? el("span", { class: "pinyin" }, p.pinyin) : null,
-      el("button", { class: "btn ghost small", onclick: () => speak(p.simp, { rate: s.speechRate }) }, "🔊")),
+      el("button", { class: "btn ghost small", onclick: () => speak(p.simp, { rate: s.speechRate }) }, iconEl("speaker"))),
     (p.han_viet || p.meaning) ? el("div", { class: "muted small" }, (p.han_viet ? `[${p.han_viet}] ` : "") + (p.meaning || "")) : null,
     p.examples.length ? el("div", { class: "trad-ex" }, "VD: " + p.examples.slice(0, 3).map((e) => `${e.s}/${e.t}`).join(" · ")) : null);
 }
@@ -2252,15 +2254,15 @@ export async function renderWordsets() {
         el("span", { class: "muted small" }, `${ids.length} từ · đã học ${known}`)),
       el("div", { class: "muted small" }, `${new Date(set.createdAt).toLocaleDateString("vi")} · ${preview}`),
       el("div", { class: "row" },
-        methodBtn("🎴 Flashcard", () => startSet(set, ids, "study")),
-        methodBtn("📝 Quiz", () => startSet(set, ids, "quiz")),
-        methodBtn("⌨️ Gõ pinyin", () => startSet(set, ids, "type")),
-        methodBtn("🔊 Nghe", () => startSet(set, ids, "listen")),
-        el("button", { class: "btn ghost small", onclick: () => { if (confirm(`Xóa bộ "${set.name}"?`)) { store.deleteWordSet(set.id); renderWordsets(); } } }, "🗑")),
+        methodBtn("cards", "Flashcard", () => startSet(set, ids, "study")),
+        methodBtn("exam", "Quiz", () => startSet(set, ids, "quiz")),
+        methodBtn("keyboard", "Gõ pinyin", () => startSet(set, ids, "type")),
+        methodBtn("speaker", "Nghe", () => startSet(set, ids, "listen")),
+        el("button", { class: "btn ghost small", title: "Xóa bộ", onclick: () => { if (confirm(`Xóa bộ "${set.name}"?`)) { store.deleteWordSet(set.id); renderWordsets(); } } }, iconEl("x"))),
     ));
   }
 }
-function methodBtn(label, onclick) { return el("button", { class: "btn small", onclick }, label); }
+function methodBtn(iconName, label, onclick) { return el("button", { class: "btn small", onclick }, iconEl(iconName), el("span", { class: "btn-tx" }, label)); }
 function startSet(set, ids, mode) {
   if (!ids.length) return toast("Bộ này không còn từ hợp lệ.");
   setLearnScope(new Set(ids), set.name);
@@ -2286,7 +2288,7 @@ export async function renderType() {
   if (t.i >= t.pool.length) {
     root.append(el("div", { class: "panel center stack" },
       el("h2", {}, `Xong! ${t.score}/${t.pool.length} đúng`),
-      el("button", { class: "btn primary", onclick: () => { typeState = null; renderType(); } }, "🔄 Làm lại")));
+      el("button", { class: "btn primary", onclick: () => { typeState = null; renderType(); } }, iconEl("reset"), "Làm lại")));
     return;
   }
   const c = t.pool[t.i];
