@@ -909,6 +909,7 @@ export async function renderSettings() {
   // data
   root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
     el("b", {}, "Dữ liệu"),
+    el("p", { class: "muted small" }, "Sao lưu gồm: tiến độ SRS, bộ thẻ, bộ từ của tôi, bài đã dịch, tài liệu/truyện đã nạp, lộ trình & SRS Phồn thể, kết quả luyện đề, kỷ lục. (Không gồm file .zip đề thi trong Thư viện — tải lại được.)"),
     el("div", { class: "row" },
       el("button", { class: "btn", onclick: exportData }, iconEl("download"), "Xuất sao lưu"),
       el("button", { class: "btn", onclick: importData }, iconEl("upload"), "Nhập sao lưu"),
@@ -921,18 +922,36 @@ export async function renderSettings() {
   root.append(el("p", { class: "muted center", style: "margin-top:20px;font-size:12px" }, "Mọi dữ liệu lưu ngay trên thiết bị của bạn (offline). Nhớ xuất sao lưu định kỳ."));
 }
 
-function exportData() {
-  const blob = new Blob([JSON.stringify(store.exportAll(), null, 2)], { type: "application/json" });
+async function exportData() {
+  const data = store.exportAll();
+  try { data.materials = await lessons.listMaterials(); } catch { data.materials = []; }
+  data.backupVersion = 2;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = el("a", { href: URL.createObjectURL(blob), download: `hsk-backup-${new Date().toISOString().slice(0, 10)}.json` });
   a.click();
-  toast("Đã xuất file sao lưu.");
+  const n = (data.materials || []).length;
+  toast(`Đã xuất sao lưu${n ? ` (gồm ${n} tài liệu)` : ""}.`);
 }
 function importData() {
   const inp = el("input", { type: "file", accept: ".json" });
   inp.addEventListener("change", async (e) => {
     const f = e.target.files[0]; if (!f) return;
-    try { store.importAll(JSON.parse(await f.text())); store.applyTheme(); toast("Đã nhập sao lưu."); renderSettings(); }
-    catch { toast("File không hợp lệ."); }
+    let data;
+    try { data = JSON.parse(await f.text()); }
+    catch { return toast("File không hợp lệ."); }
+    if (!data || typeof data !== "object" || !data.settings) return toast("Không phải file sao lưu của app.");
+    const nMat = (data.materials || []).length;
+    if (!confirm(`Khôi phục sẽ GHI ĐÈ dữ liệu hiện tại trên thiết bị này (tiến độ, bộ từ, bài dịch${nMat ? `, ${nMat} tài liệu` : ""}). Tiếp tục?`)) return;
+    try {
+      store.importAll(data);
+      if (Array.isArray(data.materials)) {
+        for (const m of data.materials) { try { await lessons.saveMaterial(m); } catch {} }
+        invalidateMaterials();
+      }
+      store.applyTheme();
+      toast("Đã khôi phục sao lưu.");
+      renderSettings();
+    } catch (err) { toast("Lỗi khi khôi phục: " + err.message); }
   });
   inp.click();
 }

@@ -257,6 +257,10 @@ export function exportAll() {
     exams: getUserExams(),
     examProgress: read(KEYS.examProgress, {}),
     translations: getTranslations(),
+    wordSets: getWordSets(),
+    tradSrs: getTradSrs(),
+    tradMeta: getTradMeta(),
+    commRecords: getCommRecords(),
     exportedAt: new Date().toISOString(),
   };
 }
@@ -269,4 +273,8 @@ export function importAll(data) {
   if (data.exams) write(KEYS.exams, data.exams);
   if (data.examProgress) write(KEYS.examProgress, data.examProgress);
   if (data.translations) write(KEYS.translations, data.translations);
+  if (data.wordSets) write(KEYS.wordSets, data.wordSets);
+  if (data.tradSrs) write(KEYS.tradSrs, data.tradSrs);
+  if (data.tradMeta) write(KEYS.tradMeta, data.tradMeta);
+  if (data.commRecords) write(KEYS.commRecords, data.commRecords);
 }

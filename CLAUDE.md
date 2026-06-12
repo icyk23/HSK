@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] Hoàn thiện SAO LƯU/KHÔI PHỤC (sửa lỗi mất dữ liệu): exportAll/importAll nay gồm đủ wordSets,
+    tradSrs, tradMeta, commRecords + TÀI LIỆU/truyện trong IndexedDB (qua lessons.listMaterials/
+    saveMaterial); xuất/nhập async, xác nhận GHI ĐÈ khi khôi phục, kiểm tra file hợp lệ. Loại trừ
+    file .zip đề thi (Thư viện) vì tải lại được. Round-trip kiểm chứng OK. (Không gồm exam library binary.)
 [x] Đánh bóng thuần-browser (đợt 2): (1) GIAO TIẾP — Sprint lưu KỶ LỤC theo thời lượng
     (store.commRecords, báo "Kỷ lục mới") + phím tắt Sprint (Space/Enter/Backspace) & Shadowing
     (Space/→/E) qua commKeyHandler; (2) LUYỆN ĐỀ — kết quả Đọc thêm số câu sai + nút "Tới câu sai
