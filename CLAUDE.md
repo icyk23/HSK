@@ -136,6 +136,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] Lột xác giao diện "ngầu" (esports/T1): theme TỐI mặc định (đen/đỏ neon mono đỏ-trắng),
+    góc cắt chéo angular + glow theo hình cắt, chữ đậm/nhãn IN HOA. Bộ ICON SVG line
+    (js/icons.js) thay emoji ở nav tầng 1, thẻ Giao tiếp, nút loa/Bỏ qua/Đã thuộc; bỏ emoji
+    đầu tiêu đề H1. LAYOUT DESKTOP/PC: top bar 1 hàng (brand + nav icon), main rộng ~1080–1140,
+    lưới Giao tiếp 2 cột, dashboard Tiến độ trải ngang. Sửa bug có sẵn semChipClass (crash lật thẻ).
 [x] Nền PWA vanilla-JS (flashcard, SRS SM-2, TTS, quiz, import, theme, offline)
 [x] Phase 1 — Import 5.002 từ HSK1–6 + build phân loại + nối deck vào app
 [x] Mở rộng phân loại Lớp 2 (khớp Hán tự + keyword) — coverage ~24%, precision cao

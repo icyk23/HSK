@@ -12,8 +12,14 @@ import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExam
 import { unzip } from "./unzip.js";
 import * as lib from "./library.js";
 import { STRUCT_LABELS, SEMANTIC_LABELS } from "./classify.js";
+import { iconEl } from "./icons.js";
 
 const app = () => document.getElementById("app");
+// Nút loa tròn dùng lại nhiều nơi (icon SVG).
+const audioBtn = (text, onclick, cls = "card-audio") =>
+  el("button", { class: cls, title: "Nghe phát âm", onclick }, iconEl("speaker"), text ? el("span", { class: "btn-tx" }, text) : null);
+// Lớp CSS cho chip nhóm nghĩa (trước bị thiếu → crash khi lật thẻ).
+const semChipClass = (g) => "chip sem" + (g ? " sem-" + String(g).toLowerCase() : "");
 
 /* ---------------- helpers ---------------- */
 export function toast(msg, ms = 2200) {
@@ -170,7 +176,7 @@ function renderCard() {
     el("div", { class: "hanzi" }, main),
     sub && el("div", { class: "hanzi trad" }, sub),
     settings.showPinyinByDefault && el("div", { class: "pinyin" }, card.pinyin),
-    el("button", { class: "card-audio", title: "Nghe phát âm", onclick: (e) => { e.stopPropagation(); speak(card.simplified, { rate: settings.speechRate }); } }, "🔊"),
+    audioBtn(null, (e) => { e.stopPropagation(); speak(card.simplified, { rate: settings.speechRate }); }),
     !session.revealed && el("div", { class: "tap-hint" }, "Chạm vào thẻ để xem nghĩa"),
   );
 
@@ -202,8 +208,8 @@ function renderCard() {
 
   // Hành động phụ: bỏ qua / đã thuộc (dùng được cả trước và sau khi lật)
   root.append(el("div", { class: "skip-row" },
-    el("button", { class: "btn ghost small", title: "Bỏ qua thẻ này, không ghi nhận (S)", onclick: skipCard }, "⏭️ Bỏ qua"),
-    el("button", { class: "btn ghost small", title: "Đã thuộc — không hiện lại (K)", onclick: markKnown }, "✓ Đã thuộc"),
+    el("button", { class: "btn ghost small", title: "Bỏ qua thẻ này, không ghi nhận (S)", onclick: skipCard }, iconEl("skip"), el("span", { class: "btn-tx" }, "Bỏ qua")),
+    el("button", { class: "btn ghost small", title: "Đã thuộc — không hiện lại (K)", onclick: markKnown }, iconEl("check"), el("span", { class: "btn-tx" }, "Đã thuộc")),
   ));
 
   if (settings.autoPlayAudio) speak(card.simplified, { rate: settings.speechRate });
@@ -280,7 +286,7 @@ export async function renderVocab() {
   const s = store.getSettings();
   const deck = await getDeck(s.activeDeckId);
   await ensureMaterials();
-  root.append(el("h1", { class: "view-title" }, "📂 Từ vựng — Thư mục"));
+  root.append(el("h1", { class: "view-title" }, "Từ vựng — Thư mục"));
   if (!deck) { root.append(emptyState("Chưa chọn bộ thẻ", "Vào tab 📚 Nguồn từ để chọn bộ thẻ.")); return; }
 
   const search = el("input", { type: "text", placeholder: "Tìm chữ Hán / pinyin / nghĩa…", value: vocab.q });
@@ -490,7 +496,7 @@ export async function renderListen() {
   if (!deck) { root.append(emptyState("Chưa có bộ thẻ", "Chọn bộ thẻ ở tab 📚.")); return; }
   const pool = scopeCards(deck.cards);
 
-  root.append(el("h1", { class: "view-title" }, "🔊 Luyện nghe"));
+  root.append(el("h1", { class: "view-title" }, "Luyện nghe"));
   const sb = scopeBanner(renderListen); if (sb) root.append(sb);
 
   if (!hasChineseVoice()) {
@@ -545,7 +551,7 @@ export async function renderManage() {
   const s = store.getSettings();
   const decks = await getAllDecks();
 
-  root.append(el("h1", { class: "view-title" }, "📚 Nguồn từ"));
+  root.append(el("h1", { class: "view-title" }, "Nguồn từ"));
 
   const list = el("div", { class: "stack" });
   decks.forEach((d) => {
@@ -613,7 +619,7 @@ export async function renderStats() {
   const progress = store.getProgress();
   const stats = store.getStats();
 
-  root.append(el("h1", { class: "view-title" }, "📊 Tiến độ"));
+  root.append(el("h1", { class: "view-title" }, "Tiến độ"));
 
   let learned = 0, due = 0, total = deck ? deck.cards.length : 0;
   if (deck) {
@@ -708,7 +714,7 @@ function statBox(num, lbl) {
 export async function renderSettings() {
   const root = clear();
   const s = store.getSettings();
-  root.append(el("h1", { class: "view-title" }, "⚙️ Cài đặt"));
+  root.append(el("h1", { class: "view-title" }, "Cài đặt"));
 
   const update = (patch) => { store.saveSettings(patch); };
 
@@ -958,7 +964,7 @@ function examTopbar(title) {
 
 /* ---------- Màn hình danh sách đề ---------- */
 async function examList(root) {
-  root.append(el("h1", { class: "view-title" }, "📝 Luyện đề"));
+  root.append(el("h1", { class: "view-title" }, "Luyện đề"));
   root.append(await hskkBar());
   root.append(examImportBar());
   root.append(await libraryBar());
@@ -1366,17 +1372,17 @@ function qaBank(scenes) { const o = []; for (const s of selectedScenes(scenes)) 
 function patternBank(scenes) { const o = []; for (const s of selectedScenes(scenes)) o.push(...(s.patterns || [])); return o; }
 
 async function commHome(root, scenes) {
-  root.append(el("h1", { class: "view-title" }, "🗣️ Giao tiếp — luyện phản xạ"));
+  root.append(el("h1", { class: "view-title" }, "Giao tiếp — luyện phản xạ"));
   root.append(el("p", { class: "muted small", style: "margin:-6px 2px 14px" }, "Chọn một phương thức — vào trong rồi chọn nguồn câu (tình huống hoặc tài liệu đã nạp)."));
   const nQa = scenes.reduce((n, s) => n + (s.qa ? s.qa.length : 0), 0);
   const nLine = scenes.reduce((n, s) => n + comm.sceneLineBank(s).length, 0);
   const nVi = scenes.reduce((n, s) => n + comm.sceneLineBank(s).filter((x) => x.vi).length, 0);
   const nPat = scenes.reduce((n, s) => n + (s.patterns ? s.patterns.length : 0), 0);
   const grid = el("div", { class: "comm-grid" });
-  grid.append(commDrillCard("💬", "Hỏi–đáp tình huống", `${nQa} cặp`, "Nghe câu hỏi → bật câu trả lời trong vài giây.", true, "qa"));
-  grid.append(commDrillCard("🎙️", "Shadowing + Phát âm", `${nLine}+ câu`, "Nghe mẫu → nói lại → chấm phát âm. Luyện được theo tài liệu của bạn.", true, "shadow"));
-  grid.append(commDrillCard("⏱️", "Sprint Việt→Trung", `${nVi} câu`, "Đếm giờ, bật càng nhiều câu càng tốt.", true, "sprint"));
-  grid.append(commDrillCard("🔁", "Thay thế mẫu câu", `${nPat} mẫu`, "Giữ khung, đổi chỗ trống để nói tự động.", true, "pattern"));
+  grid.append(commDrillCard(iconEl("chat"), "Hỏi–đáp tình huống", `${nQa} cặp`, "Nghe câu hỏi → bật câu trả lời trong vài giây.", true, "qa"));
+  grid.append(commDrillCard(iconEl("mic"), "Shadowing + Phát âm", `${nLine}+ câu`, "Nghe mẫu → nói lại → chấm phát âm. Luyện được theo tài liệu của bạn.", true, "shadow"));
+  grid.append(commDrillCard(iconEl("timer"), "Sprint Việt→Trung", `${nVi} câu`, "Đếm giờ, bật càng nhiều câu càng tốt.", true, "sprint"));
+  grid.append(commDrillCard(iconEl("swap"), "Thay thế mẫu câu", `${nPat} mẫu`, "Giữ khung, đổi chỗ trống để nói tự động.", true, "pattern"));
   root.append(grid);
 
   if (!hasRecognition()) {
@@ -1744,7 +1750,7 @@ async function randomExample(dir) {
 async function transHome(root) {
   const s = store.getSettings();
   const backend = await comm.pingBackend();
-  root.append(el("h1", { class: "view-title" }, "🌐 Dịch thuật"));
+  root.append(el("h1", { class: "view-title" }, "Dịch thuật"));
 
   const dirRow = el("div", { class: "comm-chips" });
   const setDir = (d) => { if (transDraft.dir !== d) transDraft = newTransDraft(d); renderTrans(); };
@@ -1916,7 +1922,7 @@ function splitVi(text) {
 }
 
 async function ingestNew(root) {
-  root.append(el("h1", { class: "view-title" }, "📥 Nạp tài liệu"));
+  root.append(el("h1", { class: "view-title" }, "Nạp tài liệu"));
   root.append(ingestNav("new"));
   const titleInput = el("input", { type: "text", placeholder: "Tên tài liệu (tùy chọn)" });
   const ta = el("textarea", { rows: "7", placeholder: "Dán truyện / bài viết / phụ đề tiếng Trung (hoặc văn bản tiếng Việt)…" });
@@ -1958,7 +1964,7 @@ async function createLesson(text, title) {
 }
 
 async function ingestLibrary(root) {
-  root.append(el("h1", { class: "view-title" }, "📥 Nạp tài liệu"));
+  root.append(el("h1", { class: "view-title" }, "Nạp tài liệu"));
   root.append(ingestNav("library"));
   const list = await lessons.listMaterials();
   if (!list.length) { root.append(emptyState("Chưa có tài liệu", "Vào “Nạp mới” để tạo từ văn bản.")); return; }
@@ -2136,7 +2142,7 @@ export async function renderTradLessons() {
   clearCommState();
   const root = clear();
   const pairs = await tradPairs();
-  root.append(el("h1", { class: "view-title" }, "繁 Học chữ phồn thể"));
+  root.append(el("h1", { class: "view-title" }, "Học chữ phồn thể"));
   if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.")); return; }
   root.append(el("p", { class: "muted small" }, `App học giản thể; mục này luyện ĐỌC phồn thể. Có ${pairs.length} chữ HSK mà dạng phồn thể khác giản thể.`));
   const levels = [...new Set(pairs.map((p) => p.level))].sort();
@@ -2169,7 +2175,7 @@ let tradQuiz = null;
 export async function renderTradComp() {
   clearCommState();
   const root = clear();
-  root.append(el("h1", { class: "view-title" }, "繁 Nhận diện thành phần"));
+  root.append(el("h1", { class: "view-title" }, "Nhận diện thành phần"));
   root.append(await tradQuizPanel());
   const cs = el("div", { class: "panel stack" });
   cs.append(el("b", {}, "Bộ thủ / thành phần Giản ↔ Phồn thông dụng"));
@@ -2227,7 +2233,7 @@ function pickTrad(o) {
 export async function renderWordsets() {
   clearCommState();
   const root = clear();
-  root.append(el("h1", { class: "view-title" }, "🧺 Bộ của tôi"));
+  root.append(el("h1", { class: "view-title" }, "Bộ của tôi"));
   const sets = store.getWordSets();
   if (!sets.length) {
     root.append(emptyState("Chưa có bộ từ nào", "Vào tab Thư mục, tick chọn từ rồi “💾 Lưu thành bộ”."));
@@ -2269,7 +2275,7 @@ export async function renderType() {
   const root = clear();
   const s = store.getSettings();
   const deck = await getDeck(s.activeDeckId);
-  root.append(el("h1", { class: "view-title" }, "⌨️ Gõ pinyin"));
+  root.append(el("h1", { class: "view-title" }, "Gõ pinyin"));
   const sb = scopeBanner(renderType); if (sb) root.append(sb);
   const pool = scopeCards((deck ? deck.cards : []).filter((c) => c.pinyin));
   if (!pool.length) { root.append(emptyState("Không có từ để gõ", "Vào 🧺 Bộ của tôi chọn một bộ.")); return; }
@@ -2288,7 +2294,7 @@ export async function renderType() {
     el("div", { class: "muted small" }, `Câu ${t.i + 1}/${t.pool.length} · Điểm ${t.score}`),
     el("div", { class: "hanzi" }, c.simplified),
     el("div", { class: "meaning" }, c.meaning || ""),
-    el("button", { class: "card-audio", onclick: () => speak(c.simplified, { rate: s.speechRate }) }, "🔊")));
+    audioBtn(null, () => speak(c.simplified, { rate: s.speechRate }))));
 
   const input = el("input", { type: "text", placeholder: "Gõ pinyin (không cần dấu thanh)…", class: "type-input", autocapitalize: "off", autocomplete: "off", spellcheck: "false" });
   const fb = el("div", { class: "type-fb" });

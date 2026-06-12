@@ -2,6 +2,7 @@
 
 import { applyTheme } from "./store.js";
 import * as ui from "./ui.js";
+import { icon } from "./icons.js";
 
 const VIEWS = {
   study: ui.renderStudy,
@@ -24,7 +25,7 @@ const VIEWS = {
 // Nav 2 tầng: tầng 1 = module, tầng 2 = tab con (đổi theo module đang chọn).
 // Module 1 tab con → ẩn tầng 2.
 const NAV = [
-  { id: "vocab", label: "🎴 Từ vựng", tabs: [
+  { id: "vocab", label: "Từ vựng", icon: "cards", tabs: [
     { view: "study", label: "Học thẻ" },
     { view: "vocab", label: "Thư mục" },
     { view: "wordsets", label: "Bộ của tôi" },
@@ -32,16 +33,16 @@ const NAV = [
     { view: "listen", label: "Nghe" },
     { view: "manage", label: "Nguồn từ" },
   ] },
-  { id: "exam", label: "📝 Luyện đề", tabs: [{ view: "exam", label: "Luyện đề" }] },
-  { id: "comm", label: "🗣️ Giao tiếp", tabs: [{ view: "comm", label: "Giao tiếp" }] },
-  { id: "trans", label: "🌐 Dịch thuật", tabs: [{ view: "trans", label: "Dịch thuật" }] },
-  { id: "phon", label: "繁 Phồn thể", tabs: [
+  { id: "exam", label: "Luyện đề", icon: "exam", tabs: [{ view: "exam", label: "Luyện đề" }] },
+  { id: "comm", label: "Giao tiếp", icon: "comm", tabs: [{ view: "comm", label: "Giao tiếp" }] },
+  { id: "trans", label: "Dịch thuật", icon: "trans", tabs: [{ view: "trans", label: "Dịch thuật" }] },
+  { id: "phon", label: "Phồn thể", icon: "trad", tabs: [
     { view: "tradLessons", label: "Bài học" },
     { view: "tradComp", label: "Nhận diện thành phần" },
   ] },
-  { id: "ingest", label: "📥 Nạp tài liệu", tabs: [{ view: "ingest", label: "Nạp nội dung" }] },
-  { id: "stats", label: "📊 Tiến độ", tabs: [{ view: "stats", label: "Tiến độ" }] },
-  { id: "settings", label: "⚙️ Cài đặt", tabs: [{ view: "settings", label: "Cài đặt" }] },
+  { id: "ingest", label: "Nạp tài liệu", icon: "ingest", tabs: [{ view: "ingest", label: "Nạp nội dung" }] },
+  { id: "stats", label: "Tiến độ", icon: "stats", tabs: [{ view: "stats", label: "Tiến độ" }] },
+  { id: "settings", label: "Cài đặt", icon: "settings", tabs: [{ view: "settings", label: "Cài đặt" }] },
 ];
 
 const moduleOf = (view) => NAV.find((m) => m.tabs.some((t) => t.view === view)) || NAV[0];
@@ -62,10 +63,15 @@ function go(view) {
 // Cho phép các module (ui.js) chuyển sang module/tab khác — vd Bài học → Học thẻ/Giao tiếp/Dịch thuật.
 export function navigate(view) { go(view); }
 
-function tabBtn(label, active, onclick) {
+function tabBtn(label, active, onclick, iconName) {
   const b = document.createElement("button");
   b.className = "tab" + (active ? " active" : "");
-  b.textContent = label;
+  if (iconName) {
+    b.innerHTML = `<span class="ic">${icon(iconName)}</span><span class="tab-txt"></span>`;
+    b.querySelector(".tab-txt").textContent = label;
+  } else {
+    b.textContent = label;
+  }
   b.onclick = onclick;
   return b;
 }
@@ -73,7 +79,7 @@ function tabBtn(label, active, onclick) {
 function renderNav() {
   const mod = moduleOf(currentView);
   tabs1.innerHTML = "";
-  for (const m of NAV) tabs1.append(tabBtn(m.label, m === mod, () => go(lastView[m.id] || m.tabs[0].view)));
+  for (const m of NAV) tabs1.append(tabBtn(m.label, m === mod, () => go(lastView[m.id] || m.tabs[0].view), m.icon));
 
   tabs2.innerHTML = "";
   if (mod.tabs.length > 1) {

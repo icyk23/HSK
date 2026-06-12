@@ -731,3 +731,45 @@ button.btn.ghost:hover { background: var(--surface-2); border-color: var(--borde
 
 /* nhãn micro IN HOA nét hơn */
 .label-tag, .stat-box .lbl { text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
+
+/* ===================== ICON SVG ===================== */
+.ic { display: inline-flex; align-items: center; justify-content: center; }
+.ic svg { display: block; width: 20px; height: 20px; }
+/* nav tầng 1: icon + chữ */
+.tabs.tier1 .tab { display: inline-flex; align-items: center; gap: 8px; }
+.tabs.tier1 .tab .ic svg { width: 18px; height: 18px; }
+.tabs.tier1 .tab.active .ic { color: #fff; }
+/* icon ô Giao tiếp */
+.comm-drill-ic .ic svg { width: 24px; height: 24px; }
+.comm-drill-ic { font-size: 0; }
+/* nút loa tròn */
+.card-audio { display: grid; place-items: center; }
+.card-audio .ic svg { width: 22px; height: 22px; }
+
+/* ===================== DESKTOP / PC ===================== */
+@media (min-width: 900px) {
+  main { max-width: 1080px; padding: 26px 28px 90px; }
+  .app-header { padding: 0 max(28px, calc((100% - 1180px) / 2)); }
+  /* brand + nav tầng 1 trên một hàng, tầng 2 xuống dưới */
+  .app-header { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 18px; }
+  .brand { padding: 13px 0; }
+  .tabs { padding-left: 0; padding-right: 0; }
+  .tabs.tier1 { padding-top: 0; padding-bottom: 0; gap: 4px; justify-content: flex-start; }
+  .tabs.tier1 .tab { padding: 8px 12px; font-size: 12px; letter-spacing: .02em; }
+  .tabs.tier1 .tab .ic svg { width: 16px; height: 16px; }
+  .tabs.tier2 { grid-column: 1 / -1; margin-top: 0; padding: 6px 0 12px; gap: 6px; }
+  /* màn Học thẻ: gom giữa cho gọn */
+  .flashcard { max-width: 640px; margin: 0 auto; min-height: 360px; }
+  .grade-row, .progress { max-width: 640px; margin-left: auto; margin-right: auto; }
+  /* lưới rộng hơn */
+  .comm-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .stat-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+@media (min-width: 1280px) {
+  main { max-width: 1140px; }
+}
+
+/* nút có icon SVG: căn icon + chữ */
+.btn:has(.ic) { display: inline-flex; align-items: center; gap: 7px; }
+.btn .ic svg { width: 17px; height: 17px; }
+.skip-row .btn .ic { opacity: .85; }
