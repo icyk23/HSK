@@ -990,3 +990,10 @@ button.btn:hover { transform: translateY(-1px); }
   .home-streak { border-left: none; border-top: 1px solid var(--border); align-self: stretch; padding-top: 12px; }
   .home-streak-num { font-size: 44px; }
 }
+
+/* lật thẻ 3D một lần khi hiện nghĩa */
+.flashcard.flip { animation: flip3d .42s cubic-bezier(.2,.7,.3,1) both; transform-origin: center; }
+@keyframes flip3d {
+  from { transform: perspective(1200px) rotateY(-88deg); opacity: .15; }
+  to   { transform: perspective(1200px) rotateY(0); opacity: 1; }
+}

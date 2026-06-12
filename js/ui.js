@@ -20,6 +20,16 @@ const audioBtn = (text, onclick, cls = "card-audio") =>
   el("button", { class: cls, title: "Nghe phát âm", onclick }, iconEl("speaker"), text ? el("span", { class: "btn-tx" }, text) : null);
 // Lớp CSS cho chip nhóm nghĩa (trước bị thiếu → crash khi lật thẻ).
 const semChipClass = (g) => "chip sem" + (g ? " sem-" + String(g).toLowerCase() : "");
+// Đếm số tăng dần (dashboard)
+function countUp(node, to, dur = 800) {
+  if (!to || to <= 0) { node.textContent = String(to || 0); return; }
+  const start = performance.now(), ease = (t) => 1 - Math.pow(1 - t, 3);
+  (function step(now) {
+    const p = Math.min(1, (now - start) / dur);
+    node.textContent = String(Math.round(ease(p) * to));
+    if (p < 1) requestAnimationFrame(step);
+  })(start);
+}
 
 /* ---------------- helpers ---------------- */
 export function toast(msg, ms = 2200) {
@@ -193,7 +203,8 @@ function renderCard() {
     ),
   );
 
-  const flashcard = el("div", { class: "flashcard", onclick: () => { if (!session.revealed) reveal(); } }, front, back);
+  const flashcard = el("div", { class: "flashcard" + (session.flip ? " flip" : ""), onclick: () => { if (!session.revealed) reveal(); } }, front, back);
+  session.flip = false;
 
   const banner = studyFilterBanner();
   if (banner) root.append(banner);
@@ -217,6 +228,7 @@ function renderCard() {
 
 function reveal() {
   session.revealed = true;
+  session.flip = true;        // bật hiệu ứng lật 3D một lần
   renderCard();
 }
 
@@ -746,6 +758,12 @@ export async function renderHome() {
     ));
   }
   root.append(tiles);
+
+  // đếm số tăng dần cho số nguyên thuần
+  requestAnimationFrame(() => root.querySelectorAll(".home-streak-num, .stat-box .num").forEach((n) => {
+    const v = n.textContent.trim();
+    if (/^\d+$/.test(v)) countUp(n, parseInt(v, 10));
+  }));
 }
 
 function progressRow(label, learned, total, colorKey) {

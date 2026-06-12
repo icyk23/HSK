@@ -136,6 +136,12 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] Nâng cấp "thiết kế" (4 lớp): (1) NHÚNG FONT Saira Condensed offline (fonts/, có subset
+    tiếng Việt) cho chữ display + font-mono cho số; (2) BỐ CỤC SIDEBAR PC (nav dọc trái cố định,
+    menu con nhóm theo module; mobile giữ top-bar); (3) TRANG CHỦ DASHBOARD (js renderHome: hero
+    lời chào + CTA + chuỗi ngày, số liệu nhanh, ô Vào nhanh 6 module; mặc định mở "home"); (4)
+    HIỆU ỨNG: lật thẻ 3D (flip3d khi reveal), đếm số tăng dần (countUp), nền lưới + glow, ngoặc góc
+    HUD, vạch accent, micro-animation (fadeUp/pop/shimmer/hover). Bộ icon mở rộng (js/icons.js).
 [x] Lột xác giao diện "ngầu" (esports/T1): theme TỐI mặc định (đen/đỏ neon mono đỏ-trắng),
     góc cắt chéo angular + glow theo hình cắt, chữ đậm/nhãn IN HOA. Bộ ICON SVG line
     (js/icons.js) thay emoji ở nav tầng 1, thẻ Giao tiếp, nút loa/Bỏ qua/Đã thuộc; bỏ emoji
