@@ -759,6 +759,28 @@ export async function renderHome() {
   );
   root.append(hero);
 
+  // Onboarding: gợi ý 3 bước bắt đầu (lần đầu, ẩn được)
+  if (!s.onboardDismissed) {
+    const card = el("div", { class: "panel", style: "margin-top:16px" });
+    card.append(el("div", { class: "row spread" },
+      el("b", {}, "Bắt đầu nhanh trong 3 bước"),
+      el("button", { class: "btn ghost small", onclick: () => { store.saveSettings({ onboardDismissed: true }); renderHome(); } }, iconEl("x"), "Ẩn hướng dẫn")));
+    const grid = el("div", { class: "trad-road", style: "margin-top:12px" });
+    const steps = [
+      ["1", "Học thẻ từ vựng đầu tiên", "Lật thẻ, tự chấm nhớ — SRS sẽ nhắc ôn đúng lúc.", "study"],
+      ["2", "Nạp một truyện để dịch", "Dán truyện / phụ đề tiếng Trung → luyện dịch theo khúc.", "ingest"],
+      ["3", "Thử lộ trình Phồn thể", "繁→简 cho người mới: bộ thủ → thẻ nhớ → quiz.", "tradHome"],
+    ];
+    for (const [n, t, d, view] of steps) {
+      grid.append(el("button", { class: "road-step", onclick: () => navigate(view) },
+        el("span", { class: "road-n" }, n),
+        el("span", { class: "road-body" }, el("span", { class: "road-title" }, t), el("span", { class: "road-desc muted small" }, d)),
+        iconEl("play")));
+    }
+    card.append(grid);
+    root.append(card);
+  }
+
   // Số liệu nhanh
   root.append(el("div", { class: "stat-grid", style: "margin-top:18px" },
     statBox(learned, "Đã học"),
@@ -1261,10 +1283,25 @@ async function examReading(root) {
 
   if (readingState.graded) {
     const pct = readingState.total ? Math.round((readingState.score / readingState.total) * 100) : 0;
-    root.append(el("div", { class: "panel result-bar" },
-      el("b", {}, `Kết quả: ${readingState.score}/${readingState.total} câu đúng · ${pct}%`),
-      el("button", { class: "btn", onclick: () => { readingState = { examId: exam.id, answers: {}, graded: false }; renderExam(); } }, "Làm lại"),
-    ));
+    const wrong = readingState.total - readingState.score;
+    const hist = store.getExamProgress(exam.id).readingHistory || [];
+    const bestPct = Math.round(hist.reduce((m, h) => Math.max(m, h.total ? h.score / h.total : 0), 0) * 100);
+    const bar = el("div", { class: "panel result-bar stack" });
+    bar.append(el("div", { class: "row spread" },
+      el("b", {}, `Kết quả: ${readingState.score}/${readingState.total} đúng · ${pct}%`),
+      el("span", { class: "chip" + (wrong ? " st learning" : " st known") }, wrong ? `Sai ${wrong} câu` : "Đúng hết!")));
+    if (hist.length > 1) bar.append(el("span", { class: "muted small" }, `Tốt nhất: ${bestPct}% · đã làm ${hist.length} lần`));
+    const acts = el("div", { class: "row" },
+      el("button", { class: "btn primary", onclick: () => { readingState = { examId: exam.id, answers: {}, graded: false }; renderExam(); } }, iconEl("replay"), "Làm lại"));
+    if (wrong) acts.append(el("button", { class: "btn ghost", onclick: scrollToFirstWrong }, iconEl("eye"), el("span", { class: "btn-tx" }, "Tới câu sai đầu tiên")));
+    bar.append(acts);
+    if (hist.length > 1) {
+      const det = el("details", {}, el("summary", { class: "small" }, `Lịch sử (${hist.length} lần)`));
+      const ul = el("ul", { class: "trans-notes" });
+      hist.forEach((h) => ul.append(el("li", {}, `${new Date(h.at).toLocaleDateString("vi")} ${new Date(h.at).toLocaleTimeString("vi", { hour: "2-digit", minute: "2-digit" })} — ${h.score}/${h.total} · ${h.total ? Math.round(h.score / h.total * 100) : 0}%`)));
+      det.append(ul); bar.append(det);
+    }
+    root.append(bar);
   } else {
     root.append(el("div", { class: "submit-bar" },
       el("button", { class: "btn primary", onclick: () => gradeReading(exam) }, "Nộp bài & chấm")));
@@ -1368,6 +1405,12 @@ function gradeReading(exam) {
   window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 }
 
+function scrollToFirstWrong() {
+  const w = document.querySelector(".exam-reading .opt.wrong, .exam-reading .blank-sel.bad");
+  if (w) w.scrollIntoView({ behavior: "smooth", block: "center" });
+  else toast("Không tìm thấy câu sai.");
+}
+
 /* ---------- Phần Viết (缩写 — đọc rồi tóm tắt) ---------- */
 function countChars(s) { return [...String(s).replace(/\s/g, "")].length; }
 function fmtTime(sec) { const m = Math.floor(sec / 60), s = sec % 60; return `${m}:${String(s).padStart(2, "0")}`; }
@@ -1446,6 +1489,7 @@ async function examWriting(root) {
 let commView = { screen: "home" };
 let commTimer = null;            // đồng hồ Sprint
 let commRec = null;              // nhận diện giọng nói đang chạy
+let commKeyHandler = null;       // phím tắt của drill đang mở
 let commSel = { sceneIds: null };// null = tất cả cảnh
 let commPersonal = [];           // [{zh, pinyin?, vi?}] từ dán/thư viện
 let commPersonalLabel = "";
@@ -1453,7 +1497,13 @@ let commPersonalLabel = "";
 function clearCommState() {
   if (commTimer) { clearInterval(commTimer); commTimer = null; }
   if (commRec) { try { commRec.abort(); } catch {} commRec = null; }
+  commKeyHandler = null;
   stopSpeaking();
+}
+
+// phím tắt Giao tiếp (drill tự đăng ký commKeyHandler)
+export function handleCommKey(e) {
+  if (commKeyHandler) commKeyHandler(e);
 }
 
 export async function renderComm() {
@@ -1707,6 +1757,12 @@ function commDrillShadow(root, scenes) {
     controls.append(el("button", { class: "btn", onclick: () => { showAid = true; renderBody(); } }, iconEl("eye"), "Hiện"));
     controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp →"));
   }
+  commKeyHandler = (e) => {
+    if (e.code === "Space") { e.preventDefault(); speakCur(); }
+    else if (e.code === "ArrowRight") { e.preventDefault(); next(); }
+    else if (e.key === "e" || e.key === "E") { e.preventDefault(); showAid = true; renderBody(); }
+  };
+  root.append(el("p", { class: "muted small" }, "Phím tắt: Space = Nghe mẫu · → = Tiếp · E = Hiện"));
   renderBody(); speakCur(); paintControls();
 }
 
@@ -1724,11 +1780,14 @@ function commDrillSprint(root, scenes) {
   function showSetup() {
     clearCommState();
     panel.innerHTML = "";
-    panel.append(el("p", {}, "Đọc nghĩa tiếng Việt rồi bật ngay câu tiếng Trung. Mỗi câu bật được bấm “✓ Được”. Cố vượt kỷ lục của bạn!"));
+    panel.append(el("p", {}, "Đọc nghĩa tiếng Việt rồi bật ngay câu tiếng Trung. Mỗi câu bật được bấm “Được”. Cố vượt kỷ lục của bạn!"));
     const sel = el("div", { class: "row" });
     [30, 60, 90].forEach((d) => sel.append(el("button", { class: "btn" + (d === dur ? " primary" : ""), onclick: () => { dur = d; showSetup(); } }, d + "s")));
     panel.append(el("div", { class: "field" }, el("label", { class: "muted small" }, "Thời lượng"), sel));
+    const best = (store.getCommRecords().sprintBest || {})[dur] || 0;
+    panel.append(el("p", { class: "muted small" }, best ? `Kỷ lục ${dur}s: ${best} câu` : `Chưa có kỷ lục ${dur}s — lập ngay!`));
     panel.append(el("button", { class: "btn primary big", onclick: start }, iconEl("play"), "Bắt đầu"));
+    panel.append(el("p", { class: "muted small", style: "margin-top:8px" }, "Phím tắt: Space = Hiện · Enter = Được · Backspace = Bỏ qua"));
   }
   function start() {
     const queue = shuffle(bank.slice());
@@ -1758,18 +1817,25 @@ function commDrillSprint(root, scenes) {
       el("button", { class: "btn ghost", onclick: () => adv(false) }, "Bỏ qua"),
       el("button", { class: "btn primary", onclick: () => adv(true) }, iconEl("check"), "Được")));
     paint();
+    commKeyHandler = (e) => {
+      if (e.code === "Space") { e.preventDefault(); reveal(); }
+      else if (e.code === "Enter") { e.preventDefault(); adv(true); }
+      else if (e.code === "Backspace") { e.preventDefault(); adv(false); }
+    };
     commTimer = setInterval(() => {
       remain--; timerEl.textContent = fmtTime(Math.max(0, remain));
       if (remain <= 0) { clearCommState(); finish(score); }
     }, 1000);
   }
   function finish(score) {
+    const { best, isNew } = store.saveSprintBest(dur, score);
     panel.innerHTML = "";
     panel.append(el("div", { class: "comm-result" },
-      el("div", { class: "big" }, iconEl("timer")),
+      el("div", { class: "big" }, iconEl(isNew ? "check" : "timer")),
       el("h2", {}, `Bật được ${score} câu trong ${dur}s`),
+      el("p", { class: isNew ? "" : "muted" }, isNew ? "Kỷ lục mới!" : `Kỷ lục ${dur}s: ${best} câu`),
       el("div", { class: "row" },
-        el("button", { class: "btn primary", onclick: showSetup }, "Làm lại"),
+        el("button", { class: "btn primary", onclick: showSetup }, iconEl("replay"), "Làm lại"),
         el("button", { class: "btn", onclick: () => { commView = { screen: "home" }; renderComm(); } }, "Về Giao tiếp"))));
   }
   showSetup();

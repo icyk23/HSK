@@ -12,6 +12,7 @@ const KEYS = {
   wordSets: "hsk.wordSets",  // bộ từ tự lưu (tick chọn) — [{id,name,cardIds,createdAt}]
   tradSrs: "hsk.tradSrs",    // SRS thẻ phồn thể 简→繁, keyed theo chữ giản thể
   tradMeta: "hsk.tradMeta",  // tiến độ lộ trình Phồn thể: { rulesDone, quizBest:{score,total} }
+  commRecords: "hsk.commRecords", // kỷ lục Giao tiếp: { sprintBest:{ "30":n,"60":n,"90":n } }
 };
 
 export const DEFAULT_SETTINGS = {
@@ -96,6 +97,20 @@ export function resetProgress(deckId) {
   write(KEYS.progress, all);
 }
 
+/* ---------------- Giao tiếp: kỷ lục Sprint ---------------- */
+export function getCommRecords() {
+  return read(KEYS.commRecords, {});
+}
+// Cập nhật kỷ lục Sprint theo thời lượng; trả {best, isNew}.
+export function saveSprintBest(dur, score) {
+  const all = getCommRecords();
+  const sprintBest = { ...(all.sprintBest || {}) };
+  const prev = sprintBest[dur] || 0;
+  const isNew = score > prev;
+  if (isNew) { sprintBest[dur] = score; write(KEYS.commRecords, { ...all, sprintBest }); }
+  return { best: Math.max(prev, score), isNew };
+}
+
 /* ---------------- Phồn thể: SRS thẻ 简→繁 + tiến độ lộ trình ---------------- */
 export function getTradSrs() {
   return read(KEYS.tradSrs, {});
@@ -176,9 +191,12 @@ function patchExamProgress(examId, patch) {
   write(KEYS.examProgress, all);
   return all[examId];
 }
-// Lưu kết quả phần Đọc: { answers, score, total, at }
+// Lưu kết quả phần Đọc: { answers, score, total, at } + lịch sử các lần làm.
 export function saveReadingResult(examId, result) {
-  return patchExamProgress(examId, { reading: { ...result, at: new Date().toISOString() } });
+  const prev = read(KEYS.examProgress, {})[examId] || {};
+  const at = new Date().toISOString();
+  const history = [{ score: result.score, total: result.total, at }, ...(prev.readingHistory || [])].slice(0, 20);
+  return patchExamProgress(examId, { reading: { ...result, at }, readingHistory: history });
 }
 // Lưu bản nháp phần Viết: { title, text }
 export function saveWritingDraft(examId, draft) {

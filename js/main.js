@@ -99,6 +99,7 @@ function renderNav() {
 document.addEventListener("keydown", (e) => {
   if (currentView === "study") ui.handleStudyKey(e);
   else if (currentView === "tradSrs") ui.handleTradKey(e);
+  else if (currentView === "comm") ui.handleCommKey(e);
 });
 
 applyTheme();

@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] Đánh bóng thuần-browser (đợt 2): (1) GIAO TIẾP — Sprint lưu KỶ LỤC theo thời lượng
+    (store.commRecords, báo "Kỷ lục mới") + phím tắt Sprint (Space/Enter/Backspace) & Shadowing
+    (Space/→/E) qua commKeyHandler; (2) LUYỆN ĐỀ — kết quả Đọc thêm số câu sai + nút "Tới câu sai
+    đầu tiên" + LỊCH SỬ các lần làm (store readingHistory, điểm%/lần); (3) ONBOARDING — dashboard
+    hiện thẻ "3 bước bắt đầu" (Học thẻ · Nạp truyện · Phồn thể) lần đầu, ẩn được (settings.onboardDismissed).
 [x] Đánh bóng thuần-browser: trang Tiến độ thêm mục "Phồn thể 繁→简" (chữ đã học/đến hạn + chip
     bộ thủ/kỷ lục quiz) và "Dịch thuật theo truyện" (tiến độ từng truyện); thẻ SRS Phồn thể có
     phím tắt (Space hiện đáp án, 1-4 chấm) như Học thẻ; lượt chấm SRS tính vào lượt ôn/chuỗi ngày.
