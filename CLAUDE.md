@@ -142,6 +142,8 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
     lời chào + CTA + chuỗi ngày, số liệu nhanh, ô Vào nhanh 6 module; mặc định mở "home"); (4)
     HIỆU ỨNG: lật thẻ 3D (flip3d khi reveal), đếm số tăng dần (countUp), nền lưới + glow, ngoặc góc
     HUD, vạch accent, micro-animation (fadeUp/pop/shimmer/hover). Bộ icon mở rộng (js/icons.js).
+    Logo "学" angular (cắt góc) + glow. Đồng bộ màn phụ: thay emoji tiêu đề Luyện đề bằng icon SVG
+    (mic/sách/bàn phím/upload/download), style input[type=file] (nút angular đỏ) toàn app.
 [x] Lột xác giao diện "ngầu" (esports/T1): theme TỐI mặc định (đen/đỏ neon mono đỏ-trắng),
     góc cắt chéo angular + glow theo hình cắt, chữ đậm/nhãn IN HOA. Bộ ICON SVG line
     (js/icons.js) thay emoji ở nav tầng 1, thẻ Giao tiếp, nút loa/Bỏ qua/Đã thuộc; bỏ emoji

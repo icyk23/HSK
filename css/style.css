@@ -134,12 +134,13 @@ body {
 .brand-zh {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 0;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   background: var(--accent);
   color: #fff;
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 700;
 }
 
@@ -554,7 +555,8 @@ button.btn.big { padding: 12px 22px; font-size: 16px; margin-top: 10px; }
 
 /* Header / thương hiệu */
 .app-header { box-shadow: 0 1px 0 var(--border); }
-.brand-zh { background: linear-gradient(135deg, var(--primary), var(--primary-strong)); box-shadow: 0 4px 12px var(--primary-shadow); }
+.brand-zh { background: linear-gradient(135deg, var(--primary), var(--primary-strong)); box-shadow: 0 4px 12px var(--primary-shadow); position: relative; }
+[data-theme="dark"] .brand-zh { box-shadow: 0 0 18px rgba(255,58,71,.5), inset 0 0 0 1px rgba(255,255,255,.18); }
 
 /* Tabs */
 .tab:hover { background: var(--surface-2); color: var(--text); }
@@ -997,3 +999,20 @@ button.btn:hover { transform: translateY(-1px); }
   from { transform: perspective(1200px) rotateY(-88deg); opacity: .15; }
   to   { transform: perspective(1200px) rotateY(0); opacity: 1; }
 }
+
+/* ===== Đồng bộ màn phụ: input file + icon tiêu đề ===== */
+input[type="file"] { font: inherit; color: var(--text-muted); max-width: 100%; }
+input[type="file"]::file-selector-button {
+  font-family: var(--font-display); font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+  border: 1px solid var(--primary-line); background: var(--primary-tint); color: var(--primary);
+  padding: 8px 14px; margin-right: 10px; cursor: pointer; border-radius: 0;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  transition: filter .15s, box-shadow .15s;
+}
+input[type="file"]::file-selector-button:hover { filter: brightness(1.08); }
+[data-theme="dark"] input[type="file"]::file-selector-button:hover { box-shadow: 0 0 12px rgba(255,58,71,.35); }
+
+/* icon dòng tiêu đề/summary/nút khớp nav */
+summary .ic, .exam-head h3 .ic { color: var(--primary); margin-right: 5px; }
+summary .ic svg, .exam-head h3 .ic svg { width: 17px; height: 17px; vertical-align: -3px; }
+.btn .ic svg { width: 16px; height: 16px; vertical-align: -3px; }
