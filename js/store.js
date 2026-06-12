@@ -13,7 +13,7 @@ const KEYS = {
 };
 
 export const DEFAULT_SETTINGS = {
-  theme: "light",            // light | dark
+  theme: "dark",             // light | dark — mặc định tối "ngầu"
   accent: "#c0392b",
   hanziScale: 1,             // 0.8 .. 1.6
   fontBase: 16,
