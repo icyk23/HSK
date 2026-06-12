@@ -145,6 +145,9 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] Đánh bóng thuần-browser: trang Tiến độ thêm mục "Phồn thể 繁→简" (chữ đã học/đến hạn + chip
+    bộ thủ/kỷ lục quiz) và "Dịch thuật theo truyện" (tiến độ từng truyện); thẻ SRS Phồn thể có
+    phím tắt (Space hiện đáp án, 1-4 chấm) như Học thẻ; lượt chấm SRS tính vào lượt ôn/chuỗi ngày.
 [x] Nâng cấp "thiết kế" (4 lớp): (1) NHÚNG FONT Saira Condensed offline (fonts/, có subset
     tiếng Việt) cho chữ display + font-mono cho số; (2) BỐ CỤC SIDEBAR PC (nav dọc trái cố định,
     menu con nhóm theo module; mobile giữ top-bar); (3) TRANG CHỦ DASHBOARD (js renderHome: hero

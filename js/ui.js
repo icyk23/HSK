@@ -691,6 +691,36 @@ export async function renderStats() {
       root.append(wrap);
     }
   }
+
+  // Tiến độ các module khác (Phồn thể · Dịch thuật) — thuần browser
+  const tpairs = await tradPairs();
+  if (tpairs.length) {
+    const tsrs = store.getTradSrs();
+    const tmeta = store.getTradMeta();
+    const tLearned = tpairs.filter((p) => tsrs[p.simp]?.reps > 0).length;
+    const tDue = tpairs.filter((p) => { const st = tsrs[p.simp]; return st && !srs.isNew(st) && srs.isDue(st); }).length;
+    root.append(el("h2", { class: "view-title", style: "margin-top:24px;font-size:17px" }, "Phồn thể 繁→简"));
+    const box = el("div", { class: "panel stack" });
+    box.append(progressRow("Chữ đã học", tLearned, tpairs.length));
+    box.append(el("div", { class: "row" },
+      el("span", { class: "chip" }, `Đến hạn ôn: ${tDue}`),
+      el("span", { class: "chip" + (tmeta.rulesDone ? " st known" : "") }, tmeta.rulesDone ? "Bộ thủ: đã nắm" : "Bộ thủ: chưa nắm"),
+      tmeta.quizBest ? el("span", { class: "chip" }, `Kỷ lục quiz: ${tmeta.quizBest.score}/${tmeta.quizBest.total}`) : null));
+    root.append(box);
+  }
+
+  await ensureMaterials();
+  const stories = materialList.map((m) => ({ m, chunks: storyChunks(m) })).filter((x) => x.chunks.length);
+  if (stories.length) {
+    root.append(el("h2", { class: "view-title", style: "margin-top:24px;font-size:17px" }, "Dịch thuật theo truyện"));
+    const box = el("div", { class: "panel stack" });
+    for (const { m, chunks } of stories) {
+      const tot = chunks.reduce((a, c) => a + c.total, 0);
+      const dn = chunks.reduce((a, c) => a + c.done, 0);
+      box.append(progressRow(m.title || "(không tên)", dn, tot));
+    }
+    root.append(box);
+  }
 }
 
 /* ---------------- TRANG CHỦ (dashboard) ---------------- */
@@ -2488,6 +2518,18 @@ export async function renderTradSrs() {
 }
 
 function revealTrad() { tradSrsSession.revealed = true; tradSrsSession.flip = true; renderTradSrs(); }
+
+// keyboard cho ② Thẻ nhớ: Space hiện đáp án, 1-4 chấm
+export function handleTradKey(e) {
+  const sess = tradSrsSession;
+  if (!sess || sess.idx >= sess.queue.length) return;
+  if (e.code === "Space") { e.preventDefault(); if (!sess.revealed) revealTrad(); return; }
+  if (sess.revealed && ["1", "2", "3", "4"].includes(e.key)) {
+    e.preventDefault();
+    const map = { "1": ".again", "2": ".hard", "3": ".good", "4": ".easy" };
+    document.querySelector(`.grade-row .grade${map[e.key]}`)?.click();
+  }
+}
 function gradeTrad(p, g) {
   const cur = store.getTradState(p.simp) || srs.freshState("trad");
   store.saveTradState(p.simp, srs.schedule(cur, g));
