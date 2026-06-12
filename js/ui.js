@@ -1793,8 +1793,9 @@ function commDrillPattern(root, scenes) {
    DỊCH THUẬT (Trung↔Việt + Qwen3 chấm) — store.translations
    ============================================================ */
 let transView = { screen: "home" };
+let transMode = "stories";        // "stories" (thư mục truyện) | "free" (luyện tự do)
 let transDraft = newTransDraft();
-let transMaterialId = "";
+let transTask = null;             // { materialId, dir, key, label, idxs:[...], pos }
 function newTransDraft(dir = "zh2vi") {
   return { id: null, dir, source: "", sourcePinyin: "", user: "", ref: "", refPinyin: "", grade: null, createdAt: null };
 }
@@ -1804,22 +1805,23 @@ export async function renderTrans() {
   await ensureMaterials();
   const root = clear();
   if (transView.screen === "saved") return transSaved(root);
+  if (transView.screen === "story") return transStory(root);
+  if (transView.screen === "task") return transTaskRunner(root);
   return transHome(root);
 }
 
-// Nạp câu CHƯA dịch tiếp theo của tài liệu đang chọn vào ô nguồn.
-function loadNextFromMaterial() {
-  const m = materialList.find((x) => x.id === transMaterialId);
-  if (!m) return;
-  const key = m.lang === "zh" ? "zh" : "vi";
-  const dir = m.lang === "zh" ? "zh2vi" : "vi2zh";
-  const saved = new Set(store.getTranslations().map((t) => t.source));
-  const sents = (m.sentences || []).filter((s) => !s.chapter && (s[key] || "").trim()).map((s) => s[key]);
-  const next = sents.find((src) => !saved.has(src) && src !== transDraft.source) ?? sents.find((src) => !saved.has(src));
-  if (!next) { toast("Đã dịch hết tài liệu này "); return; }
-  transDraft = newTransDraft(dir);
-  transDraft.source = next;
-  renderTrans();
+// Mở task runner cho 1 khúc của tài liệu.
+function openTransTask(materialId, chunk) {
+  transTask = { materialId, dir: chunk.dir, key: chunk.key, label: chunk.label, idxs: chunk.idxs.slice(), pos: 0 };
+  // nhảy tới câu CHƯA dịch đầu tiên trong khúc
+  const m = materialList.find((x) => x.id === materialId);
+  if (m) {
+    const saved = new Set(store.getTranslations().map((t) => t.source));
+    const undone = transTask.idxs.findIndex((id) => !saved.has((m.sentences[id] || {})[chunk.key]));
+    transTask.pos = undone >= 0 ? undone : 0;
+  }
+  transView = { screen: "task" };
+  navigate("trans");
 }
 
 // Lấy 1 câu mẫu (ví dụ trong thẻ) làm văn bản nguồn + bản tham khảo.
@@ -1834,29 +1836,161 @@ async function randomExample(dir) {
 }
 
 async function transHome(root) {
-  const s = store.getSettings();
-  const backend = await comm.pingBackend();
   root.append(el("h1", { class: "view-title" }, "Dịch thuật"));
 
+  const modeRow = el("div", { class: "comm-chips" });
+  modeRow.append(commChip("Theo truyện", transMode === "stories", () => { transMode = "stories"; renderTrans(); }));
+  modeRow.append(commChip("Luyện tự do", transMode === "free", () => { transMode = "free"; renderTrans(); }));
+  root.append(modeRow);
+
+  root.append(el("div", { class: "row", style: "justify-content:flex-end;margin-top:-4px" },
+    el("button", { class: "btn ghost small", onclick: () => { transView = { screen: "saved" }; renderTrans(); } }, iconEl("book"), el("span", { class: "btn-tx" }, `Bài đã dịch (${store.getTranslations().length})`))));
+
+  if (transMode === "stories") return transStoriesList(root);
+  return transFreeWorkspace(root);
+}
+
+// ----- Chế độ "Theo truyện": thư mục tài liệu có thể dịch -----
+function transStoriesList(root) {
+  const stories = materialList.map((m) => ({ m, chunks: storyChunks(m) })).filter((x) => x.chunks.length);
+  if (!stories.length) {
+    root.append(emptyState("Chưa có truyện để dịch", "Vào Nạp tài liệu, dán truyện / phụ đề tiếng Trung (hoặc Việt) để tạo thư mục dịch theo chương."));
+    return;
+  }
+  const list = el("div", { class: "story-list" });
+  for (const { m, chunks } of stories) {
+    const total = chunks.reduce((s, c) => s + c.total, 0);
+    const done = chunks.reduce((s, c) => s + c.done, 0);
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    list.append(el("button", { class: "story-card", onclick: () => { transView = { screen: "story", materialId: m.id }; renderTrans(); } },
+      el("div", { class: "row spread" },
+        el("span", { class: "story-title" }, m.title || "(không tên)"),
+        el("span", { class: "chip" + (done >= total ? " st known" : "") }, m.lang === "zh" ? "中→Việt" : "Việt→中")),
+      el("div", { class: "story-meta muted small" }, `${chunks.length} khúc · ${total} câu · ${done}/${total} đã dịch`),
+      el("div", { class: "story-prog" }, el("span", { style: `width:${pct}%` })),
+    ));
+  }
+  root.append(list);
+}
+
+// ----- Chi tiết truyện: danh sách khúc (chương → phần) + tiến độ -----
+function transStory(root) {
+  const m = materialList.find((x) => x.id === transView.materialId);
+  if (!m) { transView = { screen: "home" }; return transHome(root); }
+  const chunks = storyChunks(m);
+  const total = chunks.reduce((s, c) => s + c.total, 0);
+  const done = chunks.reduce((s, c) => s + c.done, 0);
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  root.append(el("div", { class: "exam-topbar" },
+    el("button", { class: "btn ghost", onclick: () => { transView = { screen: "home" }; renderTrans(); } }, "← Thư mục truyện"),
+    el("span", { class: "muted" }, `${done}/${total} câu`)));
+  root.append(el("h1", { class: "view-title" }, m.title || "(không tên)"));
+  root.append(el("div", { class: "story-prog big" }, el("span", { style: `width:${pct}%` })));
+
+  const wrap = el("div", { class: "stack", style: "margin-top:14px" });
+  chunks.forEach((c, i) => {
+    const full = c.done >= c.total;
+    wrap.append(el("div", { class: "lesson-task" },
+      el("div", { class: "row spread" },
+        el("span", {}, `Khúc ${i + 1}${c.label && c.label !== "Cả bài" ? " · " + c.label : ""}`),
+        el("span", { class: "chip" + (full ? " st known" : "") }, `${c.done}/${c.total}`)),
+      el("div", { class: "row" },
+        el("button", { class: "btn small primary", onclick: () => openTransTask(m.id, c) }, full ? "Ôn lại" : (c.done ? "Tiếp tục" : "Bắt đầu")))));
+  });
+  root.append(wrap);
+}
+
+// ----- Task runner: dịch từng câu trong 1 khúc, có tiến độ + tự sang câu kế -----
+async function transTaskRunner(root) {
+  const s = store.getSettings();
+  const backend = await comm.pingBackend();
+  const m = materialList.find((x) => x.id === transTask.materialId);
+  if (!m || !transTask.idxs.length) { transView = { screen: "home" }; return transHome(root); }
+  const { key, dir, idxs } = transTask;
+  const srcIsZh = dir === "zh2vi";
+  const saved = new Set(store.getTranslations().map((t) => t.source));
+  const doneCount = idxs.filter((id) => saved.has((m.sentences[id] || {})[key])).length;
+
+  transTask.pos = Math.max(0, Math.min(transTask.pos, idxs.length - 1));
+  const sent = m.sentences[idxs[transTask.pos]] || {};
+  const source = sent[key] || "";
+  // đồng bộ draft với câu hiện tại (nếu đổi câu)
+  if (transDraft.source !== source) {
+    const existing = store.getTranslations().find((t) => t.source === source);
+    transDraft = newTransDraft(dir);
+    transDraft.source = source;
+    if (srcIsZh && sent.pinyin) transDraft.sourcePinyin = sent.pinyin;
+    if (existing) { transDraft.id = existing.id; transDraft.user = existing.user || ""; transDraft.grade = existing.grade || null; transDraft.createdAt = existing.createdAt; }
+  }
+
+  root.append(el("div", { class: "exam-topbar" },
+    el("button", { class: "btn ghost", onclick: () => { transView = { screen: "story", materialId: m.id }; transDraft = newTransDraft(dir); renderTrans(); } }, "← " + (m.title || "Truyện")),
+    el("span", { class: "muted" }, `Khúc: ${transTask.label && transTask.label !== "Cả bài" ? transTask.label : "cả bài"} · ${doneCount}/${idxs.length}`)));
+
+  const pct = idxs.length ? Math.round((doneCount / idxs.length) * 100) : 0;
+  root.append(el("div", { class: "story-prog" }, el("span", { style: `width:${pct}%` })));
+
+  // điều hướng câu
+  const nav = el("div", { class: "row spread", style: "margin-top:10px" },
+    el("button", { class: "btn ghost small", disabled: transTask.pos === 0, onclick: () => { transTask.pos--; transDraft = newTransDraft(dir); renderTrans(); } }, "‹ Câu trước"),
+    el("span", { class: "muted small" }, `Câu ${transTask.pos + 1}/${idxs.length}` + (saved.has(source) ? " · đã dịch" : "")),
+    el("button", { class: "btn ghost small", disabled: transTask.pos >= idxs.length - 1, onclick: () => { transTask.pos++; transDraft = newTransDraft(dir); renderTrans(); } }, "Câu sau ›"));
+  root.append(nav);
+
+  // nguồn
+  const srcBtns = el("div", { class: "row" });
+  if (srcIsZh) srcBtns.append(el("button", { class: "btn", onclick: () => source && speak(source, { rate: s.speechRate }) }, iconEl("speaker"), "Nghe"));
+  root.append(el("div", { class: "panel stack" },
+    el("b", {}, srcIsZh ? "Nguồn · 中文" : "Nguồn · Tiếng Việt"),
+    transDraft.sourcePinyin && el("div", { class: "pinyin", style: "text-align:left" }, transDraft.sourcePinyin),
+    el("div", { class: srcIsZh ? "hanzi-line" : "meaning", style: "text-align:left;font-size:18px" }, source),
+    srcBtns.childNodes.length ? srcBtns : null));
+
+  // bản dịch người dùng
+  const userTa = el("textarea", { rows: "3", placeholder: srcIsZh ? "Bản dịch tiếng Việt của bạn…" : "你的中文翻译…" });
+  userTa.value = transDraft.user;
+  userTa.addEventListener("input", () => { transDraft.user = userTa.value; });
+  root.append(el("div", { class: "panel stack" }, el("b", {}, "Bản dịch của bạn"), el("div", { class: "field" }, userTa)));
+
+  // hành động: Lưu & câu kế / chấm Qwen3
+  const saveNext = () => {
+    const rec = saveTransDraft(true);
+    if (!rec) { toast("Chưa có gì để lưu."); return; }
+    toast("Đã lưu.");
+    const after = new Set(store.getTranslations().map((t) => t.source));
+    const nextUndone = idxs.findIndex((id, n) => n > transTask.pos && !after.has((m.sentences[id] || {})[key]));
+    const anyUndone = idxs.findIndex((id) => !after.has((m.sentences[id] || {})[key]));
+    if (nextUndone >= 0) transTask.pos = nextUndone;
+    else if (anyUndone >= 0) transTask.pos = anyUndone;
+    else { toast("Đã dịch xong cả khúc!"); transView = { screen: "story", materialId: m.id }; transDraft = newTransDraft(dir); return renderTrans(); }
+    transDraft = newTransDraft(dir);
+    renderTrans();
+  };
+  const actions = el("div", { class: "row", style: "margin-top:4px" });
+  actions.append(el("button", { class: "btn primary", onclick: saveNext }, iconEl("save"), el("span", { class: "btn-tx" }, "Lưu & câu kế")));
+  if (backend) actions.append(el("button", { class: "btn", onclick: gradeTransDraft }, iconEl("ai"), "Chấm & sửa (Qwen3)"));
+  root.append(actions);
+
+  if (transDraft.grade) root.append(transGradeBox(transDraft.grade, srcIsZh));
+  if (!backend) root.append(el("p", { class: "muted small", style: "margin-top:10px" }, "Dịch xong bấm Lưu để tự sang câu kế. Bật Qwen3 (Cài đặt) để được chấm điểm + sửa lỗi."));
+}
+
+// ----- Chế độ "Luyện tự do": workspace phẳng (dán / câu mẫu) -----
+function transFreeWorkspace(root) {
+  const s = store.getSettings();
   const dirRow = el("div", { class: "comm-chips" });
   const setDir = (d) => { if (transDraft.dir !== d) transDraft = newTransDraft(d); renderTrans(); };
   dirRow.append(commChip("中文 → Tiếng Việt", transDraft.dir === "zh2vi", () => setDir("zh2vi")));
   dirRow.append(commChip("Tiếng Việt → 中文", transDraft.dir === "vi2zh", () => setDir("vi2zh")));
   root.append(dirRow);
 
-  if (materialList.length) {
-    const matSel = el("select", { class: "chunk-mode" },
-      el("option", { value: "" }, "— Chọn tài liệu —"),
-      ...materialList.map((m) => el("option", { value: m.id, selected: transMaterialId === m.id }, `${m.title}`)));
-    matSel.addEventListener("change", () => { transMaterialId = matSel.value; if (transMaterialId) loadNextFromMaterial(); });
-    const nextBtn = el("button", { class: "btn", onclick: () => transMaterialId ? loadNextFromMaterial() : toast("Chọn tài liệu trước.") }, "↻ Câu chưa dịch tiếp theo");
-    root.append(el("div", { class: "panel stack" },
-      el("b", {}, "Dịch từ tài liệu đã nạp"),
-      el("div", { class: "row" }, matSel, nextBtn),
-      el("p", { class: "muted small" }, "Nạp câu chưa dịch của tài liệu vào ô nguồn; dịch xong bấm Lưu rồi lấy câu tiếp.")));
-  }
-
   const srcIsZh = transDraft.dir === "zh2vi";
+  return transWorkspaceBody(root, s, srcIsZh);
+}
+
+async function transWorkspaceBody(root, s, srcIsZh) {
+  const backend = await comm.pingBackend();
 
   const srcTa = el("textarea", { rows: "3", placeholder: srcIsZh ? "Văn bản tiếng Trung cần dịch…" : "Văn bản tiếng Việt cần dịch…" });
   srcTa.value = transDraft.source;
@@ -1891,7 +2025,6 @@ async function transHome(root) {
   if (backend) actions.append(el("button", { class: "btn primary", onclick: gradeTransDraft }, iconEl("ai"), "Chấm & sửa (Qwen3)"));
   else actions.append(el("button", { class: "btn", onclick: () => toast("Bật backend Qwen3 trong Cài đặt để chấm tự động.") }, iconEl("ai"), "Chấm (cần Qwen3)"));
   actions.append(el("button", { class: "btn ghost", onclick: () => { transDraft = newTransDraft(transDraft.dir); renderTrans(); } }, iconEl("reset"), "Mới"));
-  actions.append(el("button", { class: "btn ghost", onclick: () => { transView = { screen: "saved" }; renderTrans(); } }, iconEl("book"), el("span", { class: "btn-tx" }, `Bài đã dịch (${store.getTranslations().length})`)));
   root.append(actions);
 
   if (transDraft.grade) root.append(transGradeBox(transDraft.grade, srcIsZh));
@@ -2133,14 +2266,14 @@ function chunkIdxs(idxs, sentences, cfg, key) {
   return out;
 }
 
-// Task Dịch: chia theo chương (nếu có) → theo khúc (số phần / số câu / số chữ).
-function translateTasks(lesson) {
+// Chia 1 tài liệu thành các "khúc" dịch (chương → phần) + tiến độ. Dùng chung Nạp & Dịch thuật.
+function storyChunks(lesson) {
   const key = lesson.lang === "zh" ? "zh" : "vi";
   const dir = lesson.lang === "zh" ? "zh2vi" : "vi2zh";
   const cfg = lesson.transChunk || { mode: "parts", value: 3 };
   const chapters = lesson.chapters && lesson.chapters.length ? lesson.chapters : [{ title: null, start: 0, end: lesson.sentences.length }];
   const saved = new Set(store.getTranslations().map((t) => t.source));
-  const tasks = [];
+  const out = [];
   for (const ch of chapters) {
     const idxs = [];
     for (let i = ch.start; i < ch.end; i++) { const s = lesson.sentences[i]; if (s && !s.chapter && (s[key] || "").trim()) idxs.push(i); }
@@ -2150,11 +2283,18 @@ function translateTasks(lesson) {
       const done = p.filter((id) => saved.has(lesson.sentences[id][key])).length;
       const chapLbl = ch.title || (chapters.length > 1 ? "Mở đầu" : "");
       const partLbl = parts.length > 1 ? `${chapLbl ? " · " : ""}phần ${pi + 1}/${parts.length}` : "";
-      tasks.push({ label: `Dịch ${chapLbl}${partLbl} (${p.length} câu)`.replace(/\s+/g, " "), total: p.length, done,
-        start: () => { const next = p.find((id) => !saved.has(lesson.sentences[id][key])) ?? p[0]; transDraft = newTransDraft(dir); transDraft.source = lesson.sentences[next][key] || ""; transView = { screen: "home" }; navigate("trans"); } });
+      out.push({ key, dir, idxs: p, total: p.length, done, label: (`${chapLbl}${partLbl}`).replace(/\s+/g, " ").trim() || "Cả bài" });
     });
   }
-  return tasks;
+  return out;
+}
+
+// Task Dịch ở màn Nạp: mở thẳng task runner trong Dịch thuật.
+function translateTasks(lesson) {
+  return storyChunks(lesson).map((c) => ({
+    label: `Dịch ${c.label} (${c.total} câu)`, total: c.total, done: c.done,
+    start: () => openTransTask(lesson.id, c),
+  }));
 }
 
 function taskRow(lesson, t) {

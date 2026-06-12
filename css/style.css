@@ -1021,3 +1021,19 @@ summary .ic svg, .exam-head h3 .ic svg { width: 17px; height: 17px; vertical-ali
 .big .ic svg { width: 48px; height: 48px; color: var(--primary); vertical-align: middle; }
 .empty .big .ic svg { color: var(--text-muted); opacity: .55; }
 .hskk-big .ic svg { width: 42px; height: 42px; color: var(--primary); }
+
+/* ===================== DỊCH THUẬT — thư mục truyện ===================== */
+.story-list { display: grid; gap: 10px; }
+.story-card {
+  display: grid; gap: 7px; text-align: left; cursor: pointer; width: 100%;
+  padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow);
+  transition: transform .14s, border-color .14s, box-shadow .14s;
+}
+.story-card:hover { transform: translateY(-2px); border-color: var(--primary-line); box-shadow: var(--shadow-hover); }
+[data-theme="dark"] .story-card { background: linear-gradient(180deg, #16181f, #121319); border-color: #242a36; }
+.story-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+.story-prog { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.story-prog > span { display: block; height: 100%; background: var(--primary); border-radius: 3px; transition: width .4s ease; }
+.story-prog.big { height: 9px; border-radius: 4px; margin-top: 8px; }
+[data-theme="dark"] .story-prog > span { box-shadow: 0 0 10px rgba(255, 58, 71, .5); }
