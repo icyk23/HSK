@@ -23,9 +23,10 @@
   --accent-soft: var(--primary-tint);
 
   /* Bo góc & đổ bóng */
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --cut: 9px;                    /* độ cắt góc chéo (angular) */
   --radius: var(--r-md);
   --shadow: 0 1px 2px rgba(28, 25, 23, .05), 0 8px 24px rgba(28, 25, 23, .06);
   --shadow-hover: 0 10px 24px rgba(28, 25, 23, .13);
@@ -46,21 +47,21 @@
   --text-muted: #8b93a4;
   --border: #262b37;
 
-  --primary: #ff414d;            /* đỏ neon */
-  --primary-strong: #e51f2b;
-  --primary-tint: rgba(255, 65, 77, .14);
-  --primary-line: rgba(255, 65, 77, .45);
-  --secondary: #36e0ff;          /* cyan điện cho sắc phụ */
-  --secondary-tint: rgba(54, 224, 255, .14);
+  --primary: #ff3a47;            /* đỏ neon, gắt hơn */
+  --primary-strong: #e10e1d;
+  --primary-tint: rgba(255, 58, 71, .16);
+  --primary-line: rgba(255, 58, 71, .55);
+  --secondary: #cdd3df;          /* trắng xám (mono đỏ/trắng — bỏ cyan) */
+  --secondary-tint: rgba(255, 255, 255, .07);
 
   --ok: #2fe08a;
   --warn: #ffb02e;
   --bad: #ff4d4d;
 
-  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 12px 32px rgba(0, 0, 0, .55);
-  --shadow-hover: 0 14px 34px rgba(0, 0, 0, .65);
-  --primary-shadow: rgba(255, 40, 60, .45);
-  --glow: 0 0 22px rgba(255, 65, 77, .45);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .6), 0 14px 36px rgba(0, 0, 0, .62);
+  --shadow-hover: 0 16px 40px rgba(0, 0, 0, .72);
+  --primary-shadow: rgba(255, 30, 45, .55);
+  --glow: 0 0 26px rgba(255, 58, 71, .55);
 }
 
 * { box-sizing: border-box; }
@@ -685,3 +686,48 @@ button.btn.ghost:hover { background: var(--surface-2); border-color: var(--borde
 
 /* Toast */
 [data-theme="dark"] .toast { background: #1c1f27; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.6), var(--glow); }
+
+/* ===================== GẮT LAYER (angular + tương phản cao) ===================== */
+/* Cắt góc chéo kiểu esports cho các phần "hero" */
+.cut, button.btn.primary, .brand-zh, .comm-drill-ic, .tabs.tier1 .tab.active {
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  border-radius: 0;
+}
+/* nền tối hơn + glow đỏ mạnh hơn */
+[data-theme="dark"] body {
+  background:
+    radial-gradient(1100px 540px at 50% -150px, rgba(255,58,71,.13), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+[data-theme="dark"] .view-title,
+[data-theme="dark"] .flashcard .hanzi,
+[data-theme="dark"] .hanzi-line.big { color: #fff; }
+
+/* glow theo hình cắt (drop-shadow ôm đúng góc chéo) */
+[data-theme="dark"] button.btn.primary {
+  background: linear-gradient(180deg, #ff4a54, var(--primary-strong));
+  box-shadow: none; filter: drop-shadow(0 6px 18px var(--primary-shadow));
+}
+[data-theme="dark"] button.btn.primary:hover { filter: drop-shadow(0 6px 22px var(--primary-shadow)) brightness(1.08); }
+[data-theme="dark"] .tabs.tier1 .tab.active { box-shadow: none; filter: drop-shadow(0 0 12px rgba(255,58,71,.65)); }
+[data-theme="dark"] .brand-zh { box-shadow: none; filter: drop-shadow(0 0 14px rgba(255,58,71,.6)); }
+
+/* viền sắc + nét hơn (gắt) */
+[data-theme="dark"] .panel,
+[data-theme="dark"] .flashcard,
+[data-theme="dark"] .comm-drill,
+[data-theme="dark"] .stat-box,
+[data-theme="dark"] .folder { border-color: #2c3343; }
+[data-theme="dark"] .comm-drill:hover {
+  border-color: var(--primary); box-shadow: var(--shadow-hover);
+  filter: drop-shadow(0 0 10px rgba(255,58,71,.35));
+}
+[data-theme="dark"] .comm-drill-ic { box-shadow: none; filter: drop-shadow(0 0 10px rgba(255,58,71,.4)); }
+
+/* badge & pinyin theo mono đỏ/trắng */
+.comm-drill-title .chip { background: var(--secondary-tint); color: var(--secondary); }
+[data-theme="dark"] .vocab-item .vpy { color: var(--secondary); }
+
+/* nhãn micro IN HOA nét hơn */
+.label-tag, .stat-box .lbl { text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
