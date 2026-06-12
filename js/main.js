@@ -5,6 +5,7 @@ import * as ui from "./ui.js";
 import { icon } from "./icons.js";
 
 const VIEWS = {
+  home: ui.renderHome,
   study: ui.renderStudy,
   vocab: ui.renderVocab,
   wordsets: ui.renderWordsets,
@@ -25,6 +26,7 @@ const VIEWS = {
 // Nav 2 tầng: tầng 1 = module, tầng 2 = tab con (đổi theo module đang chọn).
 // Module 1 tab con → ẩn tầng 2.
 const NAV = [
+  { id: "home", label: "Trang chủ", icon: "home", tabs: [{ view: "home", label: "Trang chủ" }] },
   { id: "vocab", label: "Từ vựng", icon: "cards", tabs: [
     { view: "study", label: "Học thẻ" },
     { view: "vocab", label: "Thư mục" },
@@ -95,7 +97,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 applyTheme();
-go("study");
+go("home");
 
 // PWA service worker (ignored when opened via file://)
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

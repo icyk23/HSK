@@ -682,6 +682,72 @@ export async function renderStats() {
   }
 }
 
+/* ---------------- TRANG CHỦ (dashboard) ---------------- */
+export async function renderHome() {
+  const root = clear();
+  const s = store.getSettings();
+  const deck = await getDeck(s.activeDeckId);
+  const progress = store.getProgress();
+  const stats = store.getStats();
+
+  let learned = 0, due = 0, total = deck ? deck.cards.length : 0;
+  if (deck) for (const c of deck.cards) {
+    const st = progress[c.id];
+    if (st && st.reps > 0) learned += 1;
+    if (srs.isDue(st) && !srs.isNew(st)) due += 1;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const todayStat = stats[today] || { reviews: 0, correct: 0 };
+  const streak = computeStreak(stats);
+  const hour = new Date().getHours();
+  const greet = hour < 11 ? "Chào buổi sáng" : hour < 14 ? "Chào buổi trưa" : hour < 18 ? "Chào buổi chiều" : "Chào buổi tối";
+
+  // Hero: lời chào + CTA tiếp tục học
+  const hero = el("div", { class: "home-hero" },
+    el("div", { class: "home-hero-main" },
+      el("div", { class: "home-kicker" }, greet.toUpperCase()),
+      el("h1", { class: "home-title" }, due > 0 ? `Bạn có ${due} thẻ đến hạn ôn` : learned > 0 ? "Tiếp tục chinh phục tiếng Trung" : "Bắt đầu hành trình tiếng Trung"),
+      el("p", { class: "home-sub muted" }, due > 0 ? "Ôn ngay để giữ chuỗi ngày và nhớ lâu hơn." : "Mỗi ngày vài thẻ — tiến bộ đều đặn."),
+      el("div", { class: "row" },
+        el("button", { class: "btn primary big", onclick: () => navigate("study") }, iconEl("play"), el("span", { class: "btn-tx" }, due > 0 ? "Ôn ngay" : "Bắt đầu học")),
+        el("button", { class: "btn", onclick: () => navigate("quiz") }, iconEl("exam"), el("span", { class: "btn-tx" }, "Kiểm tra nhanh"))),
+    ),
+    el("div", { class: "home-streak" },
+      el("div", { class: "home-streak-num" }, String(streak)),
+      el("div", { class: "home-streak-lbl" }, "NGÀY LIÊN TỤC")),
+  );
+  root.append(hero);
+
+  // Số liệu nhanh
+  root.append(el("div", { class: "stat-grid", style: "margin-top:18px" },
+    statBox(learned, "Đã học"),
+    statBox(due, "Đến hạn ôn"),
+    statBox(todayStat.reviews, "Lượt ôn hôm nay"),
+    statBox(`${learned}/${total}`, "Tiến độ bộ thẻ"),
+  ));
+
+  // Vào nhanh các module
+  root.append(el("h2", { class: "view-title", style: "margin-top:26px" }, "Vào nhanh"));
+  const tiles = el("div", { class: "home-tiles" });
+  const TILES = [
+    ["cards", "Từ vựng", "Flashcard · SRS · Quiz", "study"],
+    ["exam", "Luyện đề", "HSK6 · HSKK 高级", "exam"],
+    ["comm", "Giao tiếp", "Phản xạ · Phát âm", "comm"],
+    ["trans", "Dịch thuật", "Trung ↔ Việt", "trans"],
+    ["trad", "Phồn thể", "简 → 繁", "tradLessons"],
+    ["ingest", "Nạp tài liệu", "Truyện · phụ đề · văn bản", "ingest"],
+  ];
+  for (const [ic, name, desc, view] of TILES) {
+    tiles.append(el("button", { class: "home-tile", onclick: () => navigate(view) },
+      el("span", { class: "home-tile-ic" }, iconEl(ic)),
+      el("span", { class: "home-tile-body" },
+        el("span", { class: "home-tile-name" }, name),
+        el("span", { class: "home-tile-desc muted" }, desc)),
+    ));
+  }
+  root.append(tiles);
+}
+
 function progressRow(label, learned, total, colorKey) {
   const pct = total ? Math.round((learned / total) * 100) : 0;
   const fill = el("span", { style: `width:${pct}%` });

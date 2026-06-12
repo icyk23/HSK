@@ -5,6 +5,7 @@ const S = (p) =>
 
 const ICONS = {
   // Nav tầng 1
+  home: S('<path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M9.5 19.5v-5h5v5"/>'),
   cards: S('<rect x="3" y="5.5" width="13" height="15" rx="2.5"/><path d="M8 2.5h11a2 2 0 0 1 2 2v12"/><path d="M6.5 10h6M6.5 14h4"/>'),
   exam: S('<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8.5 3.5h7v3h-7z"/><path d="M8 12l2 2 4-4"/>'),
   comm: S('<path d="M4 5.5h11a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z" transform="translate(1 0.5)"/><path d="M6 8.5h7M6 11h4"/>'),
