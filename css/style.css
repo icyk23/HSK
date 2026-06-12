@@ -1037,3 +1037,23 @@ summary .ic svg, .exam-head h3 .ic svg { width: 17px; height: 17px; vertical-ali
 .story-prog > span { display: block; height: 100%; background: var(--primary); border-radius: 3px; transition: width .4s ease; }
 .story-prog.big { height: 9px; border-radius: 4px; margin-top: 8px; }
 [data-theme="dark"] .story-prog > span { box-shadow: 0 0 10px rgba(255, 58, 71, .5); }
+
+/* ===================== PHỒN THỂ — lộ trình ===================== */
+.trad-road { display: grid; gap: 12px; margin-top: 14px; }
+.road-step {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
+  text-align: left; cursor: pointer; width: 100%; padding: 16px;
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow);
+  transition: transform .14s, border-color .14s, box-shadow .14s;
+}
+.road-step:hover { transform: translateY(-2px); border-color: var(--primary-line); box-shadow: var(--shadow-hover); }
+[data-theme="dark"] .road-step { background: linear-gradient(180deg, #16181f, #121319); border-color: #242a36; }
+.road-n {
+  font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--primary);
+  width: 46px; height: 46px; display: grid; place-items: center; background: var(--primary-tint);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+}
+[data-theme="dark"] .road-n { box-shadow: inset 0 0 0 1px var(--primary-line); text-shadow: var(--glow); }
+.road-body { display: grid; gap: 3px; min-width: 0; }
+.road-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; }

@@ -10,6 +10,8 @@ const KEYS = {
   examProgress: "hsk.examProgress", // kết quả Đọc + bản nháp Viết, keyed by examId
   translations: "hsk.translations", // Dịch thuật — "Bài đã dịch" của người dùng (+ Qwen3 chấm)
   wordSets: "hsk.wordSets",  // bộ từ tự lưu (tick chọn) — [{id,name,cardIds,createdAt}]
+  tradSrs: "hsk.tradSrs",    // SRS thẻ phồn thể 简→繁, keyed theo chữ giản thể
+  tradMeta: "hsk.tradMeta",  // tiến độ lộ trình Phồn thể: { rulesDone, quizBest:{score,total} }
 };
 
 export const DEFAULT_SETTINGS = {
@@ -92,6 +94,27 @@ export function resetProgress(deckId) {
     if (all[k].deckId === deckId) delete all[k];
   }
   write(KEYS.progress, all);
+}
+
+/* ---------------- Phồn thể: SRS thẻ 简→繁 + tiến độ lộ trình ---------------- */
+export function getTradSrs() {
+  return read(KEYS.tradSrs, {});
+}
+export function getTradState(simp) {
+  return getTradSrs()[simp] || null;
+}
+export function saveTradState(simp, state) {
+  const all = getTradSrs();
+  all[simp] = state;
+  write(KEYS.tradSrs, all);
+}
+export function getTradMeta() {
+  return read(KEYS.tradMeta, {});
+}
+export function saveTradMeta(patch) {
+  const next = { ...getTradMeta(), ...patch };
+  write(KEYS.tradMeta, next);
+  return next;
 }
 
 /* ---------------- Sửa nhóm thủ công (manual classification) ----------------

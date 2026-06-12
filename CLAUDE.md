@@ -34,7 +34,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 | **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) + HSKK 高级 khung 3 phần đã có |
 | **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 Trang chủ = 4 phương thức (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế); chọn nguồn (tình huống/tài liệu) TRONG từng phương thức; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Theo truyện · Luyện tự do · Bài đã dịch | 🟢 Thư mục truyện→khúc (task runner có tiến độ) + workspace tự do + lưu/ôn; chấm/sửa cần Qwen3 (/grade) |
-| **Phồn thể** 繁 | Bài học · Nhận diện thành phần | 🟡 Bài học (993 chữ giản→phồn theo cấp) + Nhận diện (quiz + bộ thủ) đã có |
+| **Phồn thể** 繁 | Lộ trình · ① Bộ thủ · ② Thẻ nhớ · ③ Quiz | 🟢 Lộ trình newbie 3 bước có tiến độ: bộ thủ → thẻ SRS 繁→简 → quiz (+ tra cứu 993 chữ) |
 | **Nạp tài liệu** 📥 *(global)* | Nạp mới · Thư viện tài liệu | 🟡 CỬA NẠP DUY NHẤT: nạp text → Tài liệu → map vào Từ vựng/Giao tiếp/Dịch (module hết ô upload); link/media chờ Qwen3 |
 | **Tiến độ** 📊 · **Cài đặt** ⚙️ *(global)* | — | ✅ đã có |
 
@@ -133,7 +133,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
     chưa dịch kế, tiến độ theo store.translations, điều hướng ‹›, xong khúc về chi tiết) + "Luyện tự
     do" (workspace phẳng cũ: dán/câu mẫu thẻ). Helper storyChunks() dùng chung với task Dịch ở màn Nạp
     (Bắt đầu → mở thẳng task runner). Chấm Qwen3 vẫn dùng được mỗi câu khi backend bật.
-[ ] Bước 5 — Phồn thể: LỘ TRÌNH newbie (① quy luật bộ thủ → ② thẻ nhớ SRS 简→繁 → ③ quiz).
+[x] Bước 5 — Phồn thể LỘ TRÌNH newbie: 4 tab (Lộ trình/① Bộ thủ/② Thẻ nhớ/③ Quiz). Lộ trình = home
+    3 bước + thanh tiến độ (store.tradMeta + store.tradSrs). ① Bộ thủ: bảng 16 cặp bộ thủ + nút "Đã
+    nắm". ② Thẻ nhớ: thẻ SRS 繁→简 (srs.js + store.tradSrs keyed theo chữ giản, lật 3D + 4 nút chấm
+    + bảng tra cứu 简→繁 collapsible). ③ Quiz: đọc phồn→chọn giản, lưu kỷ lục. Thuần browser.
 [ ] Bước 6 — Dọn dẹp, nhất quán tên tab, cập nhật doc.
 ```
 

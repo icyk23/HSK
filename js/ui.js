@@ -746,7 +746,7 @@ export async function renderHome() {
     ["exam", "Luyện đề", "HSK6 · HSKK 高级", "exam"],
     ["comm", "Giao tiếp", "Phản xạ · Phát âm", "comm"],
     ["trans", "Dịch thuật", "Trung ↔ Việt", "trans"],
-    ["trad", "Phồn thể", "简 → 繁", "tradLessons"],
+    ["trad", "Phồn thể", "简 → 繁", "tradHome"],
     ["ingest", "Nạp tài liệu", "Truyện · phụ đề · văn bản", "ingest"],
   ];
   for (const [ic, name, desc, view] of TILES) {
@@ -2363,27 +2363,160 @@ async function tradPairs() {
   return pairs;
 }
 let tradFilter = { level: "all", limit: 80 };
+let tradRefOpen = false;
+let tradSrsSession = null;
 
-export async function renderTradLessons() {
+/* ----- LỘ TRÌNH (home) ----- */
+export async function renderTradHome() {
   clearCommState();
   const root = clear();
   const pairs = await tradPairs();
-  root.append(el("h1", { class: "view-title" }, "Học chữ phồn thể"));
+  root.append(el("h1", { class: "view-title" }, "Phồn thể — lộ trình cho người mới"));
   if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.")); return; }
-  root.append(el("p", { class: "muted small" }, `App học giản thể; mục này luyện ĐỌC phồn thể. Có ${pairs.length} chữ HSK mà dạng phồn thể khác giản thể.`));
-  const levels = [...new Set(pairs.map((p) => p.level))].sort();
-  const sel = selectRow(["all", ...levels.map(String)], ["Mọi cấp", ...levels.map((l) => "HSK" + l)], tradFilter.level, (v) => { tradFilter.level = v; tradFilter.limit = 80; renderTradLessons(); });
-  root.append(el("div", { class: "panel" }, el("div", { class: "filter-grid" }, sel)));
-  const filtered = tradFilter.level === "all" ? pairs : pairs.filter((p) => String(p.level) === tradFilter.level);
-  root.append(el("div", { class: "muted", style: "margin:12px 0 8px" }, `${filtered.length} chữ`));
-  const grid = el("div", { class: "trad-grid" });
-  const s = store.getSettings();
-  filtered.slice(0, tradFilter.limit).forEach((p) => grid.append(tradPairCard(p, s)));
-  root.append(grid);
-  if (filtered.length > tradFilter.limit) {
-    root.append(el("div", { class: "center", style: "margin-top:12px" },
-      el("button", { class: "btn", onclick: () => { tradFilter.limit += 80; renderTradLessons(); } }, `Hiện thêm (còn ${filtered.length - tradFilter.limit})`)));
+  root.append(el("p", { class: "muted small" }, `App học giản thể; lộ trình này giúp bạn ĐỌC được ${pairs.length} chữ phồn thể HSK qua 3 bước.`));
+
+  const meta = store.getTradMeta();
+  const srsMap = store.getTradSrs();
+  const learned = pairs.filter((p) => { const st = srsMap[p.simp]; return st && st.reps > 0; }).length;
+  const due = pairs.filter((p) => { const st = srsMap[p.simp]; return st && !srs.isNew(st) && srs.isDue(st); }).length;
+
+  const steps = [
+    { n: "①", title: "Quy luật bộ thủ", desc: "Nhận ra các thành phần Giản↔Phồn lặp lại để đoán chữ nhanh.", view: "tradRules",
+      done: meta.rulesDone ? 1 : 0, total: 1, badge: meta.rulesDone ? "Đã nắm" : "Bắt đầu" },
+    { n: "②", title: "Thẻ nhớ 简→繁 (SRS)", desc: "Học thuộc từng chữ bằng thẻ lặp lại ngắt quãng.", view: "tradSrs",
+      done: learned, total: pairs.length, badge: due ? `${due} đến hạn` : (learned ? `${learned}/${pairs.length}` : "Bắt đầu") },
+    { n: "③", title: "Quiz nhận diện", desc: "Đọc phồn thể → chọn giản thể đúng.", view: "tradComp",
+      done: meta.quizBest ? meta.quizBest.score : 0, total: meta.quizBest ? meta.quizBest.total : 0,
+      badge: meta.quizBest ? `Kỷ lục ${meta.quizBest.score}/${meta.quizBest.total}` : "Thử sức" },
+  ];
+  const wrap = el("div", { class: "trad-road" });
+  for (const st of steps) {
+    const pct = st.total ? Math.round((st.done / st.total) * 100) : 0;
+    wrap.append(el("button", { class: "road-step", onclick: () => navigate(st.view) },
+      el("span", { class: "road-n" }, st.n),
+      el("span", { class: "road-body" },
+        el("span", { class: "road-title" }, st.title),
+        el("span", { class: "road-desc muted small" }, st.desc),
+        st.total ? el("div", { class: "story-prog", style: "margin-top:8px" }, el("span", { style: `width:${pct}%` })) : null),
+      el("span", { class: "chip" + (st.total && st.done >= st.total ? " st known" : "") }, st.badge),
+    ));
   }
+  root.append(wrap);
+}
+
+/* ----- ① QUY LUẬT BỘ THỦ ----- */
+export async function renderTradRules() {
+  clearCommState();
+  const root = clear();
+  root.append(el("h1", { class: "view-title" }, "① Quy luật bộ thủ Giản ↔ Phồn"));
+  root.append(el("p", { class: "muted small" }, "Phần lớn chữ phồn thể khác giản thể ở MỘT thành phần lặp lại. Nhớ các cặp bộ thủ này, bạn sẽ đoán & đọc chữ phồn thể nhanh hơn nhiều."));
+  const tbl = el("div", { class: "trad-comp-grid" });
+  for (const c of trad.TRAD_COMPONENTS) {
+    tbl.append(el("div", { class: "trad-comp" },
+      el("div", { class: "trad-comp-head" }, el("span", { class: "trad-s" }, c.s), el("span", { class: "trad-arrow" }, "→"), el("span", { class: "trad-t" }, c.t)),
+      el("div", { class: "muted small" }, c.note),
+      el("div", { class: "trad-ex" }, c.ex.map((e) => `${e[0]}/${e[1]}`).join(" · "))));
+  }
+  root.append(tbl);
+  const meta = store.getTradMeta();
+  const row = el("div", { class: "row", style: "margin-top:16px" });
+  row.append(el("button", { class: "btn" + (meta.rulesDone ? " ghost" : " primary"), onclick: () => { store.saveTradMeta({ rulesDone: !meta.rulesDone }); renderTradRules(); } },
+    iconEl(meta.rulesDone ? "reset" : "check"), meta.rulesDone ? "Bỏ đánh dấu đã nắm" : "Đã nắm quy luật"));
+  row.append(el("button", { class: "btn", onclick: () => navigate("tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, "Sang ② Thẻ nhớ →")));
+  root.append(row);
+}
+
+/* ----- ② THẺ NHỚ 简→繁 (SRS) ----- */
+export async function renderTradSrs() {
+  clearCommState();
+  const root = clear();
+  const pairs = await tradPairs();
+  root.append(el("h1", { class: "view-title" }, "② Thẻ nhớ 简→繁"));
+  if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.")); return; }
+  const s = store.getSettings();
+  if (!tradSrsSession) {
+    const prog = store.getTradSrs();
+    const cards = pairs.map((p) => ({ ...p, id: p.simp }));
+    const queue = srs.buildQueue(cards, prog, { newPerDay: s.newPerDay, reviewLimit: s.reviewLimit });
+    tradSrsSession = { queue, idx: 0, revealed: false, flip: false };
+  }
+  const sess = tradSrsSession;
+
+  if (!sess.queue.length || sess.idx >= sess.queue.length) {
+    const learned = pairs.filter((p) => { const st = store.getTradState(p.simp); return st && st.reps > 0; }).length;
+    root.append(el("div", { class: "empty" }, el("div", { class: "big" }, iconEl("check")),
+      el("h2", {}, sess.queue.length ? "Xong thẻ hôm nay!" : "Chưa có thẻ đến hạn"),
+      el("p", { class: "muted" }, `Đã học ${learned}/${pairs.length} chữ. Quay lại sau để ôn tiếp, hoặc làm Quiz để kiểm tra.`)));
+    root.append(el("div", { class: "row center", style: "margin-top:8px" },
+      el("button", { class: "btn primary", onclick: () => navigate("tradComp") }, el("span", { class: "btn-tx" }, "Sang ③ Quiz →")),
+      el("button", { class: "btn ghost", onclick: () => { tradSrsSession = null; renderTradSrs(); } }, iconEl("reset"), "Học lại")));
+    root.append(tradReferenceDetails(pairs, s));
+    return;
+  }
+
+  const p = sess.queue[sess.idx];
+  root.append(el("div", { class: "center muted small", style: "margin-bottom:6px" }, `Thẻ ${sess.idx + 1}/${sess.queue.length}`));
+
+  const front = el("div", { class: "stack center" },
+    el("div", { class: "label-tag" }, "Phồn thể"),
+    el("div", { class: "hanzi trad" }, p.trad),
+    el("button", { class: "btn ghost small", onclick: (e) => { e.stopPropagation(); speak(p.simp, { rate: s.speechRate }); } }, iconEl("speaker")),
+    !sess.revealed && el("div", { class: "tap-hint" }, "Chạm để xem giản thể & nghĩa"));
+  const back = sess.revealed && el("div", { class: "stack center" },
+    el("div", { class: "label-tag" }, "Giản thể"),
+    el("div", { class: "hanzi" }, p.simp),
+    p.pinyin ? el("div", { class: "pinyin" }, p.pinyin) : null,
+    (p.han_viet || p.meaning) ? el("div", { class: "muted" }, (p.han_viet ? `[${p.han_viet}] ` : "") + (p.meaning || "")) : null,
+    p.examples.length ? el("div", { class: "trad-ex" }, "VD: " + p.examples.slice(0, 3).map((e) => `${e.s}/${e.t}`).join(" · ")) : null);
+  const card = el("div", { class: "flashcard" + (sess.flip ? " flip" : ""), onclick: () => { if (!sess.revealed) revealTrad(); } }, front, back);
+  sess.flip = false;
+  root.append(card);
+
+  if (sess.revealed) {
+    const grades = el("div", { class: "grade-row" });
+    const st = store.getTradState(p.simp) || srs.freshState("trad");
+    const defs = [["again", "Lại", srs.GRADES.AGAIN], ["hard", "Khó", srs.GRADES.HARD], ["good", "Được", srs.GRADES.GOOD], ["easy", "Dễ", srs.GRADES.EASY]];
+    for (const [cls, lbl, g] of defs) {
+      grades.append(el("button", { class: `btn grade ${cls}`, onclick: () => gradeTrad(p, g) },
+        el("span", {}, lbl), el("span", { class: "k" }, srs.humanInterval(srs.schedule(st, g).interval || 0))));
+    }
+    root.append(grades);
+  } else {
+    root.append(el("div", { class: "center", style: "margin-top:10px" },
+      el("button", { class: "btn primary", onclick: revealTrad }, el("span", { class: "btn-tx" }, "Hiện đáp án"))));
+  }
+  root.append(tradReferenceDetails(pairs, s));
+}
+
+function revealTrad() { tradSrsSession.revealed = true; tradSrsSession.flip = true; renderTradSrs(); }
+function gradeTrad(p, g) {
+  const cur = store.getTradState(p.simp) || srs.freshState("trad");
+  store.saveTradState(p.simp, srs.schedule(cur, g));
+  store.logReview(g !== srs.GRADES.AGAIN);
+  tradSrsSession.idx++;
+  tradSrsSession.revealed = false;
+  renderTradSrs();
+}
+
+// Bảng tra cứu 简→繁 (collapsible) — dùng lại trong bước ② Thẻ nhớ.
+function tradReferenceDetails(pairs, s) {
+  const det = el("details", { class: "panel", style: "margin-top:18px" });
+  if (tradRefOpen) det.open = true;
+  det.addEventListener("toggle", () => { tradRefOpen = det.open; });
+  det.append(el("summary", {}, iconEl("book"), ` Tra cứu bảng 简→繁 (${pairs.length} chữ)`));
+  const levels = [...new Set(pairs.map((p) => p.level))].sort();
+  const sel = selectRow(["all", ...levels.map(String)], ["Mọi cấp", ...levels.map((l) => "HSK" + l)], tradFilter.level,
+    (v) => { tradFilter.level = v; tradFilter.limit = 80; tradRefOpen = true; renderTradSrs(); });
+  det.append(el("div", { class: "filter-grid", style: "margin-bottom:8px" }, sel));
+  const filtered = tradFilter.level === "all" ? pairs : pairs.filter((p) => String(p.level) === tradFilter.level);
+  const grid = el("div", { class: "trad-grid" });
+  filtered.slice(0, tradFilter.limit).forEach((p) => grid.append(tradPairCard(p, s)));
+  det.append(grid);
+  if (filtered.length > tradFilter.limit) {
+    det.append(el("div", { class: "center", style: "margin-top:12px" },
+      el("button", { class: "btn", onclick: () => { tradFilter.limit += 80; tradRefOpen = true; renderTradSrs(); } }, `Hiện thêm (còn ${filtered.length - tradFilter.limit})`)));
+  }
+  return det;
 }
 
 function tradPairCard(p, s) {
@@ -2401,20 +2534,11 @@ let tradQuiz = null;
 export async function renderTradComp() {
   clearCommState();
   const root = clear();
-  root.append(el("h1", { class: "view-title" }, "Nhận diện thành phần"));
+  root.append(el("h1", { class: "view-title" }, "③ Quiz nhận diện phồn thể"));
   root.append(await tradQuizPanel());
-  const cs = el("div", { class: "panel stack" });
-  cs.append(el("b", {}, "Bộ thủ / thành phần Giản ↔ Phồn thông dụng"));
-  cs.append(el("p", { class: "muted small" }, "Nhận ra các thành phần lặp lại giúp đoán & đọc chữ phồn thể nhanh hơn."));
-  const tbl = el("div", { class: "trad-comp-grid" });
-  for (const c of trad.TRAD_COMPONENTS) {
-    tbl.append(el("div", { class: "trad-comp" },
-      el("div", { class: "trad-comp-head" }, el("span", { class: "trad-s" }, c.s), el("span", { class: "trad-arrow" }, "→"), el("span", { class: "trad-t" }, c.t)),
-      el("div", { class: "muted small" }, c.note),
-      el("div", { class: "trad-ex" }, c.ex.map((e) => `${e[0]}/${e[1]}`).join(" · "))));
-  }
-  cs.append(tbl);
-  root.append(cs);
+  root.append(el("div", { class: "row", style: "margin-top:12px" },
+    el("button", { class: "btn ghost", onclick: () => navigate("tradRules") }, iconEl("reset"), "Ôn lại ① Bộ thủ"),
+    el("button", { class: "btn ghost", onclick: () => navigate("tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, "Học tiếp ② Thẻ nhớ"))));
 }
 
 async function tradQuizPanel() {
@@ -2450,6 +2574,8 @@ function pickTrad(o) {
   tradQuiz.picked = o;
   tradQuiz.total++;
   if (o === tradQuiz.pair.simp) tradQuiz.score++;
+  const best = store.getTradMeta().quizBest;
+  if (!best || tradQuiz.score > best.score) store.saveTradMeta({ quizBest: { score: tradQuiz.score, total: tradQuiz.total } });
   renderTradComp();
 }
 
