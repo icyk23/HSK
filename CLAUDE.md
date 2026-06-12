@@ -32,7 +32,7 @@ Tầng 2 (tab con): đổi theo module đang chọn
 |--------|---------|-----------|
 | **Từ vựng** 🎴 | Học thẻ · Danh sách · Quiz · Nghe · Nguồn từ | ✅ đã có (trừ đổi tên) |
 | **Luyện đề** 📝 | HSK6 Đọc · HSK6 Viết · HSKK 高级 | 🟡 Đọc tự chấm + Viết khung (缩写) + HSKK 高级 khung 3 phần đã có |
-| **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 4 drill (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế mẫu câu) đã có; HSKK 高级 chưa |
+| **Giao tiếp** 🗣️ | Luyện phản xạ · Luyện phát âm | 🟡 Trang chủ = 4 phương thức (Hỏi–đáp · Shadowing+Phát âm · Sprint · Thay thế); chọn nguồn (tình huống/tài liệu) TRONG từng phương thức; HSKK 高级 chưa |
 | **Dịch thuật** 🌐 | Trung→Việt · Việt→Trung · Bài đã dịch | 🟡 Workspace 2 chiều + lưu/ôn (Bài đã dịch) đã có; chấm/sửa cần Qwen3 (/grade) |
 | **Phồn thể** 繁 | Bài học · Nhận diện thành phần | 🟡 Bài học (993 chữ giản→phồn theo cấp) + Nhận diện (quiz + bộ thủ) đã có |
 | **Nạp tài liệu** 📥 *(global)* | Nạp mới · Thư viện tài liệu | 🟡 CỬA NẠP DUY NHẤT: nạp text → Tài liệu → map vào Từ vựng/Giao tiếp/Dịch (module hết ô upload); link/media chờ Qwen3 |
@@ -125,7 +125,9 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
     → "💾 Lưu thành bộ" (store.wordSets). Tab "Bộ của tôi": mỗi bộ học bằng 4 phương thức —
     🎴 Flashcard · 📝 Quiz · ⌨️ Gõ pinyin (mode mới) · 🔊 Nghe (dùng chung learnScope/scopeCards).
     Đã sửa bug nút "Học từ này" dùng data-view (chết sau nav 2 tầng) → navigate.
-[ ] Bước 3 — Giao tiếp: 4 PHƯƠNG THỨC → mỗi cái có NHÁNH CON (chủ đề/tài liệu/cấp câu), không ép thứ tự.
+[x] Bước 3 — Giao tiếp: trang chủ chỉ còn 4 PHƯƠNG THỨC (bỏ thanh nguồn ở đầu). Vào mỗi phương
+    thức mới có commSourceBar: nhánh "tình huống" (chip cảnh) + "tài liệu đã nạp" (Shadowing dùng
+    được; QA/Sprint/Pattern ghi chú cần Qwen3). Nguồn rỗng → báo nhẹ, không bật về home.
 [ ] Bước 4 — Dịch thuật: THƯ MỤC theo truyện → chuỗi TASK nhỏ (chương→khúc) có tiến độ + Luyện tự do.
 [ ] Bước 5 — Phồn thể: LỘ TRÌNH newbie (① quy luật bộ thủ → ② thẻ nhớ SRS 简→繁 → ③ quiz).
 [ ] Bước 6 — Dọn dẹp, nhất quán tên tab, cập nhật doc.

@@ -1367,28 +1367,16 @@ function patternBank(scenes) { const o = []; for (const s of selectedScenes(scen
 
 async function commHome(root, scenes) {
   root.append(el("h1", { class: "view-title" }, "🗣️ Giao tiếp — luyện phản xạ"));
-
-  const src = el("div", { class: "panel comm-source" });
-  src.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
-  const chips = el("div", { class: "comm-chips" });
-  const allOn = !commSel.sceneIds;
-  chips.append(commChip("Tất cả cảnh", allOn, () => { commSel.sceneIds = null; renderComm(); }));
-  for (const s of scenes) {
-    const on = !allOn && commSel.sceneIds.includes(s.id);
-    chips.append(commChip(`${s.icon} ${s.title}`, on, () => toggleScene(s.id, scenes)));
-  }
-  src.append(chips);
-  const matBar = commMaterialBar();
-  if (matBar) src.append(matBar);
-  else src.append(el("p", { class: "muted small" }, "Muốn luyện theo truyện/tài liệu của bạn? Vào 📥 Nạp tài liệu để thêm — sẽ hiện ở đây."));
-  root.append(src);
-
-  const nQa = qaBank(scenes).length, nLine = lineBank(scenes).length, nVi = viLineBank(scenes).length, nPat = patternBank(scenes).length;
+  root.append(el("p", { class: "muted small", style: "margin:-6px 2px 14px" }, "Chọn một phương thức — vào trong rồi chọn nguồn câu (tình huống hoặc tài liệu đã nạp)."));
+  const nQa = scenes.reduce((n, s) => n + (s.qa ? s.qa.length : 0), 0);
+  const nLine = scenes.reduce((n, s) => n + comm.sceneLineBank(s).length, 0);
+  const nVi = scenes.reduce((n, s) => n + comm.sceneLineBank(s).filter((x) => x.vi).length, 0);
+  const nPat = scenes.reduce((n, s) => n + (s.patterns ? s.patterns.length : 0), 0);
   const grid = el("div", { class: "comm-grid" });
-  grid.append(commDrillCard("💬", "Hỏi–đáp tình huống", `${nQa} cặp`, "Nghe câu hỏi → bật câu trả lời trong vài giây.", nQa > 0, "qa"));
-  grid.append(commDrillCard("🎙️", "Shadowing + Phát âm", `${nLine} câu`, "Nghe mẫu → nói lại → chấm phát âm.", nLine > 0, "shadow"));
-  grid.append(commDrillCard("⏱️", "Sprint Việt→Trung", `${nVi} câu`, "Đếm giờ, bật càng nhiều câu càng tốt.", nVi > 0, "sprint"));
-  grid.append(commDrillCard("🔁", "Thay thế mẫu câu", `${nPat} mẫu`, "Giữ khung, đổi chỗ trống để nói tự động.", nPat > 0, "pattern"));
+  grid.append(commDrillCard("💬", "Hỏi–đáp tình huống", `${nQa} cặp`, "Nghe câu hỏi → bật câu trả lời trong vài giây.", true, "qa"));
+  grid.append(commDrillCard("🎙️", "Shadowing + Phát âm", `${nLine}+ câu`, "Nghe mẫu → nói lại → chấm phát âm. Luyện được theo tài liệu của bạn.", true, "shadow"));
+  grid.append(commDrillCard("⏱️", "Sprint Việt→Trung", `${nVi} câu`, "Đếm giờ, bật càng nhiều câu càng tốt.", true, "sprint"));
+  grid.append(commDrillCard("🔁", "Thay thế mẫu câu", `${nPat} mẫu`, "Giữ khung, đổi chỗ trống để nói tự động.", true, "pattern"));
   root.append(grid);
 
   if (!hasRecognition()) {
@@ -1397,20 +1385,37 @@ async function commHome(root, scenes) {
   }
 }
 
-// Thanh "Tài liệu đã nạp" — chọn để nạp câu của tài liệu vào nguồn (shadowing/drill).
-function commMaterialBar() {
-  const usable = materialList.map((m) => ({ m, zh: materialZh(m) })).filter((x) => x.zh.length);
-  if (!usable.length) return null;
-  const list = el("div", { class: "comm-libfiles" });
-  for (const { m, zh } of usable) {
-    list.append(el("div", { class: "comm-libfile" },
-      el("span", {}, `📥 ${m.title}`),
-      el("span", { class: "muted small" }, `${zh.length} câu`),
-      el("button", { class: "btn ghost small", onclick: () => setPersonalSource(zh.map((s) => ({ zh: s.zh })), m.title) }, "Dùng")));
+// Thanh nguồn câu (tình huống + tài liệu) — đặt ở ĐẦU mỗi phương thức (không còn ở trang chủ Giao tiếp).
+function commSourceBar(scenes, opts = {}) {
+  const wrap = el("div", { class: "panel comm-source" });
+  wrap.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
+  const chips = el("div", { class: "comm-chips" });
+  const allOn = !commSel.sceneIds && !commPersonal.length;
+  chips.append(commChip("Tất cả tình huống", allOn, () => { commPersonal = []; commPersonalLabel = ""; commSel.sceneIds = null; renderComm(); }));
+  for (const s of scenes) {
+    const on = !commPersonal.length && commSel.sceneIds && commSel.sceneIds.includes(s.id);
+    chips.append(commChip(`${s.icon} ${s.title}`, on, () => { commPersonal = []; commPersonalLabel = ""; toggleScene(s.id, scenes); }));
   }
-  return el("details", { class: "comm-personal" },
-    el("summary", {}, `📥 Tài liệu đã nạp (${usable.length})`), list);
+  wrap.append(chips);
+
+  if (opts.material) {
+    const usable = materialList.map((m) => ({ m, zh: materialZh(m) })).filter((x) => x.zh.length);
+    if (usable.length) {
+      const mat = el("div", { class: "comm-chips" });
+      for (const { m, zh } of usable) {
+        const on = commPersonalLabel === m.title;
+        mat.append(commChip(`📥 ${m.title} (${zh.length})`, on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh })), m.title); }));
+      }
+      wrap.append(el("div", { class: "muted small", style: "margin-top:8px" }, "Hoặc theo tài liệu đã nạp:"), mat);
+    } else {
+      wrap.append(el("p", { class: "muted small", style: "margin-top:6px" }, "📥 Chưa có tài liệu — vào 📥 Nạp tài liệu để luyện theo truyện của bạn."));
+    }
+  } else if (opts.materialNote) {
+    wrap.append(el("p", { class: "muted small", style: "margin-top:6px" }, opts.materialNote));
+  }
+  return wrap;
 }
+function commEmptyNote(kind) { return el("p", { class: "muted center", style: "padding:24px" }, `Nguồn đang chọn chưa có ${kind}. Chọn nguồn khác ở thanh trên.`); }
 
 function commChip(label, on, onclick) { return el("button", { class: "comm-chip" + (on ? " on" : ""), onclick }, label); }
 function toggleScene(id, scenes) {
@@ -1490,10 +1495,11 @@ function commTopbar(title) {
 
 /* ---------- Drill: Hỏi–đáp tình huống ---------- */
 function commDrillQA(root, scenes) {
-  const bank = shuffle(qaBank(scenes).slice());
-  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
   const s = store.getSettings();
   root.append(commTopbar("Hỏi–đáp tình huống"));
+  root.append(commSourceBar(scenes, { materialNote: "📥 Tài liệu: cần Qwen3 để sinh câu hỏi (sắp có)." }));
+  const bank = shuffle(qaBank(scenes).slice());
+  if (!bank.length) { root.append(commEmptyNote("cặp hỏi–đáp")); return; }
   const progress = el("div", { class: "comm-progress muted small" });
   const card = el("div", { class: "panel comm-card" });
   const controls = el("div", { class: "row comm-controls" });
@@ -1542,10 +1548,11 @@ function commDrillQA(root, scenes) {
 
 /* ---------- Drill: Shadowing + Phát âm ---------- */
 function commDrillShadow(root, scenes) {
-  const bank = shuffle(lineBank(scenes).slice());
-  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
   const s = store.getSettings();
   root.append(commTopbar("Shadowing + Phát âm"));
+  root.append(commSourceBar(scenes, { material: true }));
+  const bank = shuffle(lineBank(scenes).slice());
+  if (!bank.length) { root.append(commEmptyNote("câu để luyện")); return; }
   const progress = el("div", { class: "comm-progress muted small" });
   const card = el("div", { class: "panel comm-card" });
   const controls = el("div", { class: "row comm-controls" });
@@ -1584,10 +1591,11 @@ function commDrillShadow(root, scenes) {
 
 /* ---------- Drill: Sprint Việt→Trung (đếm giờ) ---------- */
 function commDrillSprint(root, scenes) {
-  const bank = viLineBank(scenes);
-  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
   const s = store.getSettings();
   root.append(commTopbar("Sprint Việt→Trung"));
+  root.append(commSourceBar(scenes, { materialNote: "📥 Tài liệu: cần Qwen3 để tự dịch Việt (sắp có)." }));
+  const bank = viLineBank(scenes);
+  if (!bank.length) { root.append(commEmptyNote("câu song ngữ (Việt–Trung)")); return; }
   const panel = el("div", { class: "panel comm-card" });
   root.append(panel);
   let dur = 60;
@@ -1648,10 +1656,11 @@ function commDrillSprint(root, scenes) {
 
 /* ---------- Drill: Thay thế mẫu câu (句型替换) ---------- */
 function commDrillPattern(root, scenes) {
-  const bank = patternBank(scenes);
-  if (!bank.length) { commView = { screen: "home" }; return renderComm(); }
   const s = store.getSettings();
   root.append(commTopbar("Thay thế mẫu câu"));
+  root.append(commSourceBar(scenes, { materialNote: "📥 Tài liệu: cần Qwen3 để sinh mẫu câu (sắp có)." }));
+  const bank = patternBank(scenes);
+  if (!bank.length) { root.append(commEmptyNote("mẫu câu")); return; }
   const progress = el("div", { class: "comm-progress muted small" });
   const card = el("div", { class: "panel comm-card" });
   const controls = el("div", { class: "row comm-controls" });
