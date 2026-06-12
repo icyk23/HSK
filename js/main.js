@@ -46,7 +46,7 @@ const NAV = [
     { view: "tradSrs", label: "② Thẻ nhớ" },
     { view: "tradComp", label: "③ Quiz" },
   ] },
-  { id: "ingest", label: "Nạp tài liệu", icon: "ingest", tabs: [{ view: "ingest", label: "Nạp nội dung" }] },
+  { id: "ingest", label: "Nạp tài liệu", icon: "ingest", tabs: [{ view: "ingest", label: "Nạp tài liệu" }] },
   { id: "stats", label: "Tiến độ", icon: "stats", tabs: [{ view: "stats", label: "Tiến độ" }] },
   { id: "settings", label: "Cài đặt", icon: "settings", tabs: [{ view: "settings", label: "Cài đặt" }] },
 ];
@@ -54,7 +54,7 @@ const NAV = [
 const moduleOf = (view) => NAV.find((m) => m.tabs.some((t) => t.view === view)) || NAV[0];
 const lastView = {}; // nhớ tab con gần nhất của mỗi module
 
-let currentView = "study";
+let currentView = "home";
 const tabs1 = document.getElementById("tabs1");
 const tabs2 = document.getElementById("tabs2");
 

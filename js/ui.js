@@ -96,7 +96,6 @@ let session = null;
 let studyFilter = null;
 let studyFilterLabel = "";
 export function setStudyFilter(pred, label) { studyFilter = pred; studyFilterLabel = label || ""; }
-function clearStudyFilter() { studyFilter = null; studyFilterLabel = ""; }
 
 // Phạm vi học theo một "bộ từ" — dùng chung cho Học thẻ / Quiz / Nghe / Gõ.
 let learnScope = null; // { ids:Set, label } | null

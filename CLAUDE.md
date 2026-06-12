@@ -23,9 +23,9 @@ App đã dùng **nav 2 tầng** (js/main.js: NAV config — tầng 1 module, t�
 1 tab con tự ẩn tầng 2). Cả 5 module + global đã vào nav. Cấu trúc:
 
 ```
-Tầng 1 (module):  🎴 Từ vựng   📝 Luyện đề   🗣️ Giao tiếp   🌐 Dịch thuật   繁 Phồn thể
-                                        global:  📥 Nạp nội dung   📊 Tiến độ   ⚙️ Cài đặt
-Tầng 2 (tab con): đổi theo module đang chọn
+Tầng 1 (module):  🏠 Trang chủ  🎴 Từ vựng   📝 Luyện đề   🗣️ Giao tiếp   🌐 Dịch thuật   繁 Phồn thể
+                                        global:  📥 Nạp tài liệu   📊 Tiến độ   ⚙️ Cài đặt
+Tầng 2 (tab con): đổi theo module đang chọn (Trang chủ = dashboard, mở mặc định)
 ```
 
 | Module | Tab con | Trạng thái |
@@ -137,7 +137,9 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
     3 bước + thanh tiến độ (store.tradMeta + store.tradSrs). ① Bộ thủ: bảng 16 cặp bộ thủ + nút "Đã
     nắm". ② Thẻ nhớ: thẻ SRS 繁→简 (srs.js + store.tradSrs keyed theo chữ giản, lật 3D + 4 nút chấm
     + bảng tra cứu 简→繁 collapsible). ③ Quiz: đọc phồn→chọn giản, lưu kỷ lục. Thuần browser.
-[ ] Bước 6 — Dọn dẹp, nhất quán tên tab, cập nhật doc.
+[x] Bước 6 — Dọn dẹp: gỡ code thừa (clearStudyFilter, loadNextFromMaterial/transMaterialId cũ),
+    nhất quán tên tab ("Nạp tài liệu"), mặc định landing = Trang chủ; quét 0 export thừa, sweep mọi
+    tab tier1+tier2 không lỗi; cập nhật IA + bảng module trong doc. → REFACTOR HOÀN TẤT.
 ```
 
 ## TRẠNG THÁI HIỆN TẠI
