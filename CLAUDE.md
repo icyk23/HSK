@@ -145,8 +145,9 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
-[x] CHẾ ĐỘ PHỒN THỂ TOÀN CỤC: bộ chuyển 简→繁 offline (data/s2t.json — bảng char OpenCC 3883 mục,
-    sinh từ STCharacters.txt; js/cc.js: s2t()+applyToDom()). Khi Cài đặt charMode="traditional", main.js
+[x] CHẾ ĐỘ PHỒN THỂ TOÀN CỤC: bộ chuyển 简→繁 offline — KHỚP CỤM TỪ trước (data/s2t-phrases.json,
+    9924 cụm OpenCC chỉ-giữ-khác-charwise) rồi tới KÝ TỰ (data/s2t.json, 3882 mục); fix 喫→吃. js/cc.js:
+    s2t() greedy longest-match + applyToDom(). Khi Cài đặt charMode="traditional", main.js
     áp chuyển TOÀN APP (sau mỗi render + MutationObserver cho nội dung động) → mọi ví dụ/câu/đề/bản dịch
     hiển thị phồn thể, dùng chung tiến độ. Trừ: module Phồn thể (view "trad*", giữ 简 minh hoạ) và nhãn
     đối chiếu / nhãn "简→繁" (class no-cc). Round-trip kiểm chứng (Học thẻ→愛, đối chiếu giữ 爱). Bước 1 của
