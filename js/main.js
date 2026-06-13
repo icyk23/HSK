@@ -1,6 +1,6 @@
 // main.js — bootstrap, điều hướng nav 2 tầng, đăng ký service worker.
 
-import { applyTheme, getSettings } from "./store.js";
+import { applyTheme, getSettings, saveSettings } from "./store.js";
 import * as ui from "./ui.js";
 import * as cc from "./cc.js";
 import { icon } from "./icons.js";
@@ -67,6 +67,21 @@ function traditionalOn(view = currentView) {
 const appEl = document.getElementById("app");
 function applyTraditional() { if (traditionalOn()) cc.applyToDom(appEl); }
 
+// Công tắc Giản/Phồn trên thanh điều hướng
+const scriptToggle = document.getElementById("scriptToggle");
+function renderScriptToggle() {
+  const trad = getSettings().charMode === "traditional";
+  scriptToggle.textContent = trad ? "繁" : "简";
+  scriptToggle.classList.toggle("on", trad);
+  scriptToggle.title = trad ? "Đang Phồn thể — bấm về Giản thể" : "Đang Giản thể — bấm sang Phồn thể";
+}
+scriptToggle.onclick = () => {
+  const trad = getSettings().charMode === "traditional";
+  saveSettings({ charMode: trad ? "simplified" : "traditional" });
+  renderScriptToggle();
+  go(currentView);
+};
+
 async function go(view) {
   currentView = view;
   lastView[moduleOf(view).id] = view;
@@ -127,6 +142,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 applyTheme();
+renderScriptToggle();
 startCcObserver();
 cc.ensureS2T().then(() => { go("home"); });
 
