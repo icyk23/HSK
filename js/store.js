@@ -87,6 +87,13 @@ export function deleteUserDeck(id) {
 export function getProgress() {
   return read(progKey(), {});
 }
+// Đọc tiến độ/stats của MỘT track cụ thể (bất kể charMode hiện tại) — cho so sánh ở Trang chủ.
+export function getProgressFor(script) {
+  return read(KEYS.progress + (script === "trad" ? ".trad" : ""), {});
+}
+export function getStatsFor(script) {
+  return read(KEYS.stats + (script === "trad" ? ".trad" : ""), {});
+}
 export function getCardState(cardId) {
   return getProgress()[cardId] || null;
 }

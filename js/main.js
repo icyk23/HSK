@@ -108,6 +108,13 @@ function startCcObserver() {
 // Cho phép các module (ui.js) chuyển sang module/tab khác — vd Bài học → Học thẻ/Giao tiếp/Dịch thuật.
 export function navigate(view) { go(view); }
 
+// Chuyển track Giản/Phồn (dùng từ Trang chủ); cập nhật công tắc + render lại.
+export function setScript(script) {
+  saveSettings({ charMode: script === "trad" ? "traditional" : "simplified" });
+  renderScriptToggle();
+  go(currentView);
+}
+
 function tabBtn(label, active, onclick, iconName) {
   const b = document.createElement("button");
   b.className = "tab" + (active ? " active" : "");

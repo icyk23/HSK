@@ -6,7 +6,7 @@ import { speak, hasChineseVoice, hasRecognition, recognizeChinese, stopSpeaking 
 import * as comm from "./comm.js";
 import * as lessons from "./lessons.js";
 import * as trad from "./trad.js";
-import { navigate } from "./main.js";
+import { navigate, setScript } from "./main.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
 import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExams, getHskk } from "./exams.js";
 import { unzip } from "./unzip.js";
@@ -790,6 +790,24 @@ export async function renderHome() {
     statBox(todayStat.reviews, "Lượt ôn hôm nay"),
     statBox(`${learned}/${total}`, "Tiến độ bộ thẻ"),
   ));
+
+  // Track học: Giản / Phồn (tiến độ độc lập, 1 chạm chuyển)
+  const cur = s.charMode === "traditional" ? "trad" : "simp";
+  const trackLearned = (prog) => { if (!deck) return 0; let n = 0; for (const c of deck.cards) if (prog[c.id]?.reps > 0) n++; return n; };
+  const trackBox = el("div", { class: "panel stack", style: "margin-top:16px" }, el("b", {}, "Track học"));
+  const trackRow = el("div", { class: "track-row" });
+  for (const t of [{ id: "simp", label: "Giản thể", zh: "简" }, { id: "trad", label: "Phồn thể", zh: "繁" }]) {
+    const ln = trackLearned(store.getProgressFor(t.id));
+    const stk = computeStreak(store.getStatsFor(t.id));
+    trackRow.append(el("button", { class: "track-card no-cc" + (t.id === cur ? " active" : ""), onclick: () => { if (t.id !== cur) setScript(t.id); } },
+      el("span", { class: "track-zh" }, t.zh),
+      el("span", { class: "track-body" },
+        el("span", { class: "track-name" }, t.label),
+        el("span", { class: "track-meta muted small" }, `${ln} từ · ${stk} ngày chuỗi`)),
+      t.id === cur ? el("span", { class: "chip st known" }, "Đang học") : el("span", { class: "muted small" }, "Chuyển →")));
+  }
+  trackBox.append(trackRow);
+  root.append(trackBox);
 
   // Vào nhanh các module
   root.append(el("h2", { class: "view-title", style: "margin-top:26px" }, "Vào nhanh"));
