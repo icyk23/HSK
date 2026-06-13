@@ -31,12 +31,14 @@ const VIEWS = {
 const NAV = [
   { id: "home", label: "Trang chủ", icon: "home", tabs: [{ view: "home", label: "Trang chủ" }] },
   { id: "vocab", label: "Từ vựng", icon: "cards", tabs: [
-    { view: "study", label: "Học thẻ" },
     { view: "vocab", label: "Thư mục" },
     { view: "wordsets", label: "Bộ của tôi" },
-    { view: "quiz", label: "Quiz" },
-    { view: "listen", label: "Nghe" },
     { view: "manage", label: "Nguồn từ" },
+    // Phương thức học — không hiển thị thành tab; vào qua chọn bộ/nhóm ở Thư mục hoặc Bộ của tôi.
+    { view: "study", label: "Học thẻ", hidden: true },
+    { view: "quiz", label: "Quiz", hidden: true },
+    { view: "listen", label: "Nghe", hidden: true },
+    { view: "type", label: "Gõ pinyin", hidden: true },
   ] },
   { id: "exam", label: "Luyện đề", icon: "exam", tabs: [{ view: "exam", label: "Luyện đề" }] },
   { id: "comm", label: "Giao tiếp", icon: "comm", tabs: [{ view: "comm", label: "Giao tiếp" }] },
@@ -53,7 +55,9 @@ const NAV = [
 ];
 
 const moduleOf = (view) => NAV.find((m) => m.tabs.some((t) => t.view === view)) || NAV[0];
-const lastView = {}; // nhớ tab con gần nhất của mỗi module
+const tabOf = (view) => { for (const m of NAV) { const t = m.tabs.find((x) => x.view === view); if (t) return t; } return null; };
+const moduleEntry = (m) => lastView[m.id] || (m.tabs.find((t) => !t.hidden) || m.tabs[0]).view;
+const lastView = {}; // nhớ tab con gần nhất của mỗi module (chỉ tab hiển thị)
 
 let currentView = "home";
 const tabs1 = document.getElementById("tabs1");
@@ -84,7 +88,8 @@ scriptToggle.onclick = () => {
 
 async function go(view) {
   currentView = view;
-  lastView[moduleOf(view).id] = view;
+  const t = tabOf(view);
+  if (!t || !t.hidden) lastView[moduleOf(view).id] = view; // chỉ nhớ tab hiển thị
   renderNav();
   await (VIEWS[view] || ui.renderStudy)();
   applyTraditional();
@@ -131,12 +136,13 @@ function tabBtn(label, active, onclick, iconName) {
 function renderNav() {
   const mod = moduleOf(currentView);
   tabs1.innerHTML = "";
-  for (const m of NAV) tabs1.append(tabBtn(m.label, m === mod, () => go(lastView[m.id] || m.tabs[0].view), m.icon));
+  for (const m of NAV) tabs1.append(tabBtn(m.label, m === mod, () => go(moduleEntry(m)), m.icon));
 
   tabs2.innerHTML = "";
-  if (mod.tabs.length > 1) {
+  const visible = mod.tabs.filter((t) => !t.hidden);
+  if (visible.length > 1) {
     tabs2.style.display = "";
-    for (const t of mod.tabs) tabs2.append(tabBtn(t.label, t.view === currentView, () => go(t.view)));
+    for (const t of visible) tabs2.append(tabBtn(t.label, t.view === currentView, () => go(t.view)));
   } else {
     tabs2.style.display = "none";
   }

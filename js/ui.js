@@ -104,6 +104,13 @@ function setLearnScope(ids, label) {
   setStudyFilter(ids ? (c) => ids.has(c.id) : null, label);
 }
 function scopeCards(cards) { return learnScope ? cards.filter((c) => learnScope.ids.has(c.id)) : cards; }
+// Đặt phạm vi học = nhóm/lựa chọn rồi mở phương thức (flashcard/quiz/gõ/nghe).
+function studyScope(ids, label, mode) {
+  const set = ids instanceof Set ? new Set(ids) : new Set(ids);
+  if (!set.size) return toast("Chưa chọn từ nào.");
+  setLearnScope(set, label);
+  navigate(mode);
+}
 function studyFilterBanner() {
   if (!studyFilter) return null;
   return el("div", { class: "filter-banner" },
@@ -376,7 +383,8 @@ function folderEl(g) {
   const head = el("div", { class: "folder-head" },
     cbx(allSel, selN > 0 && !allSel, (e) => { e.stopPropagation(); toggleFolderSel(g, !allSel); }),
     el("div", { class: "folder-name", onclick: () => { if (open) vocab.open.delete(g.key); else vocab.open.add(g.key); renderFolders(); } }, `${open ? "▾" : "▸"} ${g.label}`),
-    el("span", { class: "folder-ct" }, `${selN ? selN + "/" : ""}${g.cards.length}`));
+    el("span", { class: "folder-ct" }, `${selN ? selN + "/" : ""}${g.cards.length}`),
+    el("button", { class: "btn ghost small folder-go", title: "Học nhóm này (Flashcard)", onclick: (e) => { e.stopPropagation(); studyScope(g.cards.map((c) => c.id), g.label, "study"); } }, iconEl("play")));
   const box = el("div", { class: "folder" }, head);
   if (open) {
     const lim = folderLimit[g.key] || 100;
@@ -402,14 +410,21 @@ function renderSelBar() {
   if (!host) return;
   host.innerHTML = "";
   if (!vocabSel.size) {
-    host.append(el("p", { class: "muted small", style: "margin:10px 2px" }, "Tick các từ (hoặc cả thư mục) rồi lưu thành bộ để học — vd “Bộ từ 11/06”."));
+    host.append(el("p", { class: "muted small", style: "margin:10px 2px" }, "Bấm ▶ ở mỗi nhóm để học ngay, hoặc tick chọn từ → học/lưu thành bộ."));
     return;
   }
+  const lbl = `Đã chọn ${vocabSel.size} từ`;
   host.append(el("div", { class: "selbar" },
-    el("b", {}, `Đã chọn ${vocabSel.size} từ`),
+    el("b", {}, lbl),
     el("div", { class: "spacer" }),
     el("button", { class: "btn primary small", onclick: saveSelAsSet }, iconEl("save"), "Lưu thành bộ…"),
     el("button", { class: "btn ghost small", onclick: () => { vocabSel.clear(); renderFolders(); renderSelBar(); } }, "Bỏ chọn")));
+  host.append(el("div", { class: "row", style: "margin-top:8px;align-items:center" },
+    el("span", { class: "muted small" }, "Học ngay:"),
+    methodBtn("cards", "Flashcard", () => studyScope(vocabSel, lbl, "study")),
+    methodBtn("exam", "Quiz", () => studyScope(vocabSel, lbl, "quiz")),
+    methodBtn("keyboard", "Gõ pinyin", () => studyScope(vocabSel, lbl, "type")),
+    methodBtn("speaker", "Nghe", () => studyScope(vocabSel, lbl, "listen"))));
 }
 
 function saveSelAsSet() {
@@ -1725,9 +1740,19 @@ function commTopbar(title) {
     el("span", { class: "muted" }, title));
 }
 
+// Cổng "chọn nguồn trước": hiện thanh nguồn + nút Bắt đầu; chỉ vào luyện khi đã chọn xong.
+function commIntro(root, scenes, { title, opts, count, unit }) {
+  root.append(commTopbar(title));
+  root.append(commSourceBar(scenes, opts));
+  root.append(el("div", { class: "panel center stack" },
+    el("div", { class: count > 0 ? "" : "muted" }, count > 0 ? `Nguồn đang chọn: ${count} ${unit}` : `Nguồn đang chọn chưa có ${unit} — chọn nguồn khác ở trên.`),
+    count > 0 ? el("button", { class: "btn primary big", onclick: () => { commView.started = true; renderComm(); } }, iconEl("play"), el("span", { class: "btn-tx" }, "Bắt đầu luyện")) : null));
+}
+
 /* ---------- Drill: Hỏi–đáp tình huống ---------- */
 function commDrillQA(root, scenes) {
   const s = store.getSettings();
+  if (!commView.started) return commIntro(root, scenes, { title: "Hỏi–đáp tình huống", opts: { materialNote: "Tài liệu: cần Qwen3 để sinh câu hỏi (sắp có)." }, count: qaBank(scenes).length, unit: "cặp hỏi–đáp" });
   root.append(commTopbar("Hỏi–đáp tình huống"));
   root.append(commSourceBar(scenes, { materialNote: "Tài liệu: cần Qwen3 để sinh câu hỏi (sắp có)." }));
   const bank = shuffle(qaBank(scenes).slice());
@@ -1781,6 +1806,7 @@ function commDrillQA(root, scenes) {
 /* ---------- Drill: Shadowing + Phát âm ---------- */
 function commDrillShadow(root, scenes) {
   const s = store.getSettings();
+  if (!commView.started) return commIntro(root, scenes, { title: "Shadowing + Phát âm", opts: { material: true }, count: lineBank(scenes).length, unit: "câu" });
   root.append(commTopbar("Shadowing + Phát âm"));
   root.append(commSourceBar(scenes, { material: true }));
   const bank = shuffle(lineBank(scenes).slice());
@@ -1905,6 +1931,7 @@ function commDrillSprint(root, scenes) {
 /* ---------- Drill: Thay thế mẫu câu (句型替换) ---------- */
 function commDrillPattern(root, scenes) {
   const s = store.getSettings();
+  if (!commView.started) return commIntro(root, scenes, { title: "Thay thế mẫu câu", opts: { materialNote: "Tài liệu: cần Qwen3 để sinh mẫu câu (sắp có)." }, count: patternBank(scenes).length, unit: "mẫu câu" });
   root.append(commTopbar("Thay thế mẫu câu"));
   root.append(commSourceBar(scenes, { materialNote: "Tài liệu: cần Qwen3 để sinh mẫu câu (sắp có)." }));
   const bank = patternBank(scenes);

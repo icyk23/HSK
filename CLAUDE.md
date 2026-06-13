@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] "CHỌN TRƯỚC RỒI HỌC": (1) Từ vựng còn 3 tab (Thư mục · Bộ của tôi · Nguồn từ); Học thẻ/Quiz/Nghe/
+    Gõ thành view ẩn (tab hidden trong NAV, moduleOf vẫn map về Từ vựng) — vào qua nút ▶ mỗi nhóm ở
+    Thư mục hoặc hàng phương thức khi tick chọn (studyScope→learnScope) + per-set ở Bộ của tôi.
+    (2) Giao tiếp: mỗi drill (Hỏi–đáp/Shadowing/Thay thế) mở CỔNG commIntro = thanh nguồn + "Bắt đầu
+    luyện" (đếm số câu nguồn), chỉ vào luyện khi commView.started; Sprint giữ setup sẵn có.
 [x] Trang chủ: TRA CỨU NHANH (gõ chữ Hán/pinyin/nghĩa → tối đa 8 thẻ khớp, hiện 简/繁 theo track +
     pinyin/Hán-Việt/nghĩa + TTS) + thẻ "Track học" Giản/Phồn (từ đã học·chuỗi ngày mỗi track, 1 chạm
     chuyển). QA responsive mọi màn mới (home/tra cứu/track/lộ trình/SRS/story/task) OK trên 390px, 0 cảnh báo.
