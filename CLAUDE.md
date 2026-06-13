@@ -145,6 +145,12 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] CHẾ ĐỘ PHỒN THỂ TOÀN CỤC: bộ chuyển 简→繁 offline (data/s2t.json — bảng char OpenCC 3883 mục,
+    sinh từ STCharacters.txt; js/cc.js: s2t()+applyToDom()). Khi Cài đặt charMode="traditional", main.js
+    áp chuyển TOÀN APP (sau mỗi render + MutationObserver cho nội dung động) → mọi ví dụ/câu/đề/bản dịch
+    hiển thị phồn thể, dùng chung tiến độ. Trừ: module Phồn thể (view "trad*", giữ 简 minh hoạ) và nhãn
+    đối chiếu / nhãn "简→繁" (class no-cc). Round-trip kiểm chứng (Học thẻ→愛, đối chiếu giữ 爱). Bước 1 của
+    hướng "phồn thể đầy đủ module"; có thể nâng lên track riêng (tiến độ độc lập) sau nếu cần.
 [x] Hoàn thiện SAO LƯU/KHÔI PHỤC (sửa lỗi mất dữ liệu): exportAll/importAll nay gồm đủ wordSets,
     tradSrs, tradMeta, commRecords + TÀI LIỆU/truyện trong IndexedDB (qua lessons.listMaterials/
     saveMaterial); xuất/nhập async, xác nhận GHI ĐÈ khi khôi phục, kiểm tra file hợp lệ. Loại trừ

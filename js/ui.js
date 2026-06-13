@@ -194,7 +194,7 @@ function renderCard() {
     el("div", { class: "meaning" }, card.meaning),
     card.han_viet && el("div", { class: "muted" }, `Hán-Việt: ${card.han_viet}`),
     settings.charMode !== "both" && card.traditional !== card.simplified &&
-      el("div", { class: "muted" }, `${settings.charMode === "traditional" ? "Giản thể" : "Phồn thể"}: ${settings.charMode === "traditional" ? card.simplified : card.traditional}`),
+      el("div", { class: "muted no-cc" }, `${settings.charMode === "traditional" ? "Giản thể" : "Phồn thể"}: ${settings.charMode === "traditional" ? card.simplified : card.traditional}`),
     card.example && el("div", { class: "example", html: highlightHeadword(card.example, card.simplified) }),
     (card.hsk_level || card.semantic_group) && el("div", { class: "chips center-chips" },
       card.hsk_level && el("span", { class: "chip lvl" }, "HSK" + card.hsk_level),
@@ -774,7 +774,7 @@ export async function renderHome() {
     for (const [n, t, d, view] of steps) {
       grid.append(el("button", { class: "road-step", onclick: () => navigate(view) },
         el("span", { class: "road-n" }, n),
-        el("span", { class: "road-body" }, el("span", { class: "road-title" }, t), el("span", { class: "road-desc muted small" }, d)),
+        el("span", { class: "road-body" }, el("span", { class: "road-title" }, t), el("span", { class: "road-desc muted small no-cc" }, d)),
         iconEl("play")));
     }
     card.append(grid);
@@ -805,7 +805,7 @@ export async function renderHome() {
       el("span", { class: "home-tile-ic" }, iconEl(ic)),
       el("span", { class: "home-tile-body" },
         el("span", { class: "home-tile-name" }, name),
-        el("span", { class: "home-tile-desc muted" }, desc)),
+        el("span", { class: "home-tile-desc muted no-cc" }, desc)),
     ));
   }
   root.append(tiles);

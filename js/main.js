@@ -1,7 +1,8 @@
 // main.js — bootstrap, điều hướng nav 2 tầng, đăng ký service worker.
 
-import { applyTheme } from "./store.js";
+import { applyTheme, getSettings } from "./store.js";
 import * as ui from "./ui.js";
+import * as cc from "./cc.js";
 import { icon } from "./icons.js";
 
 const VIEWS = {
@@ -58,12 +59,35 @@ let currentView = "home";
 const tabs1 = document.getElementById("tabs1");
 const tabs2 = document.getElementById("tabs2");
 
-function go(view) {
+// Chế độ phồn thể TOÀN CỤC: bật khi charMode="traditional", trừ chính module Phồn thể
+// (giữ nguyên 简/繁 minh hoạ ở đó).
+function traditionalOn(view = currentView) {
+  return getSettings().charMode === "traditional" && !String(view).startsWith("trad");
+}
+const appEl = document.getElementById("app");
+function applyTraditional() { if (traditionalOn()) cc.applyToDom(appEl); }
+
+async function go(view) {
   currentView = view;
   lastView[moduleOf(view).id] = view;
   renderNav();
-  (VIEWS[view] || ui.renderStudy)();
+  await (VIEWS[view] || ui.renderStudy)();
+  applyTraditional();
   window.scrollTo({ top: 0 });
+}
+
+// Nội dung render lại trong-màn (lật thẻ, câu kế, sprint…) → chuyển qua MutationObserver.
+let ccScheduled = false, ccBusy = false;
+function scheduleCc() {
+  if (ccScheduled || ccBusy || !traditionalOn()) return;
+  ccScheduled = true;
+  requestAnimationFrame(() => { ccScheduled = false; ccBusy = true; try { cc.applyToDom(appEl); } finally { ccBusy = false; } });
+}
+function startCcObserver() {
+  new MutationObserver((muts) => {
+    if (ccBusy || !traditionalOn()) return;
+    for (const m of muts) { if (m.addedNodes.length || m.type === "characterData") { scheduleCc(); break; } }
+  }).observe(appEl, { childList: true, subtree: true, characterData: true });
 }
 
 // Cho phép các module (ui.js) chuyển sang module/tab khác — vd Bài học → Học thẻ/Giao tiếp/Dịch thuật.
@@ -103,7 +127,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 applyTheme();
-go("home");
+startCcObserver();
+cc.ensureS2T().then(() => { go("home"); });
 
 // PWA service worker (ignored when opened via file://)
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
