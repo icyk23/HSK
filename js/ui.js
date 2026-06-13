@@ -630,7 +630,9 @@ export async function renderStats() {
   const progress = store.getProgress();
   const stats = store.getStats();
 
-  root.append(el("h1", { class: "view-title" }, "Tiến độ"));
+  root.append(el("div", { class: "row spread" },
+    el("h1", { class: "view-title", style: "margin:0" }, "Tiến độ"),
+    s.charMode === "traditional" ? el("span", { class: "chip st known no-cc" }, "Track: Phồn thể") : null));
 
   let learned = 0, due = 0, total = deck ? deck.cards.length : 0;
   if (deck) {
@@ -746,7 +748,7 @@ export async function renderHome() {
   // Hero: lời chào + CTA tiếp tục học
   const hero = el("div", { class: "home-hero" },
     el("div", { class: "home-hero-main" },
-      el("div", { class: "home-kicker" }, greet.toUpperCase()),
+      el("div", { class: "home-kicker no-cc" }, greet.toUpperCase() + (s.charMode === "traditional" ? " · TRACK PHỒN THỂ" : "")),
       el("h1", { class: "home-title" }, due > 0 ? `Bạn có ${due} thẻ đến hạn ôn` : learned > 0 ? "Tiếp tục chinh phục tiếng Trung" : "Bắt đầu hành trình tiếng Trung"),
       el("p", { class: "home-sub muted" }, due > 0 ? "Ôn ngay để giữ chuỗi ngày và nhớ lâu hơn." : "Mỗi ngày vài thẻ — tiến bộ đều đặn."),
       el("div", { class: "row" },

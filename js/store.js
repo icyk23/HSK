@@ -42,6 +42,13 @@ function write(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+/* ---------------- Track theo tự hình (Giản/Phồn có tiến độ ĐỘC LẬP) ----------------
+ * charMode="traditional" → dùng store hậu tố ".trad" cho SRS progress + daily stats.
+ * "simplified"/"both" → store gốc. Cùng bộ thẻ HSK, nhưng tiến độ học tách riêng. */
+function scriptSuffix() { return read(KEYS.settings, {}).charMode === "traditional" ? ".trad" : ""; }
+function progKey() { return KEYS.progress + scriptSuffix(); }
+function statsKey() { return KEYS.stats + scriptSuffix(); }
+
 /* ---------------- Settings ---------------- */
 export function getSettings() {
   return { ...DEFAULT_SETTINGS, ...read(KEYS.settings, {}) };
@@ -78,7 +85,7 @@ export function deleteUserDeck(id) {
 
 /* ---------------- SRS progress ---------------- */
 export function getProgress() {
-  return read(KEYS.progress, {});
+  return read(progKey(), {});
 }
 export function getCardState(cardId) {
   return getProgress()[cardId] || null;
@@ -86,15 +93,16 @@ export function getCardState(cardId) {
 export function saveCardState(cardId, state) {
   const all = getProgress();
   all[cardId] = state;
-  write(KEYS.progress, all);
+  write(progKey(), all);
 }
 export function resetProgress(deckId) {
-  if (!deckId) return write(KEYS.progress, {});
+  const key = progKey();
+  if (!deckId) return write(key, {});
   const all = getProgress();
   for (const k of Object.keys(all)) {
     if (all[k].deckId === deckId) delete all[k];
   }
-  write(KEYS.progress, all);
+  write(key, all);
 }
 
 /* ---------------- Giao tiếp: kỷ lục Sprint ---------------- */
@@ -236,23 +244,26 @@ export function deleteTranslation(id) {
 
 /* ---------------- Daily stats ---------------- */
 export function logReview(correct) {
-  const stats = read(KEYS.stats, {});
+  const key = statsKey();
+  const stats = read(key, {});
   const day = new Date().toISOString().slice(0, 10);
   if (!stats[day]) stats[day] = { reviews: 0, correct: 0 };
   stats[day].reviews += 1;
   if (correct) stats[day].correct += 1;
-  write(KEYS.stats, stats);
+  write(key, stats);
 }
 export function getStats() {
-  return read(KEYS.stats, {});
+  return read(statsKey(), {});
 }
 
 export function exportAll() {
   return {
     settings: getSettings(),
     decks: getUserDecks(),
-    progress: getProgress(),
-    stats: getStats(),
+    progress: read(KEYS.progress, {}),
+    stats: read(KEYS.stats, {}),
+    progressTrad: read(KEYS.progress + ".trad", {}),
+    statsTrad: read(KEYS.stats + ".trad", {}),
     classOverrides: getClassOverrides(),
     exams: getUserExams(),
     examProgress: read(KEYS.examProgress, {}),
@@ -269,6 +280,8 @@ export function importAll(data) {
   if (data.decks) write(KEYS.decks, data.decks);
   if (data.progress) write(KEYS.progress, data.progress);
   if (data.stats) write(KEYS.stats, data.stats);
+  if (data.progressTrad) write(KEYS.progress + ".trad", data.progressTrad);
+  if (data.statsTrad) write(KEYS.stats + ".trad", data.statsTrad);
   if (data.classOverrides) write(KEYS.classOverrides, data.classOverrides);
   if (data.exams) write(KEYS.exams, data.exams);
   if (data.examProgress) write(KEYS.examProgress, data.examProgress);

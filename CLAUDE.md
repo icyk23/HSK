@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] B — TRACK PHỒN THỂ TIẾN ĐỘ ĐỘC LẬP: SRS progress + daily stats định tuyến theo charMode
+    (store: progKey()/statsKey() → hậu tố ".trad" khi traditional). Công tắc 简/繁 = chuyển track;
+    cùng bộ thẻ HSK + cùng UI/nav, nhưng tiến độ/chuỗi ngày/đến hạn TÁCH RIÊNG. Dashboard hiện
+    "TRACK PHỒN THỂ", trang Tiến độ có chip track. Backup gồm cả progressTrad/statsTrad. Kiểm chứng:
+    học simp→progress simp=1/trad=0; chuyển trad học tiếp→simp=1/trad=1. (wordSets/dịch/đề vẫn dùng chung.)
 [x] CHẾ ĐỘ PHỒN THỂ TOÀN CỤC: bộ chuyển 简→繁 offline — KHỚP CỤM TỪ trước (data/s2t-phrases.json,
     9924 cụm OpenCC chỉ-giữ-khác-charwise) rồi tới KÝ TỰ (data/s2t.json, 3882 mục); fix 喫→吃. js/cc.js:
     s2t() greedy longest-match + applyToDom(). Khi Cài đặt charMode="traditional", main.js
