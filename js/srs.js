@@ -10,6 +10,12 @@ export function freshState(deckId) {
   return { deckId, ease: 2.5, interval: 0, reps: 0, due: new Date().toISOString(), lapses: 0 };
 }
 
+// "Đã thuộc" — đánh dấu thuộc lòng: không xuất hiện trong queue nữa (có thể bỏ đánh dấu).
+export function knownState(deckId) {
+  return { deckId, ease: 2.5, interval: 36500, reps: 1, lapses: 0, known: true,
+    due: new Date(Date.now() + 36500 * DAY).toISOString() };
+}
+
 // Returns the next state given the current one and a grade.
 export function schedule(state, grade) {
   const s = { ...state };
@@ -57,6 +63,7 @@ export function buildQueue(cards, progress, { newPerDay, reviewLimit }) {
   const news = [];
   for (const card of cards) {
     const st = progress[card.id];
+    if (st && st.known) continue; // bỏ qua thẻ đã đánh dấu "đã thuộc"
     if (isNew(st)) {
       news.push(card);
     } else if (isDue(st)) {

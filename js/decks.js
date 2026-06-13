@@ -2,7 +2,7 @@
 
 import { getUserDecks } from "./store.js";
 
-const BUNDLED = ["./data/hsk6-starter.json"];
+const BUNDLED = ["./data/hsk-words.json", "./data/hsk6-starter.json"];
 let bundledCache = null;
 
 export async function loadBundledDecks() {

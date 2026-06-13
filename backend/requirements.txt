@@ -1,0 +1,16 @@
+# Bắt buộc (API + dịch qua Ollama)
+fastapi
+uvicorn[standard]
+python-multipart
+httpx
+
+# Bóc chữ PDF (PDF có sẵn text). Khuyến nghị.
+pymupdf
+
+# OCR ảnh / PDF scan (tùy chọn — bỏ nếu không cần đọc ảnh)
+rapidocr-onnxruntime
+pillow
+numpy
+
+# Nghe-ra-chữ cho audio/video (tùy chọn — bỏ nếu không cần)
+faster-whisper

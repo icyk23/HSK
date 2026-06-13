@@ -1,0 +1,410 @@
+{
+  "version": 1,
+  "exams": [
+    {
+      "id": "hsk6-mau-1",
+      "title": "Đề mẫu HSK6 — số 1",
+      "note": "Đề mẫu do app soạn (kiểu HSK6). Có thể nhập thêm đề bằng nút Nhập đề JSON.",
+      "reading": [
+        {
+          "part": 1,
+          "title": "Phần 1 · Chọn câu SAI ngữ pháp (病句)",
+          "instruction": "Trong mỗi câu hỏi có 4 câu A–D, hãy chọn câu CÓ LỖI ngữ pháp.",
+          "items": [
+            {
+              "id": "r1-1",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "通过这次活动，使我们增长了知识。",
+                "这本书的内容很丰富。",
+                "他每天坚持锻炼身体。",
+                "我们应该保护环境。"
+              ],
+              "answer": 0,
+              "explain": "“通过…使…” khiến câu thiếu chủ ngữ. Bỏ “通过” hoặc bỏ “使”."
+            },
+            {
+              "id": "r1-2",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "春天来了，天气渐渐暖和起来。",
+                "为了防止这类事故不再发生，我们加强了管理。",
+                "他的汉语水平提高得很快。",
+                "这部电影值得一看。"
+              ],
+              "answer": 1,
+              "explain": "“防止…不再…” phủ định trùng (sai nghĩa). Sửa thành “防止这类事故再次发生”."
+            },
+            {
+              "id": "r1-3",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "会议室里坐满了人。",
+                "这个问题值得我们认真思考。",
+                "大约有五十多个学生参加了比赛。",
+                "老师耐心地回答了我们的问题。"
+              ],
+              "answer": 2,
+              "explain": "“大约” và “多” đều chỉ sự ước lượng → trùng nghĩa. Bỏ một trong hai."
+            }
+          ]
+        },
+        {
+          "part": 2,
+          "title": "Phần 2 · Chọn từ điền vào chỗ trống (选词填空)",
+          "instruction": "Mỗi chỗ trống ____ chọn 1 từ phù hợp nhất.",
+          "items": [
+            {
+              "id": "r2-1",
+              "type": "cloze",
+              "passage": "现代社会，人们的生活节奏越来越快，很多人因此感到____。专家建议，适当的休息和运动能够有效地____压力，让身心得到放松。",
+              "blanks": [
+                { "options": ["焦虑", "高兴", "安静", "简单"], "answer": 0 },
+                { "options": ["增加", "缓解", "制造", "提高"], "answer": 1 }
+              ],
+              "explain": "焦虑 = lo âu (hợp với nhịp sống nhanh); 缓解压力 = giảm bớt áp lực."
+            },
+            {
+              "id": "r2-2",
+              "type": "cloze",
+              "passage": "阅读是一种重要的学习____。坚持阅读不仅能____知识，还能提高一个人的思维能力。",
+              "blanks": [
+                { "options": ["方式", "方向", "态度", "结果"], "answer": 0 },
+                { "options": ["浪费", "积累", "减少", "忘记"], "answer": 1 }
+              ],
+              "explain": "学习方式 = cách thức học; 积累知识 = tích lũy kiến thức."
+            }
+          ]
+        },
+        {
+          "part": 3,
+          "title": "Phần 3 · Chọn câu điền vào đoạn (选句填空)",
+          "instruction": "Chọn câu trong ngân hàng (A–D) điền vào các chỗ [1] [2] [3]. Có 1 câu thừa.",
+          "items": [
+            {
+              "id": "r3-1",
+              "type": "sentence-cloze",
+              "passage": "茶文化在中国有着悠久的历史。对很多人来说，[1]。在忙碌的工作之余，泡一杯茶，[2]，是一种享受。[3]，所以适量饮茶对身体也有好处。",
+              "bank": [
+                "茶不仅是一种饮品，更是一种生活方式",
+                "慢慢品味其中的香味",
+                "茶中含有对人体有益的成分",
+                "它的价格也越来越贵"
+              ],
+              "answers": [0, 1, 2],
+              "explain": "Câu D (价格越来越贵) là câu thừa, không hợp mạch văn nói về văn hóa & lợi ích của trà."
+            }
+          ]
+        },
+        {
+          "part": 4,
+          "title": "Phần 4 · Đọc hiểu (阅读理解)",
+          "instruction": "Đọc đoạn văn rồi trả lời câu hỏi.",
+          "items": [
+            {
+              "id": "r4-1",
+              "type": "reading",
+              "passage": "随着科技的发展，智能手机已经成为人们生活中不可缺少的一部分。它给我们带来了许多便利，比如随时随地与他人沟通、获取信息、处理工作等。然而，过度依赖手机也带来了一些问题。许多人养成了不停查看手机的习惯，这不仅影响了工作和学习的效率，还可能对身体健康造成不良影响，例如视力下降、睡眠质量变差等。因此，合理使用手机，才能让它真正为我们的生活服务。",
+              "questions": [
+                {
+                  "stem": "这段话主要谈的是什么？",
+                  "options": ["手机的价格", "手机的好处和问题", "如何购买手机", "手机的发展历史"],
+                  "answer": 1,
+                  "explain": "Đoạn văn nêu cả tiện lợi lẫn vấn đề của điện thoại."
+                },
+                {
+                  "stem": "过度使用手机可能带来什么影响？",
+                  "options": ["视力变好", "睡眠质量变差", "工作效率提高", "身体更健康"],
+                  "answer": 1,
+                  "explain": "Văn bản nêu rõ: 视力下降、睡眠质量变差."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "writing": {
+        "type": "summary",
+        "title": "Phần Viết · 缩写 (Tóm tắt)",
+        "instruction": "Đọc bài trong khoảng 10 phút (không chép lại khi viết), sau đó tóm tắt thành một đoạn khoảng 150 chữ và đặt tiêu đề. Đề thi thật yêu cầu ~400 chữ.",
+        "article": "从前，有一个年轻人想要学习画画。他找到一位有名的画家，希望拜他为师。画家答应了，但要求他先用一年的时间只画鸡蛋。年轻人觉得很奇怪，画鸡蛋有什么用呢？但他还是照做了。一开始，他画得很认真，可是时间一长，就渐渐失去了耐心，画得越来越马虎。画家看出了他的心思，对他说：“每一个鸡蛋的形状都不一样，只有把最简单的东西画好，才能画好复杂的东西。”年轻人听后深受启发，从此专心练习基本功。许多年后，他终于成为了一位出色的画家。这个故事告诉我们，做任何事情都要从基础做起，只有打好基础，坚持不懈，才能取得成功。",
+        "readMinutes": 10,
+        "writeMinutes": 35,
+        "targetChars": 150
+      }
+    },
+    {
+      "id": "hsk6-mau-2",
+      "title": "Đề mẫu HSK6 — số 2",
+      "note": "Đề mẫu do app soạn (kiểu HSK6).",
+      "reading": [
+        {
+          "part": 1,
+          "title": "Phần 1 · Chọn câu SAI ngữ pháp (病句)",
+          "instruction": "Trong mỗi câu hỏi có 4 câu A–D, hãy chọn câu CÓ LỖI ngữ pháp.",
+          "items": [
+            {
+              "id": "e2r1-1",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "经过老师的帮助，他的成绩有了明显的提高。",
+                "我们要养成爱护公共财物。",
+                "这部小说深受读者的喜爱。",
+                "他对这件事的态度非常明确。"
+              ],
+              "answer": 1,
+              "explain": "“养成…” thiếu tân ngữ trung tâm. Sửa: “养成爱护公共财物的习惯”."
+            },
+            {
+              "id": "e2r1-2",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "能否取得好成绩，关键在于平时是否努力。",
+                "为了提高效率，我们改进了工作方法。",
+                "大家的眼睛都集中在他身上。",
+                "这次旅行让我增长了不少见识。"
+              ],
+              "answer": 2,
+              "explain": "Kết hợp sai: “眼睛” không “集中”. Sửa: “目光/注意力都集中在他身上”."
+            },
+            {
+              "id": "e2r1-3",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "听了他的话，大家都笑了起来。",
+                "他不但学习好，而且乐于助人。",
+                "通过努力，他终于实现了自己的梦想。",
+                "我估计他今天一定不会来了。"
+              ],
+              "answer": 3,
+              "explain": "“估计” (phỏng đoán) mâu thuẫn với “一定” (chắc chắn). Bỏ một trong hai."
+            }
+          ]
+        },
+        {
+          "part": 2,
+          "title": "Phần 2 · Chọn từ điền vào chỗ trống (选词填空)",
+          "instruction": "Mỗi chỗ trống ____ chọn 1 từ phù hợp nhất.",
+          "items": [
+            {
+              "id": "e2r2-1",
+              "type": "cloze",
+              "passage": "良好的睡眠对健康非常____。研究表明，长期睡眠不足会____人的记忆力和注意力。",
+              "blanks": [
+                { "options": ["重要", "普通", "复杂", "困难"], "answer": 0 },
+                { "options": ["提高", "影响", "增强", "改善"], "answer": 1 }
+              ],
+              "explain": "重要 = quan trọng; 影响 = ảnh hưởng (xấu đến trí nhớ)."
+            },
+            {
+              "id": "e2r2-2",
+              "type": "cloze",
+              "passage": "随着网络的____，人们获取信息的方式发生了很大的变化，足不出户就能了解世界各地的____。",
+              "blanks": [
+                { "options": ["普及", "减少", "消失", "停止"], "answer": 0 },
+                { "options": ["新闻", "价格", "人口", "工资"], "answer": 0 }
+              ],
+              "explain": "普及 = phổ cập; 新闻 = tin tức."
+            }
+          ]
+        },
+        {
+          "part": 3,
+          "title": "Phần 3 · Chọn câu điền vào đoạn (选句填空)",
+          "instruction": "Chọn câu trong ngân hàng (A–D) điền vào các chỗ [1] [2] [3]. Có 1 câu thừa.",
+          "items": [
+            {
+              "id": "e2r3-1",
+              "type": "sentence-cloze",
+              "passage": "运动是保持健康的重要方式。[1]，还能让人保持愉快的心情。不过，运动也要讲究方法，[2]。因此，[3]，才能真正达到锻炼的效果。",
+              "bank": [
+                "适当的运动不仅能增强体质",
+                "否则容易造成身体的损伤",
+                "根据自己的身体情况选择合适的运动",
+                "运动的费用越来越高"
+              ],
+              "answers": [0, 1, 2],
+              "explain": "Câu D (费用越来越高) lạc đề, là câu thừa."
+            }
+          ]
+        },
+        {
+          "part": 4,
+          "title": "Phần 4 · Đọc hiểu (阅读理解)",
+          "instruction": "Đọc đoạn văn rồi trả lời câu hỏi.",
+          "items": [
+            {
+              "id": "e2r4-1",
+              "type": "reading",
+              "passage": "微笑是人与人之间最美好的语言。一个真诚的微笑，常常能拉近彼此的距离，化解误会与矛盾。在与人交往时，微笑不需要任何成本，却能给别人带来温暖和力量。研究发现，经常微笑的人往往更乐观，也更容易获得他人的信任与好感。因此，不妨多给身边的人一个微笑，让生活变得更加美好。",
+              "questions": [
+                {
+                  "stem": "这段话主要想告诉我们什么？",
+                  "options": ["微笑要花费很多钱", "微笑的好处和重要性", "怎样学会微笑", "微笑只对自己有用"],
+                  "answer": 1,
+                  "explain": "Đoạn văn nói về lợi ích và tầm quan trọng của nụ cười."
+                },
+                {
+                  "stem": "根据这段话，经常微笑的人：",
+                  "options": ["更容易生病", "更容易获得信任", "更不受欢迎", "更加悲观"],
+                  "answer": 1,
+                  "explain": "Văn bản: 经常微笑的人…更容易获得他人的信任与好感."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "writing": {
+        "type": "summary",
+        "title": "Phần Viết · 缩写 (Tóm tắt)",
+        "instruction": "Đọc bài trong khoảng 10 phút (không chép lại khi viết), sau đó tóm tắt thành một đoạn khoảng 150 chữ và đặt tiêu đề. Đề thi thật yêu cầu ~400 chữ.",
+        "article": "有一位农夫，每天都要走很远的路去田里干活。一天，他在路边发现了一块奇怪的石头，便把它带回了家。邻居看见后，劝他把石头扔掉，说它没有任何用处。农夫却不这么想，他把石头放在院子里，每天观察、琢磨。后来，一位过路的学者看到这块石头，惊讶地说这是一块珍贵的化石，具有很高的研究价值。农夫这才明白，很多东西的价值，并不是一眼就能看出来的。这个故事告诉我们，看待事物不能只看表面，有时候，耐心和细心的观察，才能发现别人忽略的价值。",
+        "readMinutes": 10,
+        "writeMinutes": 35,
+        "targetChars": 150
+      }
+    },
+    {
+      "id": "hsk6-mau-3",
+      "title": "Đề mẫu HSK6 — số 3",
+      "note": "Đề mẫu do app soạn (kiểu HSK6).",
+      "reading": [
+        {
+          "part": 1,
+          "title": "Phần 1 · Chọn câu SAI ngữ pháp (病句)",
+          "instruction": "Trong mỗi câu hỏi có 4 câu A–D, hãy chọn câu CÓ LỖI ngữ pháp.",
+          "items": [
+            {
+              "id": "e3r1-1",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "这家公司的产品质量很受顾客信赖。",
+                "我们必须及时纠正并发现工作中的问题。",
+                "春节是中国最重要的传统节日之一。",
+                "他的发言引起了大家的热烈讨论。"
+              ],
+              "answer": 1,
+              "explain": "Sai trật tự từ: phải “及时发现并纠正” (phát hiện rồi mới sửa)."
+            },
+            {
+              "id": "e3r1-2",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "只有不断学习，才能跟上时代的发展。",
+                "这本书的作者是一位经验丰富的老师写的。",
+                "我们应该珍惜现在的美好生活。",
+                "他认真地完成了这次任务。"
+              ],
+              "answer": 1,
+              "explain": "Lẫn cấu trúc (句式杂糅): chọn “作者是一位老师” HOẶC “这本书是一位老师写的”."
+            },
+            {
+              "id": "e3r1-3",
+              "type": "mcq",
+              "stem": "Chọn câu có lỗi:",
+              "options": [
+                "大约有一半左右的同学参加了这次活动。",
+                "这件衣服的颜色和样式都很好看。",
+                "我们一定要遵守学校的各项规定。",
+                "听到这个好消息，他高兴得跳了起来。"
+              ],
+              "answer": 0,
+              "explain": "“大约” và “左右” đều chỉ ước lượng → trùng. Bỏ một trong hai."
+            }
+          ]
+        },
+        {
+          "part": 2,
+          "title": "Phần 2 · Chọn từ điền vào chỗ trống (选词填空)",
+          "instruction": "Mỗi chỗ trống ____ chọn 1 từ phù hợp nhất.",
+          "items": [
+            {
+              "id": "e3r2-1",
+              "type": "cloze",
+              "passage": "保护环境是每个人的____。如果大家都能从身边的小事做起，就能为地球的未来做出____。",
+              "blanks": [
+                { "options": ["责任", "自由", "机会", "秘密"], "answer": 0 },
+                { "options": ["破坏", "贡献", "污染", "麻烦"], "answer": 1 }
+              ],
+              "explain": "责任 = trách nhiệm; 贡献 = đóng góp."
+            },
+            {
+              "id": "e3r2-2",
+              "type": "cloze",
+              "passage": "读书可以开阔视野，____思维。一个爱读书的人，往往拥有更加丰富的____世界。",
+              "blanks": [
+                { "options": ["拓展", "减少", "关闭", "停止"], "answer": 0 },
+                { "options": ["精神", "物质", "金钱", "身体"], "answer": 0 }
+              ],
+              "explain": "拓展思维 = mở rộng tư duy; 精神世界 = thế giới tinh thần."
+            }
+          ]
+        },
+        {
+          "part": 3,
+          "title": "Phần 3 · Chọn câu điền vào đoạn (选句填空)",
+          "instruction": "Chọn câu trong ngân hàng (A–D) điền vào các chỗ [1] [2] [3]. Có 1 câu thừa.",
+          "items": [
+            {
+              "id": "e3r3-1",
+              "type": "sentence-cloze",
+              "passage": "习惯对一个人的影响非常大。[1]，会让我们的生活变得更有规律。相反，[2]。所以，从小养成好习惯十分重要，[3]。",
+              "bank": [
+                "良好的习惯",
+                "坏习惯则会带来许多麻烦",
+                "因为它会影响我们的一生",
+                "习惯是天生的"
+              ],
+              "answers": [0, 1, 2],
+              "explain": "Câu D (习惯是天生的) trái nội dung, là câu thừa."
+            }
+          ]
+        },
+        {
+          "part": 4,
+          "title": "Phần 4 · Đọc hiểu (阅读理解)",
+          "instruction": "Đọc đoạn văn rồi trả lời câu hỏi.",
+          "items": [
+            {
+              "id": "e3r4-1",
+              "type": "reading",
+              "passage": "失败并不可怕，可怕的是失去面对失败的勇气。很多成功的人，都经历过无数次的失败。爱迪生在发明电灯的过程中，曾经失败了上千次，但他从不气馁，最终取得了成功。失败其实是一种宝贵的经验，它能让我们发现自己的不足，并从中吸取教训。只要我们能够正确地看待失败，把它当作前进的动力，就一定能离成功越来越近。",
+              "questions": [
+                {
+                  "stem": "这段话主要谈的是：",
+                  "options": ["怎样发明电灯", "应该如何看待失败", "爱迪生的生平", "成功的方法"],
+                  "answer": 1,
+                  "explain": "Trọng tâm đoạn văn là cách nhìn nhận thất bại."
+                },
+                {
+                  "stem": "根据这段话，失败可以让我们：",
+                  "options": ["失去勇气", "发现自己的不足", "变得骄傲", "放弃努力"],
+                  "answer": 1,
+                  "explain": "Văn bản: 失败…能让我们发现自己的不足，并从中吸取教训."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "writing": {
+        "type": "summary",
+        "title": "Phần Viết · 缩写 (Tóm tắt)",
+        "instruction": "Đọc bài trong khoảng 10 phút (không chép lại khi viết), sau đó tóm tắt thành một đoạn khoảng 150 chữ và đặt tiêu đề. Đề thi thật yêu cầu ~400 chữ.",
+        "article": "从前，有一个小男孩在集市上卖水果。一位顾客买完水果离开后，小男孩发现对方多付了钱。虽然那位顾客已经走远，找到他并不容易，但小男孩还是决定把多收的钱还回去。他跑了很远的路，终于追上了那位顾客，把钱还给了他。顾客非常感动，从此经常来照顾他的生意，还把他介绍给身边的朋友。小男孩的水果摊生意越来越好。这个故事告诉我们，诚信是做人最宝贵的品质。一时的诚实也许会让我们吃点小亏，但从长远来看，它会为我们赢得别人的信任，带来更大的回报。",
+        "readMinutes": 10,
+        "writeMinutes": 35,
+        "targetChars": 150
+      }
+    }
+  ]
+}
