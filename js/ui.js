@@ -791,6 +791,28 @@ export async function renderHome() {
     statBox(`${learned}/${total}`, "Tiến độ bộ thẻ"),
   ));
 
+  // Tra cứu nhanh: gõ chữ Hán / pinyin / nghĩa → kết quả từ bộ thẻ
+  const lookup = el("div", { class: "panel stack", style: "margin-top:16px" }, el("b", {}, "Tra cứu nhanh"));
+  const lkInp = el("input", { type: "text", placeholder: "Gõ chữ Hán · pinyin · nghĩa…" });
+  const lkRes = el("div", { class: "lookup-results" });
+  lkInp.addEventListener("input", () => {
+    const q = lkInp.value.trim().toLowerCase();
+    lkRes.innerHTML = "";
+    if (!q || !deck) return;
+    const hits = deck.cards.filter((c) => `${c.simplified} ${c.traditional || ""} ${(c.pinyin || "").toLowerCase()} ${(c.meaning || "").toLowerCase()} ${(c.han_viet || "").toLowerCase()}`.includes(q)).slice(0, 8);
+    if (!hits.length) { lkRes.append(el("div", { class: "muted small" }, "Không tìm thấy.")); return; }
+    for (const c of hits) {
+      const { main } = displayHanzi(c, s.charMode);
+      lkRes.append(el("div", { class: "lookup-row" },
+        el("button", { class: "btn ghost small", onclick: () => speak(c.simplified, { rate: s.speechRate }) }, iconEl("speaker")),
+        el("span", { class: "lookup-hz" }, main),
+        el("span", { class: "pinyin" }, c.pinyin || ""),
+        el("span", { class: "muted small" }, (c.han_viet ? `[${c.han_viet}] ` : "") + (c.meaning || ""))));
+    }
+  });
+  lookup.append(el("div", { class: "field" }, lkInp), lkRes);
+  root.append(lookup);
+
   // Track học: Giản / Phồn (tiến độ độc lập, 1 chạm chuyển)
   const cur = s.charMode === "traditional" ? "trad" : "simp";
   const trackLearned = (prog) => { if (!deck) return 0; let n = 0; for (const c of deck.cards) if (prog[c.id]?.reps > 0) n++; return n; };

@@ -145,6 +145,9 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] Trang chủ: TRA CỨU NHANH (gõ chữ Hán/pinyin/nghĩa → tối đa 8 thẻ khớp, hiện 简/繁 theo track +
+    pinyin/Hán-Việt/nghĩa + TTS) + thẻ "Track học" Giản/Phồn (từ đã học·chuỗi ngày mỗi track, 1 chạm
+    chuyển). QA responsive mọi màn mới (home/tra cứu/track/lộ trình/SRS/story/task) OK trên 390px, 0 cảnh báo.
 [x] B — TRACK PHỒN THỂ TIẾN ĐỘ ĐỘC LẬP: SRS progress + daily stats định tuyến theo charMode
     (store: progKey()/statsKey() → hậu tố ".trad" khi traditional). Công tắc 简/繁 = chuyển track;
     cùng bộ thẻ HSK + cùng UI/nav, nhưng tiến độ/chuỗi ngày/đến hạn TÁCH RIÊNG. Dashboard hiện

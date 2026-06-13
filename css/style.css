@@ -1091,3 +1091,11 @@ summary .ic svg, .exam-head h3 .ic svg { width: 17px; height: 17px; vertical-ali
 .track-body { display: grid; gap: 2px; flex: 1; }
 .track-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
 @media (max-width: 560px) { .track-row { grid-template-columns: 1fr; } }
+
+/* Trang chủ — tra cứu nhanh */
+.lookup-results { display: grid; gap: 4px; margin-top: 8px; }
+.lookup-row { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: var(--r-sm); }
+.lookup-row:hover { background: var(--surface-2); }
+.lookup-hz { font-family: var(--font-han); font-size: 22px; font-weight: 700; min-width: 1.6em; }
+.lookup-row .pinyin { min-width: 80px; }
+.lookup-row .muted { flex: 1; }
