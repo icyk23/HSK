@@ -62,3 +62,6 @@ Khi backend sống, các nút AI tự bật: **Giao tiếp** (bóc tự động 
 - `POST /grade-writing` (JSON): `{ article, title, text, target }` →
   `{ score(0-100), scores:{noi_dung,mach_lac,ngu_phap,dung_tu}, corrected, notes:[] }`
   (Luyện đề Viết 缩写 — chấm tóm tắt)
+- `POST /gen-qa` (JSON): `{ text, n }` →
+  `{ pairs:[{q,q_pinyin,q_vi,a,a_pinyin,a_vi}], count }`
+  (Giao tiếp — sinh Hỏi–đáp từ tài liệu đã nạp)

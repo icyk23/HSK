@@ -153,6 +153,11 @@ export async function gradeWriting(article, title, text, target) {
   return postJson("/grade-writing", { article, title, text, target });
 }
 
+// Sinh cặp Hỏi–đáp từ đoạn văn (Giao tiếp). Trả { pairs:[{q,q_pinyin,q_vi,a,a_pinyin,a_vi}], count }.
+export async function genQa(text, n = 8) {
+  return postJson("/gen-qa", { text, n });
+}
+
 async function postJson(path, payload) {
   const url = backendUrl();
   if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");

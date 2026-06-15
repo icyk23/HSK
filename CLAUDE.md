@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] BACKEND QWEN3 — sinh Hỏi–đáp cá nhân hoá: endpoint POST /gen-qa (text→[{q,q_pinyin,q_vi,a,...}]),
+    comm.genQa(); drill Hỏi–đáp đổi nguồn sang opts.genQa: chip mỗi tài liệu "(sinh hỏi–đáp)" → gọi
+    Qwen3 sinh 8 cặp → commPersonalQa nuôi qaBank → luyện với câu bám tài liệu của bạn. Reset đúng khi
+    đổi nguồn; commSourceSummary hiện số hỏi–đáp. E2E mock OK (sinh 2 cặp → luyện). Cần Ollama để chạy thật.
 [x] BACKEND QWEN3 — mở khoá chấm Viết: thêm endpoint POST /grade-writing (backend/app.py, helper
     _ollama_json) → điểm 0-100 + 4 tiêu chí + bản tóm tắt sửa + nhận xét; comm.gradeWriting() +
     nút "Chấm bằng Qwen3" ở Luyện đề Viết nay gọi thật + hộp kết quả writingGradeBox (lưu vào draft).

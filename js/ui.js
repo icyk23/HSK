@@ -1607,8 +1607,10 @@ let commTimer = null;            // đồng hồ Sprint
 let commRec = null;              // nhận diện giọng nói đang chạy
 let commKeyHandler = null;       // phím tắt của drill đang mở
 let commSel = { sceneIds: null };// null = tất cả cảnh
-let commPersonal = [];           // [{zh, pinyin?, vi?}] từ dán/thư viện
+let commPersonal = [];           // [{zh, pinyin?, vi?}] từ dán/thư viện (Shadowing)
 let commPersonalLabel = "";
+let commPersonalQa = [];         // [{q,q_pinyin,q_vi,a,a_pinyin,a_vi}] sinh từ tài liệu (Hỏi–đáp)
+let commPersonalQaLabel = "";
 
 function clearCommState() {
   if (commTimer) { clearInterval(commTimer); commTimer = null; }
@@ -1647,7 +1649,7 @@ function lineBank(scenes) {
   return out;
 }
 function viLineBank(scenes) { return lineBank(scenes).filter((x) => x.vi); }
-function qaBank(scenes) { const o = []; for (const s of selectedScenes(scenes)) o.push(...(s.qa || [])); return o; }
+function qaBank(scenes) { const o = []; for (const s of selectedScenes(scenes)) o.push(...(s.qa || [])); o.push(...commPersonalQa); return o; }
 function patternBank(scenes) { const o = []; for (const s of selectedScenes(scenes)) o.push(...(s.patterns || [])); return o; }
 
 async function commHome(root, scenes) {
@@ -1675,15 +1677,40 @@ function commSourceBar(scenes, opts = {}) {
   const wrap = el("div", { class: "panel comm-source" });
   wrap.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
   const chips = el("div", { class: "comm-chips" });
-  const allOn = !commSel.sceneIds && !commPersonal.length;
-  chips.append(commChip("Tất cả tình huống", allOn, () => { commPersonal = []; commPersonalLabel = ""; commSel.sceneIds = null; renderComm(); }));
+  const clearPersonal = () => { commPersonal = []; commPersonalLabel = ""; commPersonalQa = []; commPersonalQaLabel = ""; };
+  const allOn = !commSel.sceneIds && !commPersonal.length && !commPersonalQa.length;
+  chips.append(commChip("Tất cả tình huống", allOn, () => { clearPersonal(); commSel.sceneIds = null; renderComm(); }));
   for (const s of scenes) {
-    const on = !commPersonal.length && commSel.sceneIds && commSel.sceneIds.includes(s.id);
-    chips.append(commChip(`${s.icon} ${s.title}`, on, () => { commPersonal = []; commPersonalLabel = ""; toggleScene(s.id, scenes); }));
+    const on = !commPersonal.length && !commPersonalQa.length && commSel.sceneIds && commSel.sceneIds.includes(s.id);
+    chips.append(commChip(`${s.icon} ${s.title}`, on, () => { clearPersonal(); toggleScene(s.id, scenes); }));
   }
   wrap.append(chips);
 
-  if (opts.material) {
+  if (opts.genQa) {
+    const usable = materialList.map((m) => ({ m, zh: materialZh(m) })).filter((x) => x.zh.length);
+    if (usable.length) {
+      const mat = el("div", { class: "comm-chips" });
+      for (const { m, zh } of usable) {
+        const on = !!commPersonalQa.length && commPersonalQaLabel === m.title;
+        mat.append(commChip(`${m.title} (sinh hỏi–đáp)`, on, async () => {
+          if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để sinh câu hỏi.");
+          toast("Đang sinh câu hỏi bằng Qwen3… có thể mất một lúc.");
+          try {
+            const { pairs } = await comm.genQa(zh.map((x) => x.zh).join(" "), 8);
+            if (!pairs || !pairs.length) return toast("Không sinh được câu hỏi.");
+            commPersonal = []; commPersonalLabel = "";
+            commPersonalQa = pairs; commPersonalQaLabel = m.title;
+            commSel.sceneIds = [];
+            toast(`Đã sinh ${pairs.length} cặp hỏi–đáp từ “${m.title}”.`);
+            renderComm();
+          } catch (e) { toast("Lỗi: " + e.message); }
+        }));
+      }
+      wrap.append(el("div", { class: "muted small", style: "margin-top:8px" }, "Hoặc sinh Hỏi–đáp từ tài liệu đã nạp (cần Qwen3):"), mat);
+    } else {
+      wrap.append(el("p", { class: "muted small", style: "margin-top:6px" }, "Chưa có tài liệu — vào Nạp tài liệu để sinh câu hỏi từ truyện của bạn (cần Qwen3)."));
+    }
+  } else if (opts.material) {
     const usable = materialList.map((m) => ({ m, zh: materialZh(m) })).filter((x) => x.zh.length);
     if (usable.length) {
       const mat = el("div", { class: "comm-chips" });
@@ -1713,7 +1740,8 @@ function toggleScene(id, scenes) {
 function commSourceSummary(scenes) {
   const sc = selectedScenes(scenes).length;
   const p = commPersonal.length ? ` · ${commPersonal.length} câu cá nhân (${commPersonalLabel})` : "";
-  return `${sc} cảnh${p}`;
+  const q = commPersonalQa.length ? ` · ${commPersonalQa.length} hỏi–đáp (${commPersonalQaLabel})` : "";
+  return `${sc} cảnh${p}${q}`;
 }
 function commDrillCard(icon, title, badge, desc, enabled, screen) {
   return el("button", {
@@ -1792,9 +1820,9 @@ function commIntro(root, scenes, { title, opts, count, unit }) {
 /* ---------- Drill: Hỏi–đáp tình huống ---------- */
 function commDrillQA(root, scenes) {
   const s = store.getSettings();
-  if (!commView.started) return commIntro(root, scenes, { title: "Hỏi–đáp tình huống", opts: { materialNote: "Tài liệu: cần Qwen3 để sinh câu hỏi (sắp có)." }, count: qaBank(scenes).length, unit: "cặp hỏi–đáp" });
+  if (!commView.started) return commIntro(root, scenes, { title: "Hỏi–đáp tình huống", opts: { genQa: true }, count: qaBank(scenes).length, unit: "cặp hỏi–đáp" });
   root.append(commTopbar("Hỏi–đáp tình huống"));
-  root.append(commSourceBar(scenes, { materialNote: "Tài liệu: cần Qwen3 để sinh câu hỏi (sắp có)." }));
+  root.append(commSourceBar(scenes, { genQa: true }));
   const bank = shuffle(qaBank(scenes).slice());
   if (!bank.length) { root.append(commEmptyNote("cặp hỏi–đáp")); return; }
   const progress = el("div", { class: "comm-progress muted small" });

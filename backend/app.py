@@ -357,6 +357,46 @@ def grade_writing(req: WritingReq):
     }
 
 
+class GenQaReq(BaseModel):
+    text: str = ""
+    n: int = 8
+
+
+@app.post("/gen-qa")
+def gen_qa(req: GenQaReq):
+    """Sinh cặp Hỏi–đáp tiếng Trung từ một đoạn văn (cá nhân hoá module Giao tiếp)."""
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(400, "Thiếu văn bản nguồn.")
+    n = max(3, min(int(req.n or 8), 15))
+    prompt = (
+        "Bạn là giáo viên luyện phản xạ hội thoại tiếng Trung. Dựa trên ĐOẠN VĂN sau, "
+        f"tạo {n} cặp HỎI–ĐÁP tiếng Trung tự nhiên, đúng văn nói, để người học luyện trả lời nhanh. "
+        "Câu hỏi bám nội dung/chủ đề đoạn văn; câu trả lời mẫu ngắn gọn, đời thường.\n\n"
+        f"ĐOẠN VĂN:\n{text[:4000]}\n\n"
+        'Trả về DUY NHẤT JSON {"pairs":[{"q","q_pinyin","q_vi","a","a_pinyin","a_vi"}]}. '
+        "q/a là tiếng Trung giản thể; q_pinyin/a_pinyin là pinyin CÓ DẤU; q_vi/a_vi là nghĩa tiếng Việt. "
+        "Không viết gì ngoài JSON."
+    )
+    try:
+        data = _ollama_json(prompt, 0.5)
+    except Exception as e:
+        raise HTTPException(502, f"Không gọi được Qwen3/Ollama: {e}")
+    pairs = data.get("pairs") if isinstance(data.get("pairs"), list) else []
+    out = []
+    for p in pairs:
+        if not isinstance(p, dict):
+            continue
+        q = str(p.get("q", "")).strip()
+        if not q:
+            continue
+        out.append({
+            "q": q, "q_pinyin": str(p.get("q_pinyin", "")), "q_vi": str(p.get("q_vi", "")),
+            "a": str(p.get("a", "")).strip(), "a_pinyin": str(p.get("a_pinyin", "")), "a_vi": str(p.get("a_vi", "")),
+        })
+    return {"pairs": out, "count": len(out)}
+
+
 @app.get("/")
 def root():
-    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade", "/grade-writing"], "model": QWEN_MODEL}
+    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade", "/grade-writing", "/gen-qa"], "model": QWEN_MODEL}
