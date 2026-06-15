@@ -958,7 +958,7 @@ export async function renderSettings() {
   };
   root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
     el("b", {}, "AI · Qwen3 (tùy chọn)"),
-    el("p", { class: "muted small" }, "Backend local để Giao tiếp tự bóc câu từ ảnh/PDF/audio/video và dịch Việt. Để trống thì app vẫn chạy đủ trong trình duyệt (chỉ text/.srt). Hướng dẫn cài: thư mục backend/."),
+    el("p", { class: "muted small" }, "Backend local (Ollama) mở khoá AI: chấm & sửa Dịch thuật, chấm Viết 缩写 (Luyện đề), và bóc câu từ ảnh/PDF/audio/video (Giao tiếp). Để trống thì app vẫn chạy đủ trong trình duyệt. Hướng dẫn cài: thư mục backend/ (chạy bash run.sh)."),
     el("div", { class: "field" }, el("label", {}, "Địa chỉ backend"), backendInput),
     el("div", { class: "row" }, el("button", { class: "btn", onclick: testBackend }, iconEl("plug"), "Lưu & kiểm tra"), backendStatus),
   ));
@@ -1547,16 +1547,56 @@ async function examWriting(root) {
   ta.addEventListener("input", autosave);
   titleInput.addEventListener("input", autosave);
 
+  const gradeBtn = el("button", { class: "btn primary", onclick: () => doGradeWriting() }, iconEl("ai"), "Chấm bằng Qwen3");
+
   root.append(el("div", { class: "panel" },
     el("div", { class: "row spread" }, el("div", { class: "row" }, el("b", {}, iconEl("timer")), disp, toggleBtn), counter),
     el("div", { class: "field" }, titleInput),
     el("div", { class: "field" }, ta),
     el("div", { class: "row" },
       el("button", { class: "btn", onclick: () => { store.saveWritingDraft(exam.id, { title: titleInput.value, text: ta.value }); toast("Đã lưu bản nháp."); } }, iconEl("save"), "Lưu nháp"),
-      el("button", { class: "btn primary", onclick: () => toast("Chấm tự động bằng Qwen3 — sẽ có khi chạy backend Ollama.") }, iconEl("ai"), "Chấm bằng Qwen3"),
+      gradeBtn,
     ),
-    el("p", { class: "muted small" }, "Bản nháp tự lưu vào máy. Khi có Qwen3, app sẽ chấm bố cục, ngữ pháp và gợi ý sửa."),
+    el("p", { class: "muted small" }, "Bản nháp tự lưu vào máy. Bật backend Qwen3 (Cài đặt) để chấm điểm + sửa lỗi tự động."),
   ));
+
+  const gradeHost = el("div", {});
+  root.append(gradeHost);
+  if (saved.grade) gradeHost.append(writingGradeBox(saved.grade));
+
+  async function doGradeWriting() {
+    const text = ta.value.trim();
+    if (!text) return toast("Chưa có bài viết để chấm.");
+    if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 trong Cài đặt để chấm tự động.");
+    gradeBtn.disabled = true; toast("Đang chấm bằng Qwen3… có thể mất một lúc.");
+    try {
+      const g = await comm.gradeWriting(w.article, titleInput.value, text, target);
+      store.saveWritingDraft(exam.id, { title: titleInput.value, text, grade: g });
+      gradeHost.innerHTML = ""; gradeHost.append(writingGradeBox(g));
+      gradeHost.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (e) { toast("Lỗi: " + e.message); }
+    finally { gradeBtn.disabled = false; }
+  }
+}
+
+function writingGradeBox(g) {
+  const box = el("div", { class: "panel stack", style: "margin-top:12px;border-color:var(--accent)" });
+  box.append(el("div", { class: "row spread" },
+    el("b", {}, iconEl("ai"), "Qwen3 chấm Viết"),
+    g.score != null ? el("span", { class: "chip lvl" }, `${g.score}/100`) : null));
+  if (g.scores) {
+    const L = { noi_dung: "Nội dung", mach_lac: "Mạch lạc", ngu_phap: "Ngữ pháp", dung_tu: "Dùng từ" };
+    const row = el("div", { class: "row" });
+    for (const k of Object.keys(L)) if (g.scores[k] != null) row.append(el("span", { class: "chip" }, `${L[k]}: ${g.scores[k]}/25`));
+    if (row.childNodes.length) box.append(row);
+  }
+  if (g.corrected) box.append(el("details", {}, el("summary", { class: "small" }, "Bản tóm tắt đã sửa"), el("div", { class: "exam-passage", style: "margin-top:8px" }, g.corrected)));
+  if (Array.isArray(g.notes) && g.notes.length) {
+    const ul = el("ul", { class: "trans-notes" });
+    for (const n of g.notes) ul.append(el("li", {}, n));
+    box.append(el("div", {}, el("div", { class: "muted small" }, "Nhận xét:"), ul));
+  }
+  return box;
 }
 
 /* ============================================================

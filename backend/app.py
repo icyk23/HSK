@@ -179,6 +179,22 @@ def translate_lines(zh_lines: List[str]) -> List[str]:
 
 
 # --------------------------------------------------------------------------
+# Gọi Qwen3 (Ollama) trả JSON
+# --------------------------------------------------------------------------
+def _ollama_json(prompt: str, temperature: float = 0.3) -> dict:
+    body = {
+        "model": QWEN_MODEL,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",
+        "options": {"temperature": temperature},
+    }
+    r = httpx.post(f"{OLLAMA_URL}/api/generate", json=body, timeout=600)
+    r.raise_for_status()
+    return json.loads(r.json().get("response", "") or "{}")
+
+
+# --------------------------------------------------------------------------
 # Phân loại file
 # --------------------------------------------------------------------------
 def detect_kind(kind: str, ext: str, content_type: str) -> str:
@@ -300,6 +316,47 @@ def grade(req: GradeReq):
     }
 
 
+class WritingReq(BaseModel):
+    article: str = ""
+    title: str = ""
+    text: str = ""
+    target: int = 400
+
+
+@app.post("/grade-writing")
+def grade_writing(req: WritingReq):
+    """Chấm phần Viết HSK6 (缩写 — đọc bài rồi tóm tắt) bằng Qwen3."""
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(400, "Chưa có bài viết để chấm.")
+    prompt = (
+        "Bạn là giám khảo HSK6 phần Viết 缩写 (đọc một bài rồi viết bản TÓM TẮT khoảng "
+        f"{req.target} chữ, KHÔNG thêm ý kiến cá nhân, KHÔNG đặt lại tiêu đề mới ngoài yêu cầu). "
+        "Chấm bài tóm tắt của thí sinh.\n\n"
+        f"BÀI ĐỌC GỐC:\n{req.article or '(không cung cấp)'}\n\n"
+        f"TIÊU ĐỀ THÍ SINH ĐẶT:\n{req.title or '(trống)'}\n\n"
+        f"BÀI TÓM TẮT CỦA THÍ SINH:\n{text}\n\n"
+        "Trả về DUY NHẤT một JSON gồm:\n"
+        '  "score": điểm tổng 0-100 theo tiêu chí HSK6;\n'
+        '  "scores": {"noi_dung":0-25,"mach_lac":0-25,"ngu_phap":0-25,"dung_tu":0-25};\n'
+        '  "corrected": bản tóm tắt đã sửa lỗi, giữ ý thí sinh, tiếng Trung giản thể;\n'
+        '  "notes": mảng nhận xét NGẮN bằng tiếng Việt (ưu/nhược điểm + cách cải thiện).\n'
+        "Không viết gì ngoài JSON."
+    )
+    try:
+        data = _ollama_json(prompt, 0.3)
+    except Exception as e:
+        raise HTTPException(502, f"Không gọi được Qwen3/Ollama: {e}")
+    notes = data.get("notes")
+    scores = data.get("scores") if isinstance(data.get("scores"), dict) else None
+    return {
+        "score": data.get("score"),
+        "scores": scores,
+        "corrected": str(data.get("corrected", "")),
+        "notes": [str(n) for n in notes] if isinstance(notes, list) else [],
+    }
+
+
 @app.get("/")
 def root():
-    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade"], "model": QWEN_MODEL}
+    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade", "/grade-writing"], "model": QWEN_MODEL}

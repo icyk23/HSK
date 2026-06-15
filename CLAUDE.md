@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] BACKEND QWEN3 — mở khoá chấm Viết: thêm endpoint POST /grade-writing (backend/app.py, helper
+    _ollama_json) → điểm 0-100 + 4 tiêu chí + bản tóm tắt sửa + nhận xét; comm.gradeWriting() +
+    nút "Chấm bằng Qwen3" ở Luyện đề Viết nay gọi thật + hộp kết quả writingGradeBox (lưu vào draft).
+    Backend/README + run.sh (bash run.sh) gọn; Cài đặt mô tả 3 tính năng AI. Kiểm chứng E2E bằng
+    backend GIẢ LẬP (mock CORS): điểm 82/100 + tiêu chí + nhận xét hiện đúng. (Chưa chạy Ollama thật ở đây.)
 [x] "CHỌN TRƯỚC RỒI HỌC": (1) Từ vựng còn 3 tab (Thư mục · Bộ của tôi · Nguồn từ); Học thẻ/Quiz/Nghe/
     Gõ thành view ẩn (tab hidden trong NAV, moduleOf vẫn map về Từ vựng) — vào qua nút ▶ mỗi nhóm ở
     Thư mục hoặc hàng phương thức khi tick chọn (studyScope→learnScope) + per-set ở Bộ của tôi.

@@ -145,12 +145,21 @@ export async function extractViaBackend(blob, name, kind, translate = true) {
 // Chấm & sửa bản dịch (Dịch thuật). dir: "zh2vi" | "vi2zh".
 // Trả { reference, score, corrected, notes:[] }.
 export async function gradeTranslation(source, user, dir) {
+  return postJson("/grade", { source, user, dir });
+}
+
+// Chấm phần Viết 缩写 (Luyện đề). Trả { score, scores, corrected, notes:[] }.
+export async function gradeWriting(article, title, text, target) {
+  return postJson("/grade-writing", { article, title, text, target });
+}
+
+async function postJson(path, payload) {
   const url = backendUrl();
   if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");
-  const res = await fetch(url + "/grade", {
+  const res = await fetch(url + path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ source, user, dir }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     let msg = "Lỗi backend (" + res.status + ")";

@@ -1,12 +1,15 @@
-# Backend Qwen3 — bóc tài liệu cho module Giao tiếp
+# Backend Qwen3 — AI cho app (bóc tài liệu + chấm bài)
 
-Bóc chữ tiếng Trung từ **ảnh · PDF · audio · video** → tách câu → **dịch sang tiếng Việt
-bằng Qwen3 (Ollama)** → trả về cho app để nạp vào ngân hàng câu luyện phản xạ.
+Chạy **Qwen3 qua Ollama (local, miễn phí)** để mở khoá các tính năng AI:
 
-Tất cả **chạy local, miễn phí**, không gửi dữ liệu ra ngoài.
+- **Bóc tài liệu**: ảnh · PDF · audio · video → tách câu → dịch sang tiếng Việt (module Giao tiếp / Nạp).
+- **Chấm dịch** (module Dịch thuật): cho điểm + bản sửa + nhận xét.
+- **Chấm Viết 缩写** (module Luyện đề): điểm 0-100 + 4 tiêu chí + bản tóm tắt đã sửa + nhận xét.
 
-> App vẫn chạy 100% trong trình duyệt. Backend này **không bắt buộc** — chỉ cần khi
-> muốn tự động bóc câu từ ảnh/video/PDF (file `.txt`/`.srt` thì app bóc thẳng, khỏi backend).
+Tất cả **chạy local**, không gửi dữ liệu ra ngoài.
+
+> App vẫn chạy 100% trong trình duyệt. Backend này **không bắt buộc** — chỉ cần khi muốn
+> chấm tự động hoặc bóc câu từ ảnh/video/PDF (file `.txt`/`.srt` app bóc thẳng, khỏi backend).
 
 ## Yêu cầu
 
@@ -26,6 +29,8 @@ pip install -r requirements.txt
 uvicorn app:app --port 8000
 ```
 
+Hoặc gọn: `bash run.sh` (tự cài requirements rồi chạy ở cổng 8000).
+
 Có thể bỏ bớt thư viện nặng nếu không cần:
 - Không đọc ảnh → bỏ `rapidocr-onnxruntime pillow numpy`
 - Không xử lý audio/video → bỏ `faster-whisper`
@@ -43,14 +48,17 @@ còn lại vẫn chạy bình thường.
 
 ## Nối với app
 
-Trong app → **⚙️ Cài đặt → AI (Qwen3)** → dán `http://localhost:8000` → Lưu.
-Sau đó ở **🗣️ Giao tiếp**, file ảnh/PDF/audio/video trong thư viện sẽ có nút
-**🤖 Bóc tự động** (thay cho nhãn “sắp có”).
+Trong app → **Cài đặt → AI (Qwen3)** → dán `http://localhost:8000` → Lưu & kiểm tra.
+Khi backend sống, các nút AI tự bật: **Giao tiếp** (bóc tự động file media),
+**Dịch thuật** (Chấm & sửa), **Luyện đề → Viết** (Chấm bằng Qwen3).
 
 ## API
 
 - `GET /health` → `{ status, caps:{pdf_text,ocr,asr}, ollama, model }`
 - `POST /extract` (multipart): `file`, `kind` (`auto`|`pdf`|`image`|`audio`|`video`|`text`),
   `translate` (`true`/`false`) → `{ lines:[{zh,vi}], count, kind }`
-- `POST /grade` (JSON): `{ source, user, dir }` với `dir` = `zh2vi`|`vi2zh` →
+- `POST /grade` (JSON): `{ source, user, dir }` (`dir`=`zh2vi`|`vi2zh`) →
   `{ reference, score, corrected, notes:[] }` (Dịch thuật — chấm & sửa bản dịch)
+- `POST /grade-writing` (JSON): `{ article, title, text, target }` →
+  `{ score(0-100), scores:{noi_dung,mach_lac,ngu_phap,dung_tu}, corrected, notes:[] }`
+  (Luyện đề Viết 缩写 — chấm tóm tắt)
