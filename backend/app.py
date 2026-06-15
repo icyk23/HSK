@@ -397,6 +397,60 @@ def gen_qa(req: GenQaReq):
     return {"pairs": out, "count": len(out)}
 
 
+class GenExamReq(BaseModel):
+    text: str = ""
+    n: int = 5
+
+
+@app.post("/gen-exam")
+def gen_exam(req: GenExamReq):
+    """Sinh đề đọc hiểu trắc nghiệm từ một đoạn văn (module Luyện đề).
+
+    Model CHỈ sinh câu hỏi; passage giữ nguyên văn bản người dùng (không bịa nội dung).
+    """
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(400, "Thiếu văn bản nguồn.")
+    n = max(3, min(int(req.n or 5), 10))
+    prompt = (
+        "Bạn là người ra đề đọc hiểu HSK. Dựa HOÀN TOÀN trên ĐOẠN VĂN tiếng Trung sau, "
+        f"soạn {n} câu hỏi trắc nghiệm đọc hiểu, mỗi câu 4 phương án, chỉ 1 đúng.\n\n"
+        f"ĐOẠN VĂN:\n{text[:4000]}\n\n"
+        'Trả về DUY NHẤT JSON {"title": tiêu đề ngắn tiếng Việt, '
+        '"questions":[{"stem": câu hỏi tiếng Trung, "options":[4 phương án tiếng Trung], '
+        '"answer": chỉ số đáp án đúng 0-3, "explain": giải thích NGẮN bằng tiếng Việt}]}. '
+        "Câu hỏi & phương án bằng tiếng Trung, bám nội dung đoạn văn. Không viết gì ngoài JSON."
+    )
+    try:
+        data = _ollama_json(prompt, 0.4)
+    except Exception as e:
+        raise HTTPException(502, f"Không gọi được Qwen3/Ollama: {e}")
+    raw = data.get("questions") if isinstance(data.get("questions"), list) else []
+    qs = []
+    for q in raw:
+        if not isinstance(q, dict):
+            continue
+        stem = str(q.get("stem", "")).strip()
+        opts = [str(o).strip() for o in (q.get("options") or []) if str(o).strip()][:4]
+        if not stem or len(opts) < 2:
+            continue
+        try:
+            ans = int(q.get("answer", 0))
+        except Exception:
+            ans = 0
+        if ans < 0 or ans >= len(opts):
+            ans = 0
+        qs.append({"stem": stem, "options": opts, "answer": ans, "explain": str(q.get("explain", ""))})
+    if not qs:
+        raise HTTPException(422, "Không sinh được câu hỏi từ văn bản này.")
+    exam = {
+        "title": str(data.get("title") or "Đề đọc hiểu (Qwen3)"),
+        "note": "Sinh tự động từ văn bản của bạn bằng Qwen3.",
+        "reading": [{"title": "Đọc hiểu", "items": [{"type": "reading", "passage": text, "questions": qs}]}],
+    }
+    return {"exam": exam, "count": len(qs)}
+
+
 @app.get("/")
 def root():
-    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade", "/grade-writing", "/gen-qa"], "model": QWEN_MODEL}
+    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade", "/grade-writing", "/gen-qa", "/gen-exam"], "model": QWEN_MODEL}

@@ -158,6 +158,11 @@ export async function genQa(text, n = 8) {
   return postJson("/gen-qa", { text, n });
 }
 
+// Sinh đề đọc hiểu trắc nghiệm từ đoạn văn (Luyện đề). Trả { exam, count }.
+export async function genExam(text, n = 5) {
+  return postJson("/gen-exam", { text, n });
+}
+
 async function postJson(path, payload) {
   const url = backendUrl();
   if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");

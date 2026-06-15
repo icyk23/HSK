@@ -1177,6 +1177,7 @@ function examTopbar(title) {
 async function examList(root) {
   root.append(el("h1", { class: "view-title" }, "Luyện đề"));
   root.append(await hskkBar());
+  root.append(examGenBar());
   root.append(examImportBar());
   root.append(await libraryBar());
   const exams = await getAllExams();
@@ -1336,9 +1337,37 @@ function examImportBar() {
   };
   return el("details", { class: "panel exam-import" },
     el("summary", {}, iconEl("upload"), " Nhập đề JSON"),
-    el("p", { class: "muted small" }, "Dán JSON hoặc chọn file. Sau này Qwen3 sẽ sinh đề tự động."),
+    el("p", { class: "muted small" }, "Dán JSON hoặc chọn file."),
     el("div", { class: "field" }, ta),
     el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: doImport }, "Nhập đề")),
+  );
+}
+
+// Sinh đề đọc hiểu từ một đoạn văn bằng Qwen3 (cần backend).
+function examGenBar() {
+  const ta = el("textarea", { rows: "4", placeholder: "Dán một đoạn văn tiếng Trung để Qwen3 ra đề đọc hiểu…" });
+  const nInput = el("input", { type: "number", value: "5", min: "3", max: "10", style: "width:64px" });
+  const genBtn = el("button", { class: "btn primary", onclick: doGen }, iconEl("ai"), " Sinh đề");
+  async function doGen() {
+    const text = ta.value.trim();
+    if (text.length < 30) return toast("Dán đoạn văn dài hơn (≥30 ký tự) để ra đề.");
+    if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để sinh đề.");
+    genBtn.disabled = true; toast("Đang sinh đề bằng Qwen3… có thể mất một lúc.");
+    try {
+      const { exam, count } = await comm.genExam(text, parseInt(nInput.value, 10) || 5);
+      const { exam: norm, error } = parseExamJson(JSON.stringify(exam));
+      if (error) return toast("Đề sinh ra không hợp lệ: " + error);
+      store.saveUserExam(norm);
+      toast(`Đã tạo đề “${norm.title}” · ${count} câu.`);
+      renderExam();
+    } catch (e) { toast("Lỗi: " + e.message); }
+    finally { genBtn.disabled = false; }
+  }
+  return el("details", { class: "panel exam-import" },
+    el("summary", {}, iconEl("ai"), " Sinh đề từ văn bản (Qwen3)"),
+    el("p", { class: "muted small" }, "Dán đoạn văn tiếng Trung → Qwen3 soạn câu hỏi đọc hiểu trắc nghiệm (đoạn văn giữ nguyên). Cần bật backend trong Cài đặt."),
+    el("div", { class: "field" }, ta),
+    el("div", { class: "row" }, el("label", { class: "muted small" }, "Số câu:"), nInput, genBtn),
   );
 }
 

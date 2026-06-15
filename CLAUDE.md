@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] BACKEND QWEN3 — sinh đề đọc hiểu: endpoint POST /gen-exam (model CHỈ sinh câu hỏi, backend ghép
+    passage = văn bản gốc, không bịa) → trả exam JSON chuẩn schema reading; comm.genExam(); mục
+    "Sinh đề từ văn bản (Qwen3)" ở Luyện đề (dán đoạn văn + số câu → parseExamJson validate →
+    saveUserExam → vào danh sách đề, làm + chấm + lịch sử như đề thường). E2E mock OK (sinh → render →
+    chấm). 5 năng lực AI: /extract /grade /grade-writing /gen-qa /gen-exam. Cần Ollama để chạy thật.
 [x] BACKEND QWEN3 — sinh Hỏi–đáp cá nhân hoá: endpoint POST /gen-qa (text→[{q,q_pinyin,q_vi,a,...}]),
     comm.genQa(); drill Hỏi–đáp đổi nguồn sang opts.genQa: chip mỗi tài liệu "(sinh hỏi–đáp)" → gọi
     Qwen3 sinh 8 cặp → commPersonalQa nuôi qaBank → luyện với câu bám tài liệu của bạn. Reset đúng khi
