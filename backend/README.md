@@ -54,9 +54,11 @@ Khi backend sống, các nút AI tự bật: **Giao tiếp** (bóc tự động 
 
 ## API
 
-- `GET /health` → `{ status, caps:{pdf_text,ocr,asr}, ollama, model }`
+- `GET /health` → `{ status, caps:{pdf_text,ocr,asr,web,ytdlp}, ollama, model }`
 - `POST /extract` (multipart): `file`, `kind` (`auto`|`pdf`|`image`|`audio`|`video`|`text`),
   `translate` (`true`/`false`) → `{ lines:[{zh,vi}], count, kind }`
+- `POST /ingest` (JSON): `{ url }` → `{ text, title, kind, chars }`
+  (Nạp tài liệu — bóc bài web (trafilatura) hoặc video/YouTube (yt-dlp: phụ đề, không có thì ASR))
 - `POST /grade` (JSON): `{ source, user, dir }` (`dir`=`zh2vi`|`vi2zh`) →
   `{ reference, score, corrected, notes:[] }` (Dịch thuật — chấm & sửa bản dịch)
 - `POST /grade-writing` (JSON): `{ article, title, text, target }` →

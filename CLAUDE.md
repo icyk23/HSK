@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] BACKEND QWEN3 — gửi LINK (web/YouTube): endpoint POST /ingest → web bóc bằng trafilatura (fallback
+    strip HTML), video/YouTube bằng yt-dlp (ưu tiên phụ đề zh, không có thì tải audio → faster-whisper);
+    trả {text,title}. comm.ingestUrl(); "Nạp mới" thêm ô link + nút "Bóc từ link" → điền text+tiêu đề →
+    người dùng Phân tích (tái dùng pipeline Nạp: vocab/câu/chương). caps thêm web/ytdlp (hiện ở Cài đặt);
+    requirements + README. E2E mock OK (link→điền→tạo tài liệu). 6 endpoint AI. Cần Ollama+libs để chạy thật.
 [x] BACKEND QWEN3 — sinh đề đọc hiểu: endpoint POST /gen-exam (model CHỈ sinh câu hỏi, backend ghép
     passage = văn bản gốc, không bịa) → trả exam JSON chuẩn schema reading; comm.genExam(); mục
     "Sinh đề từ văn bản (Qwen3)" ở Luyện đề (dán đoạn văn + số câu → parseExamJson validate →

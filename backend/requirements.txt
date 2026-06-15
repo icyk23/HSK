@@ -14,3 +14,9 @@ numpy
 
 # Nghe-ra-chữ cho audio/video (tùy chọn — bỏ nếu không cần)
 faster-whisper
+
+# Bóc nội dung từ LINK web (tùy chọn)
+trafilatura
+
+# Bóc nội dung từ LINK video/YouTube (tùy chọn — cần ffmpeg nếu video không có phụ đề)
+yt-dlp

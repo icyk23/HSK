@@ -954,7 +954,7 @@ export async function renderSettings() {
     if (!h) { backendStatus.innerHTML = '<span style="color:var(--bad)">Không kết nối được. Kiểm tra backend đã chạy chưa.</span>'; return; }
     const caps = h.caps || {};
     const yn = (b) => (b ? "✓" : "✗");
-    backendStatus.innerHTML = `<span style="color:var(--ok)">Đã kết nối</span> · Ollama ${yn(h.ollama)} (${h.model || "?"}) · PDF ${yn(caps.pdf_text)} · OCR ảnh ${yn(caps.ocr)} · Nghe video/audio ${yn(caps.asr)}`;
+    backendStatus.innerHTML = `<span style="color:var(--ok)">Đã kết nối</span> · Ollama ${yn(h.ollama)} (${h.model || "?"}) · PDF ${yn(caps.pdf_text)} · OCR ảnh ${yn(caps.ocr)} · Nghe video/audio ${yn(caps.asr)} · Link web ${yn(caps.web)} · YouTube ${yn(caps.ytdlp)}`;
   };
   root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
     el("b", {}, "AI · Qwen3 (tùy chọn)"),
@@ -2431,12 +2431,29 @@ async function ingestNew(root) {
     ta.value = await f.text();
     if (!titleInput.value) titleInput.value = f.name.replace(/\.[^.]+$/, "");
   });
+  const urlInput = el("input", { type: "url", placeholder: "Dán link bài web hoặc video YouTube…" });
+  const urlBtn = el("button", { class: "btn", onclick: doIngestUrl }, iconEl("upload"), " Bóc từ link");
+  async function doIngestUrl() {
+    const url = urlInput.value.trim();
+    if (!/^https?:\/\//.test(url)) return toast("Dán link bắt đầu bằng http(s)://");
+    if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để bóc từ link.");
+    urlBtn.disabled = true; toast("Đang bóc nội dung từ link… có thể mất một lúc.");
+    try {
+      const { text, title } = await comm.ingestUrl(url);
+      if (!text || !text.trim()) return toast("Không bóc được nội dung từ link này.");
+      ta.value = text;
+      if (!titleInput.value && title) titleInput.value = title;
+      toast("Đã bóc nội dung. Xem lại rồi bấm Phân tích.");
+    } catch (e) { toast("Lỗi: " + e.message); }
+    finally { urlBtn.disabled = false; }
+  }
   root.append(el("div", { class: "panel stack" },
     el("b", {}, "Nguồn"),
     el("div", { class: "field" }, titleInput),
+    el("div", { class: "row" }, urlInput, urlBtn),
     el("div", { class: "field" }, ta),
     el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, "🔍 Phân tích & tạo tài liệu")),
-    el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật — học thẳng tại các module đó. Văn bản .txt/.srt xử lý ngay; ảnh/PDF/audio/video & link truyện cần backend Qwen3 (sẽ thêm)."),
+    el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật. Văn bản .txt/.srt xử lý ngay; link web/YouTube cần backend Qwen3 (Cài đặt) — bóc xong điền vào ô trên để bạn xem lại rồi Phân tích."),
   ));
 }
 

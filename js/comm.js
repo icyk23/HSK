@@ -163,6 +163,11 @@ export async function genExam(text, n = 5) {
   return postJson("/gen-exam", { text, n });
 }
 
+// Bóc nội dung từ LINK (web/YouTube) → { text, title, kind, chars }.
+export async function ingestUrl(url) {
+  return postJson("/ingest", { url });
+}
+
 async function postJson(path, payload) {
   const url = backendUrl();
   if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");

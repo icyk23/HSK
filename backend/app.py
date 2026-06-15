@@ -56,6 +56,8 @@ def capabilities() -> Dict[str, bool]:
         "pdf_text": _has("fitz"),
         "ocr": _has("rapidocr_onnxruntime"),
         "asr": _has("faster_whisper"),
+        "web": _has("trafilatura"),
+        "ytdlp": _has("yt_dlp"),
     }
 
 
@@ -192,6 +194,93 @@ def _ollama_json(prompt: str, temperature: float = 0.3) -> dict:
     r = httpx.post(f"{OLLAMA_URL}/api/generate", json=body, timeout=600)
     r.raise_for_status()
     return json.loads(r.json().get("response", "") or "{}")
+
+
+# --------------------------------------------------------------------------
+# Bóc nội dung từ LINK (web / YouTube)
+# --------------------------------------------------------------------------
+def _is_video_url(url: str) -> bool:
+    u = url.lower()
+    return any(d in u for d in ("youtube.com", "youtu.be", "bilibili.com", "vimeo.com", "/watch?v="))
+
+
+def web_url_to_text(url: str):
+    """Trả (text, title). Ưu tiên trafilatura; không có thì strip HTML thô."""
+    title = ""
+    if _has("trafilatura"):
+        import trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded:
+            txt = trafilatura.extract(downloaded, include_comments=False, include_tables=False)
+            try:
+                meta = trafilatura.extract_metadata(downloaded)
+                if meta and meta.title:
+                    title = meta.title
+            except Exception:
+                pass
+            if txt:
+                return txt, title
+    r = httpx.get(url, timeout=30, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"})
+    r.raise_for_status()
+    html = r.text
+    m = re.search(r"(?is)<title[^>]*>(.*?)</title>", html)
+    if m:
+        title = re.sub(r"\s+", " ", m.group(1)).strip()
+    html = re.sub(r"(?is)<(script|style|noscript|head).*?</\1>", " ", html)
+    text = re.sub(r"(?s)<[^>]+>", "\n", html)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n\s*\n+", "\n", text)
+    return text.strip(), title
+
+
+def vtt_to_text(vtt: str) -> str:
+    out = []
+    for line in vtt.splitlines():
+        line = line.strip()
+        if not line or "-->" in line or line.isdigit():
+            continue
+        if line.upper().startswith(("WEBVTT", "KIND", "LANGUAGE", "NOTE", "STYLE")):
+            continue
+        line = re.sub(r"<[^>]+>", "", line).strip()
+        if line and (not out or out[-1] != line):
+            out.append(line)
+    return "\n".join(out)
+
+
+def video_url_to_text(url: str):
+    """Trả (text, title) cho link video: ưu tiên phụ đề, không có thì nghe-ra-chữ."""
+    if not _has("yt_dlp"):
+        raise HTTPException(400, "Chưa cài yt-dlp (pip install yt-dlp).")
+    import yt_dlp
+    with tempfile.TemporaryDirectory() as td:
+        title = url
+        sub_opts = {
+            "skip_download": True, "writesubtitles": True, "writeautomaticsub": True,
+            "subtitleslangs": ["zh-Hans", "zh-CN", "zh", "zh-Hant"], "subtitlesformat": "vtt",
+            "outtmpl": os.path.join(td, "%(id)s.%(ext)s"), "quiet": True, "no_warnings": True,
+        }
+        try:
+            with yt_dlp.YoutubeDL(sub_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                title = info.get("title") or title
+        except Exception as e:
+            raise HTTPException(502, f"Không tải được video: {e}")
+        for fn in sorted(os.listdir(td)):
+            if fn.endswith(".vtt"):
+                with open(os.path.join(td, fn), encoding="utf-8", errors="ignore") as f:
+                    txt = vtt_to_text(f.read())
+                if txt:
+                    return txt, title
+        if not capabilities()["asr"]:
+            raise HTTPException(400, "Video không có phụ đề tiếng Trung và chưa cài faster-whisper để nghe.")
+        audio_opts = {"format": "bestaudio/best", "outtmpl": os.path.join(td, "a.%(ext)s"), "quiet": True, "no_warnings": True}
+        with yt_dlp.YoutubeDL(audio_opts) as ydl:
+            ydl.download([url])
+        for fn in os.listdir(td):
+            if fn.startswith("a."):
+                with open(os.path.join(td, fn), "rb") as f:
+                    return media_bytes_to_text(f.read(), os.path.splitext(fn)[1] or ".m4a"), title
+        raise HTTPException(422, "Không lấy được nội dung từ video.")
 
 
 # --------------------------------------------------------------------------
@@ -451,6 +540,33 @@ def gen_exam(req: GenExamReq):
     return {"exam": exam, "count": len(qs)}
 
 
+class IngestReq(BaseModel):
+    url: str = ""
+
+
+@app.post("/ingest")
+def ingest(req: IngestReq):
+    """Bóc nội dung từ LINK web hoặc video (YouTube…) → trả văn bản để Nạp tài liệu."""
+    url = (req.url or "").strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(400, "URL phải bắt đầu bằng http:// hoặc https://")
+    if _is_video_url(url):
+        text, title = video_url_to_text(url)
+        kind = "video"
+    else:
+        try:
+            text, title = web_url_to_text(url)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(502, f"Không tải được trang: {e}")
+        kind = "web"
+    text = (text or "").strip()
+    if not text:
+        raise HTTPException(422, "Không bóc được nội dung từ link này.")
+    return {"text": text, "title": title or "", "kind": kind, "chars": len(text)}
+
+
 @app.get("/")
 def root():
-    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/grade", "/grade-writing", "/gen-qa", "/gen-exam"], "model": QWEN_MODEL}
+    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/ingest", "/grade", "/grade-writing", "/gen-qa", "/gen-exam"], "model": QWEN_MODEL}
