@@ -46,6 +46,15 @@ const ICONS = {
   search: S('<path d="M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14z"/><path d="M16.5 16.5L21 21"/>'),
   folder: S('<path d="M3 5h6l2 2.5h10V20H3z"/>'),
   audio: S('<path d="M8 4l9-1v13"/><path d="M5 14h3v5H5zM14 13h3v5h-3z"/>'),
+
+  // Cảnh Giao tiếp (khớp scene id) + video
+  restaurant: S('<path d="M6 3v7M9 3v7M7.5 10v11M7.5 3v3a1.5 1.5 0 0 1-3 0V3M16.5 3c-1.4 0-2.5 2-2.5 5s1.1 4 2.5 4v9"/>'),
+  shopping: S('<path d="M3 5h2.5l2 11h10l2-8H7"/><path d="M9 19.5h.01M16.5 19.5h.01"/>'),
+  directions: S('<path d="M12 3v18"/><path d="M12 5h6l2.5 2.5L18 10h-6zM12 12H6l-2.5 2.5L6 17h6z"/>'),
+  hospital: S('<path d="M4 4h16v16H4z"/><path d="M12 8v8M8 12h8"/>'),
+  intro: S('<path d="M8 9.5a2.4 2.4 0 1 0 0-.01M16 9.5a2.4 2.4 0 1 0 0-.01"/><path d="M3.5 20v-1.5A3.3 3.3 0 0 1 6.8 15h2.4M14.8 15h2.4a3.3 3.3 0 0 1 3.3 3.5V20"/>'),
+  work: S('<path d="M3 8h18v11H3z"/><path d="M8.5 8V5.5h7V8M3 13h18"/>'),
+  video: S('<path d="M3 6h13v12H3z"/><path d="M16 10l5-3v10l-5-3z"/>'),
 };
 
 export function icon(name) { return ICONS[name] || ""; }

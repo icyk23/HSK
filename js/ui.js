@@ -1732,6 +1732,16 @@ let commPersonalQaLabel = "";
 let commPersonalPattern = [];    // [{frame,frame_vi,slots}] sinh từ tài liệu (Thay thế mẫu câu)
 let commPersonalPatternLabel = "";
 let commSrcMode = "scene";       // segmented nguồn câu: "scene" | "material"
+let commPersonalVideo = "";      // URL video của tài liệu nguồn (hiện màn hình video khi luyện)
+const matVideo = (m) => (m && m.source && m.source.kind === "video" && m.source.url) ? m.source.url : "";
+function videoEmbed(url) {
+  if (!url) return null;
+  const wrap = el("div", { class: "video-embed" });
+  const yt = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
+  if (yt) { wrap.append(el("iframe", { src: `https://www.youtube.com/embed/${yt[1]}`, allow: "encrypted-media; picture-in-picture", allowfullscreen: "" })); return wrap; }
+  if (/\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(url)) { wrap.append(el("video", { src: url, controls: "" })); return wrap; }
+  return el("p", { class: "muted small", style: "margin-bottom:10px" }, el("a", { class: "lk", href: url, target: "_blank" }, "Mở video nguồn ↗"));
+}
 
 function clearCommState() {
   if (commTimer) { clearInterval(commTimer); commTimer = null; }
@@ -1797,7 +1807,7 @@ async function commHome(root, scenes) {
 function commSourceBar(scenes, opts = {}) {
   const wrap = el("div", { class: "panel comm-source" });
   wrap.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
-  const clearPersonal = () => { commPersonal = []; commPersonalLabel = ""; commPersonalQa = []; commPersonalQaLabel = ""; commPersonalPattern = []; commPersonalPatternLabel = ""; };
+  const clearPersonal = () => { commPersonal = []; commPersonalLabel = ""; commPersonalQa = []; commPersonalQaLabel = ""; commPersonalPattern = []; commPersonalPatternLabel = ""; commPersonalVideo = ""; };
 
   const seg = el("div", { class: "subtabs", style: "margin:10px 0 6px" });
   const mk = (id, label, icon) => el("button", { class: "subtab" + (commSrcMode === id ? " on" : ""), onclick: () => { commSrcMode = id; renderComm(); } }, iconEl(icon), el("span", {}, " " + label));
@@ -1810,7 +1820,7 @@ function commSourceBar(scenes, opts = {}) {
     chips.append(commChip("Tất cả tình huống", allOn, () => { clearPersonal(); commSel.sceneIds = null; renderComm(); }));
     for (const s of scenes) {
       const on = !commPersonal.length && !commPersonalQa.length && !commPersonalPattern.length && commSel.sceneIds && commSel.sceneIds.includes(s.id);
-      chips.append(commChip(`${s.icon} ${s.title}`, on, () => { clearPersonal(); toggleScene(s.id, scenes); }));
+      chips.append(commChip([iconEl(sceneIconName(s)), el("span", {}, " " + s.title)], on, () => { clearPersonal(); toggleScene(s.id, scenes); }));
     }
     wrap.append(chips);
     return wrap;
@@ -1843,7 +1853,7 @@ function commSourceBar(scenes, opts = {}) {
       const mat = el("div", { class: "comm-chips" });
       for (const { m, zh } of usable) {
         const on = commPersonalLabel === m.title;
-        mat.append(commChip(`${m.title} (${zh.length})`, on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi })), m.title); }));
+        mat.append(commChip(`${m.title} (${zh.length})`, on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi })), m.title, matVideo(m)); }));
       }
       wrap.append(el("div", { class: "muted small", style: "margin-top:4px" }, opts.materialHint || "Chọn tài liệu đã nạp:"), mat);
     } else {
@@ -1868,7 +1878,7 @@ function genFromMaterialSection(wrap, label, activeLabel, doGen) {
     const chip = commChip(m.title, activeLabel === m.title, async () => {
       if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để sinh nội dung.");
       chip.disabled = true; toast("Đang sinh bằng Qwen3… có thể mất một lúc.");
-      try { if (await doGen(zh, m.title)) renderComm(); }
+      try { if (await doGen(zh, m.title)) { commPersonalVideo = matVideo(m); renderComm(); } }
       catch (e) { toast("Lỗi: " + e.message); }
       finally { chip.disabled = false; }
     });
@@ -1878,7 +1888,13 @@ function genFromMaterialSection(wrap, label, activeLabel, doGen) {
 }
 function commEmptyNote(kind) { return el("p", { class: "muted center", style: "padding:24px" }, `Nguồn đang chọn chưa có ${kind}. Chọn nguồn khác ở thanh trên.`); }
 
-function commChip(label, on, onclick) { return el("button", { class: "comm-chip" + (on ? " on" : ""), onclick }, label); }
+function commChip(content, on, onclick) {
+  const btn = el("button", { class: "comm-chip" + (on ? " on" : ""), onclick });
+  if (Array.isArray(content)) btn.append(...content.filter((x) => x != null)); else btn.append(content);
+  return btn;
+}
+const SCENE_ICONS = new Set(["restaurant", "shopping", "directions", "hospital", "intro", "work"]);
+const sceneIconName = (s) => (SCENE_ICONS.has(s.id) ? s.id : "chat");
 function toggleScene(id, scenes) {
   if (!commSel.sceneIds) commSel.sceneIds = scenes.map((s) => s.id);
   const i = commSel.sceneIds.indexOf(id);
@@ -1961,8 +1977,8 @@ export async function renderTradHub() {
 }
 
 // Backend có xử lý được loại file này không (theo năng lực /health).
-function setPersonalSource(items, label) {
-  commPersonal = items; commPersonalLabel = label;
+function setPersonalSource(items, label, video = "") {
+  commPersonal = items; commPersonalLabel = label; commPersonalVideo = video || "";
   toast(`Đã thêm ${items.length} câu vào nguồn.`);
   renderComm();
 }
@@ -2083,6 +2099,7 @@ function commDrillShadow(root, scenes) {
   if (!commView.started) return commIntro(root, scenes, { title: "Shadowing + Phát âm", opts: { material: true }, count: lineBank(scenes).length, unit: "câu" });
   root.append(commTopbar("Shadowing + Phát âm"));
   root.append(commSourceBar(scenes, { material: true }));
+  if (commPersonalVideo) root.append(videoEmbed(commPersonalVideo));
   const bank = shuffle(lineBank(scenes).slice());
   if (!bank.length) { root.append(commEmptyNote("câu để luyện")); return; }
   const progress = el("div", { class: "comm-progress muted small" });
@@ -2208,6 +2225,7 @@ function commDrillPattern(root, scenes) {
   if (!commView.started) return commIntro(root, scenes, { title: "Thay thế mẫu câu", opts: { genPattern: true }, count: patternBank(scenes).length, unit: "mẫu câu" });
   root.append(commTopbar("Thay thế mẫu câu"));
   root.append(commSourceBar(scenes, { genPattern: true }));
+  if (commPersonalVideo) root.append(videoEmbed(commPersonalVideo));
   const bank = patternBank(scenes);
   if (!bank.length) { root.append(commEmptyNote("mẫu câu")); return; }
   const progress = el("div", { class: "comm-progress muted small" });
@@ -2609,39 +2627,42 @@ async function ingestNew(root) {
     ta.value = await f.text();
     if (!titleInput.value) titleInput.value = f.name.replace(/\.[^.]+$/, "");
   });
-  const urlInput = el("input", { type: "url", placeholder: "Dán link bài web hoặc video YouTube…" });
-  const urlBtn = el("button", { class: "btn", onclick: doIngestUrl }, iconEl("upload"), " Bóc từ link");
+  let pendingSource = null; // nguồn link (web/video) sau khi "Bóc từ link"
+  const urlInput = el("input", { type: "url", class: "inp", style: "flex:1;min-width:0", placeholder: "Dán link bài web hoặc video YouTube…" });
+  const urlBtn = el("button", { class: "btn", onclick: doIngestUrl }, iconEl("upload"), el("span", { class: "btn-tx" }, " Bóc từ link"));
   async function doIngestUrl() {
     const url = urlInput.value.trim();
     if (!/^https?:\/\//.test(url)) return toast("Dán link bắt đầu bằng http(s)://");
     if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để bóc từ link.");
     urlBtn.disabled = true; toast("Đang bóc nội dung từ link… có thể mất một lúc.");
     try {
-      const { text, title } = await comm.ingestUrl(url);
+      const { text, title, kind } = await comm.ingestUrl(url);
       if (!text || !text.trim()) return toast("Không bóc được nội dung từ link này.");
       ta.value = text;
       if (!titleInput.value && title) titleInput.value = title;
+      pendingSource = { type: "link", url, kind: kind || "web" };
       toast("Đã bóc nội dung. Xem lại rồi bấm Phân tích.");
     } catch (e) { toast("Lỗi: " + e.message); }
     finally { urlBtn.disabled = false; }
   }
   root.append(el("div", { class: "panel stack" },
     el("b", {}, "Nguồn"),
-    el("div", { class: "field" }, titleInput),
-    el("div", { class: "row" }, urlInput, urlBtn),
-    el("div", { class: "field" }, ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, iconEl("search"), el("span", { class: "btn-tx" }, " Phân tích & tạo tài liệu"))),
-    el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật. Văn bản .txt/.srt xử lý ngay; link web/YouTube cần backend Qwen3 (Cài đặt) — bóc xong điền vào ô trên để bạn xem lại rồi Phân tích."),
+    el("div", { class: "field" }, el("label", {}, "Tên tài liệu"), titleInput),
+    el("div", { class: "field" }, el("label", {}, "Link web / YouTube (cần Qwen3)"),
+      el("div", { class: "row", style: "gap:8px;flex-wrap:nowrap" }, urlInput, urlBtn)),
+    el("div", { class: "field" }, el("label", {}, "Hoặc dán văn bản"), ta),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value, pendingSource) }, iconEl("search"), el("span", { class: "btn-tx" }, " Phân tích & tạo tài liệu"))),
+    el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật. Văn bản .txt/.srt xử lý ngay; link web/YouTube cần backend Qwen3 (Cài đặt) — bóc xong điền vào ô trên để bạn xem lại rồi Phân tích. Link video sẽ hiện màn hình video khi luyện Shadowing/Thay thế."),
   ));
 }
 
-async function createLesson(text, title) {
+async function createLesson(text, title, source) {
   text = (text || "").trim();
   if (!text) return toast("Chưa có nội dung.");
   const hanCount = (text.match(/[一-鿿]/g) || []).length;
   const lang = hanCount >= 5 ? "zh" : "vi";
   toast("Đang phân tích…");
-  const lesson = { id: "ls-" + Date.now().toString(36), title: (title || "").trim() || text.slice(0, 24), lang, source: { type: "paste" }, createdAt: new Date().toISOString(), manual: {} };
+  const lesson = { id: "ls-" + Date.now().toString(36), title: (title || "").trim() || text.slice(0, 24), lang, source: source || { type: "paste" }, createdAt: new Date().toISOString(), manual: {} };
   if (lang === "zh") {
     const { vocab, sentences, chapters } = await lessons.analyzeText(text);
     lesson.vocab = vocab; lesson.sentences = sentences; lesson.chapters = chapters;
@@ -2749,7 +2770,7 @@ function buildTasks(lesson) {
   const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
   if (zhS.length) {
     tasks.push({ label: `Luyện nói ${zhS.length} câu (Shadowing)`, total: zhS.length, done: lesson.manual.shadow ? zhS.length : 0, manual: "shadow",
-      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh, vi: s.vi })); commPersonalLabel = lesson.title; commView = { screen: "shadow" }; navigate("comm"); } });
+      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh, vi: s.vi })); commPersonalLabel = lesson.title; commPersonalVideo = matVideo(lesson); commView = { screen: "shadow", started: true }; navigate("comm"); } });
   }
   return tasks;
 }

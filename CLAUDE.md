@@ -145,6 +145,12 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] 3 SỬA UI: (1) Nạp mới gọn lại — field có nhãn (Tên/Link/Văn bản), ô link full-width (.inp) +
+    nút "Bóc từ link" cạnh bên; (2) ĐỒNG BỘ ICON: scene chips Giao tiếp đổi emoji→SVG angular
+    (icons.js thêm restaurant/shopping/directions/hospital/intro/work/video; commChip nhận mảng;
+    .comm-chip inline-flex+gap); (3) MÀN HÌNH VIDEO: tài liệu nạp từ link video lưu source{type:link,
+    kind:video,url}; commPersonalVideo + videoEmbed (YouTube iframe / <video>) hiện ở Shadowing &
+    Thay thế mẫu câu. createLesson nhận source; pendingSource ở Nạp. E2E: 6 icon SVG, iframe video, 0 lỗi.
 [x] HUB LƯỚI THẺ kiểu Giao tiếp cho module có tab con: Từ vựng/Luyện đề/Phồn thể bỏ thanh tab con,
     vào module = lưới thẻ (comm-grid: icon + tên + số đếm + mô tả) → bấm thẻ vào mục con (view ẩn) +
     nút "← [module]" về hub. NAV: mỗi module 1 tab hub (vocabHub/examHub/tradHub) + mục con hidden.
