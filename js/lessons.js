@@ -104,7 +104,10 @@ export function detectChapters(sentences, key = "zh") {
 
 export async function analyzeText(text) {
   const idx = await loadVocabIndex();
-  const sentences = splitChinese(text).map((zh) => ({ zh }));
+  // Tách theo ĐOẠN (xuống dòng) rồi tách câu trong đoạn → gắn chỉ số đoạn p.
+  const paras = String(text).replace(/\r/g, "").split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  const sentences = [];
+  paras.forEach((para, pi) => { for (const zh of splitChinese(para)) sentences.push({ zh, p: pi }); });
   return { vocab: analyzeVocab(text, idx), sentences, chapters: detectChapters(sentences, "zh") };
 }
 

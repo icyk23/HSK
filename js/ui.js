@@ -971,8 +971,9 @@ async function homeContinueItems() {
       const done = sents.filter((_, i) => prog[i]).length;
       if (done > 0 && done < sents.length) items.push({ icon: "video", title: m.title, sub: `Shadowing video · ${done}/${sents.length} câu`, done, total: sents.length, go: () => openShadowMaterial(m) });
     }
-    const tDone = sents.filter((x) => translated.has(x.zh)).length;
-    if (tDone > 0 && tDone < sents.length) items.push({ icon: "trans", title: m.title, sub: `Dịch theo truyện · ${tDone}/${sents.length} câu`, done: tDone, total: sents.length, go: () => { transView = { screen: "story", materialId: m.id }; navigate("trans"); } });
+    const units = materialUnits(m);
+    const tDone = units.filter((u) => translated.has(u.text)).length;
+    if (units.length && tDone > 0 && tDone < units.length) items.push({ icon: "trans", title: m.title, sub: `Dịch theo truyện · ${tDone}/${units.length} đoạn`, done: tDone, total: units.length, go: () => { transView = { screen: "story", materialId: m.id }; navigate("trans"); } });
   }
   try {
     for (const ex of await getAllExams()) {
@@ -2554,16 +2555,9 @@ export async function renderTrans() {
   return transHome(root);
 }
 
-// Mở task runner cho 1 khúc của tài liệu.
+// Mở trình dịch song ngữ cho 1 khúc (các đoạn) của tài liệu.
 function openTransTask(materialId, chunk) {
-  transTask = { materialId, dir: chunk.dir, key: chunk.key, label: chunk.label, idxs: chunk.idxs.slice(), pos: 0 };
-  // nhảy tới câu CHƯA dịch đầu tiên trong khúc
-  const m = materialList.find((x) => x.id === materialId);
-  if (m) {
-    const saved = new Set(store.getTranslations().map((t) => t.source));
-    const undone = transTask.idxs.findIndex((id) => !saved.has((m.sentences[id] || {})[chunk.key]));
-    transTask.pos = undone >= 0 ? undone : 0;
-  }
+  transTask = { materialId, dir: chunk.dir, label: chunk.label, units: chunk.units.slice() };
   transView = { screen: "task" };
   navigate("trans");
 }
@@ -2610,7 +2604,7 @@ function transStoriesList(root) {
       el("div", { class: "row spread" },
         el("span", { class: "story-title" }, m.title || "(không tên)"),
         el("span", { class: "chip" + (done >= total ? " st known" : "") }, m.lang === "zh" ? "中→Việt" : "Việt→中")),
-      el("div", { class: "story-meta muted small" }, `${chunks.length} khúc · ${total} câu · ${done}/${total} đã dịch`),
+      el("div", { class: "story-meta muted small" }, `${chunks.length} khúc · ${total} đoạn · ${done}/${total} đã dịch`),
       el("div", { class: "story-prog" }, el("span", { style: `width:${pct}%` })),
     ));
   }
@@ -2628,7 +2622,7 @@ function transStory(root) {
 
   root.append(el("div", { class: "exam-topbar" },
     el("button", { class: "btn ghost", onclick: () => { transView = { screen: "home" }; renderTrans(); } }, "← Thư mục truyện"),
-    el("span", { class: "muted" }, `${done}/${total} câu`)));
+    el("span", { class: "muted" }, `${done}/${total} đoạn`)));
   root.append(el("h1", { class: "view-title" }, m.title || "(không tên)"));
   root.append(el("div", { class: "story-prog big" }, el("span", { style: `width:${pct}%` })));
 
@@ -2651,8 +2645,8 @@ async function transTaskRunner(root) {
   const s = store.getSettings();
   const backend = await comm.pingBackend();
   const m = materialList.find((x) => x.id === transTask.materialId);
-  if (!m || !transTask.idxs.length) { transView = { screen: "home" }; return transHome(root); }
-  const { key, dir, idxs, label } = transTask;
+  if (!m || !transTask.units || !transTask.units.length) { transView = { screen: "home" }; return transHome(root); }
+  const { dir, label, units } = transTask;
   const srcIsZh = dir === "zh2vi";
   const srcLabel = srcIsZh ? "中文" : "Tiếng Việt";
   const dstLabel = srcIsZh ? "Tiếng Việt — bản dịch của bạn" : "中文 — bản dịch của bạn";
@@ -2661,10 +2655,10 @@ async function transTaskRunner(root) {
   const doneEl = el("span", { class: "chip" });
   const barFill = el("span", {});
   const refresh = () => {
-    const d = idxs.filter((id) => { const r = recOf(m.sentences[id][key]); return r && (r.user || "").trim(); }).length;
-    doneEl.textContent = `${d}/${idxs.length} đã dịch`;
-    doneEl.className = "chip" + (d >= idxs.length ? " st known" : "");
-    barFill.style.width = idxs.length ? Math.round((d / idxs.length) * 100) + "%" : "0%";
+    const d = units.filter((u) => { const r = recOf(u.text); return r && (r.user || "").trim(); }).length;
+    doneEl.textContent = `${d}/${units.length} đoạn đã dịch`;
+    doneEl.className = "chip" + (d >= units.length ? " st known" : "");
+    barFill.style.width = units.length ? Math.round((d / units.length) * 100) + "%" : "0%";
   };
 
   root.append(el("div", { class: "exam-topbar" },
@@ -2674,22 +2668,21 @@ async function transTaskRunner(root) {
   root.append(el("div", { class: "trans-split-head" }, el("span", {}, srcLabel), el("span", {}, dstLabel)));
 
   const list = el("div", { class: "trans-editor" });
-  for (const id of idxs) {
-    const sent = m.sentences[id] || {};
-    const source = sent[key] || "";
+  for (const u of units) {
+    const source = u.text;
     const existing = recOf(source);
     const left = el("div", { class: "trans-src" });
     left.append(el("div", { class: srcIsZh ? "hanzi-line" : "meaning" }, source));
-    if (srcIsZh && sent.pinyin) left.append(el("div", { class: "pinyin" }, sent.pinyin));
+    if (srcIsZh && u.pinyin) left.append(el("div", { class: "pinyin" }, u.pinyin));
     const leftBtns = el("div", { class: "row", style: "margin-top:4px;gap:8px" });
     if (srcIsZh) leftBtns.append(el("button", { class: "btn ghost small", title: "Nghe", onclick: () => speak(source, { rate: s.speechRate }) }, iconEl("speaker")));
-    if (srcIsZh && sent.vi) leftBtns.append(el("details", { class: "comm-personal", style: "margin:0" }, el("summary", { class: "small" }, iconEl("bulb"), " Tham khảo"), el("p", { class: "meaning small", style: "text-align:left" }, sent.vi)));
+    if (srcIsZh && u.ref) leftBtns.append(el("details", { class: "comm-personal", style: "margin:0" }, el("summary", { class: "small" }, iconEl("bulb"), " Tham khảo"), el("p", { class: "meaning small", style: "text-align:left" }, u.ref)));
     if (leftBtns.childNodes.length) left.append(leftBtns);
 
-    const ta = el("textarea", { class: "inp trans-dst", rows: "2", placeholder: srcIsZh ? "Bản dịch tiếng Việt…" : "你的翻译…" });
+    const ta = el("textarea", { class: "inp trans-dst", rows: "3", placeholder: srcIsZh ? "Bản dịch tiếng Việt…" : "你的翻译…" });
     ta.value = existing ? (existing.user || "") : "";
     let tmr = null;
-    const save = () => { saveStorySentence(source, ta.value, dir, sent.pinyin); refresh(); };
+    const save = () => { saveStorySentence(source, ta.value, dir, u.pinyin); refresh(); };
     ta.addEventListener("input", () => { clearTimeout(tmr); tmr = setTimeout(save, 500); });
     ta.addEventListener("blur", save);
     list.append(el("div", { class: "trans-row" }, left, el("div", {}, ta)));
@@ -2952,7 +2945,9 @@ async function createLesson(text, title, source, segments) {
     }
   } else {
     lesson.vocab = [];
-    lesson.sentences = splitVi(text).map((vi) => ({ vi }));
+    const paras = String(text).replace(/\r/g, "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
+    lesson.sentences = [];
+    paras.forEach((para, pi) => splitVi(para).forEach((vi) => lesson.sentences.push({ vi, p: pi })));
     lesson.chapters = lessons.detectChapters(lesson.sentences, "vi");
   }
   await lessons.saveMaterial(lesson);
@@ -3082,25 +3077,39 @@ function chunkIdxs(idxs, sentences, cfg, key) {
   return out;
 }
 
-// Chia 1 tài liệu thành các "khúc" dịch (chương → phần) + tiến độ. Dùng chung Nạp & Dịch thuật.
+// Gom câu thành ĐOẠN (theo chỉ số p). Không có p → mỗi câu là 1 đơn vị.
+function unitsFromSents(sents, key) {
+  if (!sents.some((s) => s.p != null)) return sents.map((s) => ({ text: s[key], ref: s.vi || "", pinyin: s.pinyin || "" }));
+  const groups = []; let cur = null, curP = NaN;
+  for (const s of sents) { if (s.p !== curP) { cur = []; groups.push(cur); curP = s.p; } cur.push(s); }
+  return groups.map((g) => ({ text: g.map((s) => s[key]).join(""), ref: g.map((s) => s.vi).filter(Boolean).join(" "), pinyin: g.length === 1 ? (g[0].pinyin || "") : "" }));
+}
+// Tất cả đơn vị (đoạn) dịch của tài liệu — cho tiến độ ở Trang chủ.
+function materialUnits(m) {
+  const key = m.lang === "zh" ? "zh" : "vi";
+  return unitsFromSents((m.sentences || []).filter((s) => !s.chapter && (s[key] || "").trim()), key);
+}
+
+// Chia 1 tài liệu thành các "khúc" dịch theo ĐOẠN (chương → nhóm 8 đoạn) + tiến độ.
 function storyChunks(lesson) {
   const key = lesson.lang === "zh" ? "zh" : "vi";
   const dir = lesson.lang === "zh" ? "zh2vi" : "vi2zh";
-  const cfg = lesson.transChunk || { mode: "parts", value: 3 };
   const chapters = lesson.chapters && lesson.chapters.length ? lesson.chapters : [{ title: null, start: 0, end: lesson.sentences.length }];
   const saved = new Set(store.getTranslations().map((t) => t.source));
+  const PER = 8; // số đoạn mỗi khúc
   const out = [];
   for (const ch of chapters) {
-    const idxs = [];
-    for (let i = ch.start; i < ch.end; i++) { const s = lesson.sentences[i]; if (s && !s.chapter && (s[key] || "").trim()) idxs.push(i); }
-    if (!idxs.length) continue;
-    const parts = chunkIdxs(idxs, lesson.sentences, cfg, key);
-    parts.forEach((p, pi) => {
-      const done = p.filter((id) => saved.has(lesson.sentences[id][key])).length;
+    const sents = [];
+    for (let i = ch.start; i < ch.end; i++) { const s = lesson.sentences[i]; if (s && !s.chapter && (s[key] || "").trim()) sents.push(s); }
+    if (!sents.length) continue;
+    const units = unitsFromSents(sents, key);
+    for (let i = 0; i < units.length; i += PER) {
+      const part = units.slice(i, i + PER);
+      const done = part.filter((u) => saved.has(u.text)).length;
       const chapLbl = ch.title || (chapters.length > 1 ? "Mở đầu" : "");
-      const partLbl = parts.length > 1 ? `${chapLbl ? " · " : ""}phần ${pi + 1}/${parts.length}` : "";
-      out.push({ key, dir, idxs: p, total: p.length, done, label: (`${chapLbl}${partLbl}`).replace(/\s+/g, " ").trim() || "Cả bài" });
-    });
+      const partLbl = units.length > PER ? `${chapLbl ? " · " : ""}đoạn ${i + 1}–${Math.min(i + PER, units.length)}` : "";
+      out.push({ dir, units: part, total: part.length, done, label: (`${chapLbl}${partLbl}`).replace(/\s+/g, " ").trim() || "Cả bài" });
+    }
   }
   return out;
 }
@@ -3108,7 +3117,7 @@ function storyChunks(lesson) {
 // Task Dịch ở màn Nạp: mở thẳng task runner trong Dịch thuật.
 function translateTasks(lesson) {
   return storyChunks(lesson).map((c) => ({
-    label: `Dịch ${c.label} (${c.total} câu)`, total: c.total, done: c.done,
+    label: `Dịch ${c.label} (${c.total} đoạn)`, total: c.total, done: c.done,
     start: () => openTransTask(lesson.id, c),
   }));
 }
@@ -3161,7 +3170,6 @@ function lessonTasksPanel(lesson) {
   box.append(el("div", { class: "progress" }, el("span", { style: `width:${pct}%` })));
   box.append(el("div", { class: "muted small" }, `Hoàn thành ${pct}%`));
   for (const t of core) box.append(taskRow(lesson, t));
-  box.append(transConfigRow(lesson));
   for (const t of tTasks) box.append(taskRow(lesson, t));
   return box;
 }

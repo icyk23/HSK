@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] DỊCH THUẬT theo ĐOẠN: nạp tài liệu gắn chỉ số đoạn p (analyzeText/createLesson tách \n→đoạn→câu).
+    unitsFromSents gộp câu cùng p thành ĐƠN VỊ đoạn {text,ref(=join vi),pinyin}; storyChunks chia khúc
+    theo đoạn (8 đoạn/khúc, nhãn "đoạn i–j"); trình dịch song ngữ mỗi hàng = 1 ĐOẠN (gộp câu) + nghe +
+    tham khảo; tiến độ "x/N đoạn". Home/translateTasks đếm theo đoạn. Tài liệu cũ/video (không p) → mỗi
+    câu 1 đơn vị (fallback). Bỏ transConfigRow. E2E: nạp 2 đoạn → editor 2 hàng gộp câu, 0/2 đoạn, 0 lỗi.
 [x] DỊCH THUẬT — trình dịch SONG NGỮ CHIA ĐÔI: transTaskRunner viết lại thành editor 2 cột (nguồn |
     bản dịch của bạn) theo khúc/chương — mỗi câu 1 hàng: 简+pinyin+nghe+"Tham khảo"(Qwen3 sent.vi) bên
     trái, textarea tự lưu (saveStorySentence keyed theo nguồn, debounce+blur) bên phải; chip "x/N đã dịch"
