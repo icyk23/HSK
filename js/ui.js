@@ -3186,6 +3186,8 @@ let tradRefOpen = false;
 let tradSrsSession = null;
 let tradScope = null;            // null = toàn bộ; { label, simps:Set<string> }
 let tradSel = new Set();         // tick chọn ở Thư mục (theo simp)
+let tradFolderView = "grid";     // Thư mục phồn thể: grid | detail
+let tradQuizDir = "t2s";         // Quiz: t2s = 繁→简 · s2t = 简→繁
 
 function scopedPairs(pairs) { return tradScope && tradScope.simps ? pairs.filter((p) => tradScope.simps.has(p.simp)) : pairs; }
 function scopeLabel() { return tradScope ? tradScope.label : "Tất cả chữ"; }
@@ -3389,6 +3391,11 @@ export async function renderTradFolder() {
   root.append(el("h1", { class: "view-title" }, "Phồn thể · Thư mục"));
   if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.", "trad")); return; }
   root.append(el("p", { class: "muted small", style: "margin:-6px 2px 12px" }, "Tick chọn chữ (theo cấp HSK) rồi học bằng Thẻ nhớ / Quiz hoặc lưu thành bộ. Hoặc bấm ▶ Học cấp để luyện nhanh cả cấp."));
+  root.append(el("div", { class: "row", style: "justify-content:flex-end;margin-bottom:10px" },
+    el("div", { class: "subtabs" },
+      el("button", { class: "subtab" + (tradFolderView === "grid" ? " on" : ""), onclick: () => { tradFolderView = "grid"; renderTradFolder(); } }, iconEl("cards"), el("span", {}, " Lưới")),
+      el("button", { class: "subtab" + (tradFolderView === "detail" ? " on" : ""), onclick: () => { tradFolderView = "detail"; renderTradFolder(); } }, iconEl("book"), el("span", {}, " Chi tiết")))));
+  const tprog = store.getTradSrs();
 
   if (tradSel.size) {
     const simps = [...tradSel];
@@ -3403,17 +3410,36 @@ export async function renderTradFolder() {
 
   const byLevel = {};
   for (const p of pairs) (byLevel[p.level] = byLevel[p.level] || []).push(p);
+  const s = store.getSettings();
   for (const lv of Object.keys(byLevel).map(Number).sort((a, b) => a - b)) {
     const arr = byLevel[lv];
     const allSel = arr.every((p) => tradSel.has(p.simp));
+    const learned = arr.reduce((n, p) => n + (tprog[p.simp] && tprog[p.simp].reps > 0 ? 1 : 0), 0);
+    const pct = arr.length ? Math.round((learned / arr.length) * 100) : 0;
     const head = el("div", { class: "row spread" },
       el("b", {}, `HSK${lv}`, el("span", { class: "muted small" }, ` · ${arr.length} chữ`)),
       el("div", { class: "row" },
+        el("span", { class: "folder-prog" }, el("span", { class: "folder-bar" }, el("span", { style: `width:${pct}%` + (pct >= 100 ? ";background:var(--ok)" : "") })), el("span", { class: "muted small" }, `thuộc ${learned}/${arr.length}`)),
         el("button", { class: "btn ghost small", onclick: () => { for (const p of arr) allSel ? tradSel.delete(p.simp) : tradSel.add(p.simp); renderTradFolder(); } }, allSel ? "Bỏ cấp" : "Chọn cả cấp"),
         el("button", { class: "btn small", onclick: () => setTradScope(`HSK${lv}`, arr.map((p) => p.simp), "tradSrs") }, iconEl("play"), el("span", { class: "btn-tx" }, " Học cấp"))));
-    const grid = el("div", { class: "comm-chips" });
-    for (const p of arr) grid.append(commChip(`${p.simp}→${p.trad}`, tradSel.has(p.simp), () => { tradSel.has(p.simp) ? tradSel.delete(p.simp) : tradSel.add(p.simp); renderTradFolder(); }));
-    root.append(el("div", { class: "panel stack" }, head, grid));
+    const toggle = (p) => { tradSel.has(p.simp) ? tradSel.delete(p.simp) : tradSel.add(p.simp); renderTradFolder(); };
+    let body;
+    if (tradFolderView === "detail") {
+      body = el("div", { class: "folder-rows" });
+      for (const p of arr) {
+        const on = tradSel.has(p.simp);
+        body.append(el("div", { class: "wrow" + (on ? " on" : ""), onclick: () => toggle(p) },
+          el("span", { class: "wcb" + (on ? " on" : "") }, on ? "✓" : ""),
+          el("span", { class: "wrow-zh trad no-cc" }, p.trad),
+          el("span", { class: "wrow-py" }, p.simp + (p.pinyin ? " · " + p.pinyin : "")),
+          el("span", { class: "wrow-mean muted small" }, (p.han_viet ? `[${p.han_viet}] ` : "") + (p.meaning || "")),
+          el("button", { class: "btn ghost small wrow-audio", title: "Nghe", onclick: (e) => { e.stopPropagation(); speak(p.simp, { rate: s.speechRate }); } }, iconEl("speaker"))));
+      }
+    } else {
+      body = el("div", { class: "comm-chips" });
+      for (const p of arr) body.append(commChip(`${p.simp}→${p.trad}`, tradSel.has(p.simp), () => toggle(p)));
+    }
+    root.append(el("div", { class: "panel stack" }, head, body));
   }
 }
 
@@ -3466,19 +3492,28 @@ export async function renderTradComp() {
 }
 
 async function tradQuizPanel() {
+  const s = store.getSettings();
   const pairs = scopedPairs(await tradPairs());
+  const s2t = tradQuizDir === "s2t";
   const box = el("div", { class: "panel stack" });
-  box.append(el("div", { class: "row spread" }, el("b", {}, "Quiz: đọc phồn thể → chọn giản thể"), tradQuiz ? el("span", { class: "muted small" }, `Điểm ${tradQuiz.score}/${tradQuiz.total}`) : null));
+  box.append(el("div", { class: "row spread" }, el("b", {}, s2t ? "Quiz: đọc giản thể → chọn phồn thể" : "Quiz: đọc phồn thể → chọn giản thể"), tradQuiz ? el("span", { class: "muted small" }, `Điểm ${tradQuiz.score}/${tradQuiz.total}`) : null));
+  // chiều quiz
+  const dirRow = el("div", { class: "comm-chips" });
+  dirRow.append(commChip("繁 → 简", !s2t, () => { tradQuizDir = "t2s"; tradQuiz = null; renderTradComp(); }));
+  dirRow.append(commChip("简 → 繁", s2t, () => { tradQuizDir = "s2t"; tradQuiz = null; renderTradComp(); }));
+  box.append(dirRow);
   if (pairs.length < 4) { box.append(el("p", { class: "muted small" }, "Phạm vi cần ≥4 chữ để làm quiz.")); return box; }
-  if (tradQuiz && tradQuiz.scopeLabel !== scopeLabel()) tradQuiz = null;
+  if (tradQuiz && (tradQuiz.scopeLabel !== scopeLabel() || tradQuiz.dir !== tradQuizDir)) tradQuiz = null;
   if (!tradQuiz || tradQuiz.next) tradQuiz = makeTradQuestion(pairs, tradQuiz);
   const q = tradQuiz;
-  box.append(el("div", { class: "trad-quiz-q" }, q.pair.trad));
-  box.append(el("div", { class: "muted small center" }, "Chữ phồn thể trên ứng với chữ giản thể nào?"));
+  box.append(el("div", { class: "row center", style: "gap:10px" },
+    el("div", { class: "trad-quiz-q no-cc" }, q.prompt),
+    el("button", { class: "btn ghost small", title: "Nghe", onclick: () => speak(q.pair.simp, { rate: s.speechRate }) }, iconEl("speaker"))));
+  box.append(el("div", { class: "muted small center" }, s2t ? "Chữ giản thể trên ứng với chữ phồn thể nào?" : "Chữ phồn thể trên ứng với chữ giản thể nào?"));
   const opts = el("div", { class: "quiz-options" });
   for (const o of q.options) {
-    let cls = "btn quiz-opt";
-    if (q.picked) { if (o === q.pair.simp) cls += " correct"; else if (o === q.picked) cls += " wrong"; }
+    let cls = "btn quiz-opt no-cc";
+    if (q.picked) { if (o === q.answer) cls += " correct"; else if (o === q.picked) cls += " wrong"; }
     opts.append(el("button", { class: cls, disabled: !!q.picked, onclick: () => pickTrad(o) }, o));
   }
   box.append(opts);
@@ -3490,15 +3525,19 @@ async function tradQuizPanel() {
 }
 function makeTradQuestion(pairs, prev) {
   const pair = pairs[Math.floor(Math.random() * pairs.length)];
-  const opts = new Set([pair.simp]);
-  while (opts.size < 4 && opts.size < pairs.length) opts.add(pairs[Math.floor(Math.random() * pairs.length)].simp);
-  return { pair, options: [...opts].sort(() => Math.random() - 0.5), picked: null, score: prev ? prev.score : 0, total: prev ? prev.total : 0, next: false, scopeLabel: scopeLabel() };
+  const s2t = tradQuizDir === "s2t";
+  const field = s2t ? "trad" : "simp";
+  const prompt = s2t ? pair.simp : pair.trad;
+  const answer = pair[field];
+  const opts = new Set([answer]);
+  while (opts.size < 4 && opts.size < pairs.length) opts.add(pairs[Math.floor(Math.random() * pairs.length)][field]);
+  return { pair, prompt, answer, options: [...opts].sort(() => Math.random() - 0.5), picked: null, score: prev ? prev.score : 0, total: prev ? prev.total : 0, next: false, scopeLabel: scopeLabel(), dir: tradQuizDir };
 }
 function pickTrad(o) {
   if (tradQuiz.picked) return;
   tradQuiz.picked = o;
   tradQuiz.total++;
-  if (o === tradQuiz.pair.simp) tradQuiz.score++;
+  if (o === tradQuiz.answer) tradQuiz.score++;
   const best = store.getTradMeta().quizBest;
   if (!best || tradQuiz.score > best.score) store.saveTradMeta({ quizBest: { score: tradQuiz.score, total: tradQuiz.total } });
   renderTradComp();

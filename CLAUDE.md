@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] PHỒN THỂ — Thư mục/Quiz cải tiến (P1-P3): (P1) mỗi cấp HSK có thanh tiến độ + "thuộc x/N" (từ
+    store.tradSrs). (P2) công tắc Lưới/Chi tiết — Chi tiết = mỗi chữ 1 hàng 繁·简·pinyin·Hán-Việt·nghĩa·nghe
+    (tradFolderView). (P3) Quiz 2 chiều 繁→简 / 简→繁 (tradQuizDir, makeTradQuestion theo field) + nút nghe;
+    chữ quiz để no-cc tránh CC toàn cục đổi nhầm. E2E: 6 thanh cấp, 993 hàng chi tiết, quiz 這→关 + nghe. 0 lỗi.
 [x] DỊCH THUẬT — KHÚC = CHƯƠNG: storyChunks bỏ cắt 8-đoạn, mỗi chương = 1 khúc (nhãn = tiêu đề chương,
     vd 第一章; không có chương → "Cả bài"); thư mục truyện liệt kê theo chương, vào chương dịch từng ĐOẠN
     một. transStory/header bỏ chữ "Khúc", hiện tên chương. E2E: nạp 2 chương → 2 khúc 第一章/第二章
