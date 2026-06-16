@@ -739,13 +739,6 @@ export async function renderStats() {
       levelKeys.forEach((lv) => wrap.append(progressRow("HSK" + lv, byLevel[lv].learned, byLevel[lv].total)));
       root.append(wrap);
     }
-    const groupKeys = SEM_ORDER.filter((g) => byGroup[g]);
-    if (groupKeys.length) {
-      root.append(el("h2", { class: "view-title", style: "margin-top:24px;font-size:17px" }, "Tiến độ theo nhóm nghĩa"));
-      const wrap = el("div", { class: "panel stack" });
-      groupKeys.forEach((g) => wrap.append(progressRow(`${g} · ${SEMANTIC_LABELS[g]}`, byGroup[g].learned, byGroup[g].total, g[0])));
-      root.append(wrap);
-    }
   }
 
   // Tiến độ các module khác (Phồn thể · Dịch thuật) — thuần browser

@@ -1,5 +1,5 @@
 // sw.js — basic offline cache for the app shell + data.
-const CACHE = "hsk6-v76";
+const CACHE = "hsk6-v77";
 const ASSETS = [
   "./",
   "./index.html",
