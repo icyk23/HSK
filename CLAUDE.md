@@ -145,6 +145,12 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] SYNC CÂU THEO TIMESTAMP (video): backend /ingest GIỮ mốc thời gian — vtt_to_segments (parse cue VTT)
+    + media_bytes_to_segments (Whisper seg.start) → trả segments:[{start,zh}]. createLesson dựng câu
+    {zh,t} + lesson.timed; commPersonal mang t. Shadowing tài liệu video timed → shadowVideoSync:
+    YouTube IFrame API (loadYTApi, seekTo/getCurrentTime) hoặc <video>; transcript bấm-để-tua + dò
+    getTime mỗi 300ms highlight câu đang phát (commSyncTimer, clear ở clearCommState). CSS .sync-row/.on.
+    E2E mock: 3 câu mốc 0:03/0:07/1:12, embed, bấm không lỗi. (YouTube cần mạng máy thật.)
 [x] 3 SỬA UI: (1) Nạp mới gọn lại — field có nhãn (Tên/Link/Văn bản), ô link full-width (.inp) +
     nút "Bóc từ link" cạnh bên; (2) ĐỒNG BỘ ICON: scene chips Giao tiếp đổi emoji→SVG angular
     (icons.js thêm restaurant/shopping/directions/hospital/intro/work/video; commChip nhận mảng;

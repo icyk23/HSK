@@ -1607,7 +1607,7 @@ function scrollToFirstWrong() {
 
 /* ---------- Phần Viết (缩写 — đọc rồi tóm tắt) ---------- */
 function countChars(s) { return [...String(s).replace(/\s/g, "")].length; }
-function fmtTime(sec) { const m = Math.floor(sec / 60), s = sec % 60; return `${m}:${String(s).padStart(2, "0")}`; }
+function fmtTime(sec) { const m = Math.floor(sec / 60), s = Math.floor(sec % 60); return `${m}:${String(s).padStart(2, "0")}`; }
 
 async function examWriting(root) {
   const exam = await getExam(examView.examId);
@@ -1733,7 +1733,69 @@ let commPersonalPattern = [];    // [{frame,frame_vi,slots}] sinh từ tài li�
 let commPersonalPatternLabel = "";
 let commSrcMode = "scene";       // segmented nguồn câu: "scene" | "material"
 let commPersonalVideo = "";      // URL video của tài liệu nguồn (hiện màn hình video khi luyện)
+let commSyncTimer = null;        // interval dò thời gian video để highlight câu
 const matVideo = (m) => (m && m.source && m.source.kind === "video" && m.source.url) ? m.source.url : "";
+
+// Tải YouTube IFrame API 1 lần.
+let ytApiPromise = null;
+function loadYTApi() {
+  if (window.YT && window.YT.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve) => {
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (prev) prev(); resolve(); };
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  });
+  return ytApiPromise;
+}
+
+// Màn hình video + transcript đồng bộ: bấm câu → tua; video chạy → highlight câu. lines:[{zh,vi,t}].
+function shadowVideoSync(root, lines, url) {
+  lines = lines.filter((l) => l.t != null).sort((a, b) => a.t - b.t);
+  const host = el("div", { class: "video-embed" });
+  root.append(host);
+  const s = store.getSettings();
+  const list = el("div", { class: "sync-list" });
+  let seek = () => {};
+  const rows = lines.map((l) => el("button", { class: "sync-row", onclick: () => seek(l.t) },
+    el("span", { class: "sync-t mono" }, fmtTime(l.t)),
+    el("span", { class: "sync-zh" }, l.zh),
+    l.vi ? el("span", { class: "sync-vi muted small" }, l.vi) : null));
+  rows.forEach((r) => list.append(r));
+  root.append(el("p", { class: "muted small", style: "margin:10px 2px 4px" }, "Bấm một câu để tua video tới đó · câu đang phát sẽ tự sáng."));
+  root.append(list);
+
+  let getTime = () => 0;
+  const yt = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
+  if (yt) {
+    const mount = el("div", {});
+    host.append(mount);
+    loadYTApi().then(() => {
+      const player = new window.YT.Player(mount, { videoId: yt[1], playerVars: { rel: 0, playsinline: 1 } });
+      seek = (t) => { try { player.seekTo(t, true); player.playVideo(); } catch {} };
+      getTime = () => { try { return player.getCurrentTime() || 0; } catch { return 0; } };
+    });
+  } else {
+    const v = el("video", { src: url, controls: "" });
+    host.append(v);
+    seek = (t) => { try { v.currentTime = t; v.play(); } catch {} };
+    getTime = () => v.currentTime || 0;
+  }
+
+  let active = -1;
+  commSyncTimer = setInterval(() => {
+    const ct = getTime();
+    let idx = -1;
+    for (let i = 0; i < lines.length; i++) { if (lines[i].t <= ct + 0.2) idx = i; else break; }
+    if (idx !== active) {
+      active = idx;
+      rows.forEach((r, i) => r.classList.toggle("on", i === idx));
+      if (idx >= 0) rows[idx].scrollIntoView({ block: "nearest" });
+    }
+  }, 300);
+}
 function videoEmbed(url) {
   if (!url) return null;
   const wrap = el("div", { class: "video-embed" });
@@ -1745,6 +1807,7 @@ function videoEmbed(url) {
 
 function clearCommState() {
   if (commTimer) { clearInterval(commTimer); commTimer = null; }
+  if (commSyncTimer) { clearInterval(commSyncTimer); commSyncTimer = null; }
   if (commRec) { try { commRec.abort(); } catch {} commRec = null; }
   commKeyHandler = null;
   stopSpeaking();
@@ -1853,7 +1916,7 @@ function commSourceBar(scenes, opts = {}) {
       const mat = el("div", { class: "comm-chips" });
       for (const { m, zh } of usable) {
         const on = commPersonalLabel === m.title;
-        mat.append(commChip(`${m.title} (${zh.length})`, on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi })), m.title, matVideo(m)); }));
+        mat.append(commChip(`${m.title} (${zh.length})`, on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi, t: x.t })), m.title, matVideo(m)); }));
       }
       wrap.append(el("div", { class: "muted small", style: "margin-top:4px" }, opts.materialHint || "Chọn tài liệu đã nạp:"), mat);
     } else {
@@ -2099,7 +2162,11 @@ function commDrillShadow(root, scenes) {
   if (!commView.started) return commIntro(root, scenes, { title: "Shadowing + Phát âm", opts: { material: true }, count: lineBank(scenes).length, unit: "câu" });
   root.append(commTopbar("Shadowing + Phát âm"));
   root.append(commSourceBar(scenes, { material: true }));
-  if (commPersonalVideo) root.append(videoEmbed(commPersonalVideo));
+  if (commPersonalVideo) {
+    const timed = lineBank(scenes).filter((l) => l.t != null);
+    if (timed.length) { shadowVideoSync(root, timed, commPersonalVideo); return; }
+    root.append(videoEmbed(commPersonalVideo));
+  }
   const bank = shuffle(lineBank(scenes).slice());
   if (!bank.length) { root.append(commEmptyNote("câu để luyện")); return; }
   const progress = el("div", { class: "comm-progress muted small" });
@@ -2627,7 +2694,7 @@ async function ingestNew(root) {
     ta.value = await f.text();
     if (!titleInput.value) titleInput.value = f.name.replace(/\.[^.]+$/, "");
   });
-  let pendingSource = null; // nguồn link (web/video) sau khi "Bóc từ link"
+  let pendingSource = null, pendingSegments = null; // nguồn link + mốc thời gian (video) sau khi "Bóc từ link"
   const urlInput = el("input", { type: "url", class: "inp", style: "flex:1;min-width:0", placeholder: "Dán link bài web hoặc video YouTube…" });
   const urlBtn = el("button", { class: "btn", onclick: doIngestUrl }, iconEl("upload"), el("span", { class: "btn-tx" }, " Bóc từ link"));
   async function doIngestUrl() {
@@ -2636,12 +2703,13 @@ async function ingestNew(root) {
     if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để bóc từ link.");
     urlBtn.disabled = true; toast("Đang bóc nội dung từ link… có thể mất một lúc.");
     try {
-      const { text, title, kind } = await comm.ingestUrl(url);
+      const { text, title, kind, segments } = await comm.ingestUrl(url);
       if (!text || !text.trim()) return toast("Không bóc được nội dung từ link này.");
       ta.value = text;
       if (!titleInput.value && title) titleInput.value = title;
       pendingSource = { type: "link", url, kind: kind || "web" };
-      toast("Đã bóc nội dung. Xem lại rồi bấm Phân tích.");
+      pendingSegments = (segments && segments.length) ? segments : null;
+      toast(pendingSegments ? `Đã bóc ${pendingSegments.length} câu có mốc thời gian (sync được).` : "Đã bóc nội dung. Xem lại rồi bấm Phân tích.");
     } catch (e) { toast("Lỗi: " + e.message); }
     finally { urlBtn.disabled = false; }
   }
@@ -2651,12 +2719,12 @@ async function ingestNew(root) {
     el("div", { class: "field" }, el("label", {}, "Link web / YouTube (cần Qwen3)"),
       el("div", { class: "row", style: "gap:8px;flex-wrap:nowrap" }, urlInput, urlBtn)),
     el("div", { class: "field" }, el("label", {}, "Hoặc dán văn bản"), ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value, pendingSource) }, iconEl("search"), el("span", { class: "btn-tx" }, " Phân tích & tạo tài liệu"))),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value, pendingSource, pendingSegments) }, iconEl("search"), el("span", { class: "btn-tx" }, " Phân tích & tạo tài liệu"))),
     el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật. Văn bản .txt/.srt xử lý ngay; link web/YouTube cần backend Qwen3 (Cài đặt) — bóc xong điền vào ô trên để bạn xem lại rồi Phân tích. Link video sẽ hiện màn hình video khi luyện Shadowing/Thay thế."),
   ));
 }
 
-async function createLesson(text, title, source) {
+async function createLesson(text, title, source, segments) {
   text = (text || "").trim();
   if (!text) return toast("Chưa có nội dung.");
   const hanCount = (text.match(/[一-鿿]/g) || []).length;
@@ -2665,7 +2733,15 @@ async function createLesson(text, title, source) {
   const lesson = { id: "ls-" + Date.now().toString(36), title: (title || "").trim() || text.slice(0, 24), lang, source: source || { type: "paste" }, createdAt: new Date().toISOString(), manual: {} };
   if (lang === "zh") {
     const { vocab, sentences, chapters } = await lessons.analyzeText(text);
-    lesson.vocab = vocab; lesson.sentences = sentences; lesson.chapters = chapters;
+    lesson.vocab = vocab;
+    if (segments && segments.length) {
+      // Tài liệu video: mỗi cue phụ đề = 1 câu, giữ mốc thời gian để sync.
+      lesson.sentences = segments.map((s) => ({ zh: s.zh, t: s.start }));
+      lesson.timed = true;
+      lesson.chapters = lessons.detectChapters(lesson.sentences, "zh");
+    } else {
+      lesson.sentences = sentences; lesson.chapters = chapters;
+    }
   } else {
     lesson.vocab = [];
     lesson.sentences = splitVi(text).map((vi) => ({ vi }));
@@ -2770,7 +2846,7 @@ function buildTasks(lesson) {
   const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
   if (zhS.length) {
     tasks.push({ label: `Luyện nói ${zhS.length} câu (Shadowing)`, total: zhS.length, done: lesson.manual.shadow ? zhS.length : 0, manual: "shadow",
-      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh, vi: s.vi })); commPersonalLabel = lesson.title; commPersonalVideo = matVideo(lesson); commView = { screen: "shadow", started: true }; navigate("comm"); } });
+      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh, vi: s.vi, t: s.t })); commPersonalLabel = lesson.title; commPersonalVideo = matVideo(lesson); commView = { screen: "shadow", started: true }; navigate("comm"); } });
   }
   return tasks;
 }

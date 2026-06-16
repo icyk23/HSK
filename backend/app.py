@@ -131,12 +131,22 @@ def pdf_bytes_to_text(data: bytes) -> str:
 
 
 def media_bytes_to_text(data: bytes, suffix: str) -> str:
+    return "".join(s["zh"] for s in media_bytes_to_segments(data, suffix))
+
+
+def media_bytes_to_segments(data: bytes, suffix: str):
+    """Nghe-ra-chữ + GIỮ mốc thời gian: trả [{start, zh}] (start = giây)."""
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tf:
         tf.write(data)
         path = tf.name
     try:
         segments, _ = get_asr().transcribe(path, language="zh", vad_filter=True)
-        return "".join(seg.text for seg in segments)
+        out = []
+        for seg in segments:
+            txt = (seg.text or "").strip()
+            if txt:
+                out.append({"start": round(float(seg.start or 0), 2), "zh": txt})
+        return out
     finally:
         try:
             os.unlink(path)
@@ -233,22 +243,50 @@ def web_url_to_text(url: str):
     return text.strip(), title
 
 
-def vtt_to_text(vtt: str) -> str:
-    out = []
+def _vtt_ts(line: str):
+    m = re.search(r"(\d+):(\d{2}):(\d{2})[.,](\d{1,3})", line)
+    if not m:
+        return None
+    h, mn, s, ms = m.groups()
+    return round(int(h) * 3600 + int(mn) * 60 + int(s) + int(ms.ljust(3, "0")) / 1000, 2)
+
+
+def vtt_to_segments(vtt: str):
+    """Parse VTT/SRT → [{start, zh}] (giữ mốc thời gian, gộp dòng & bỏ trùng liên tiếp)."""
+    segs = []
+    cur, buf = None, []
+
+    def flush():
+        nonlocal buf, cur
+        if cur is not None and buf:
+            txt = re.sub(r"<[^>]+>", "", " ".join(buf))
+            txt = re.sub(r"\s+", " ", txt).strip()
+            if txt and (not segs or segs[-1]["zh"] != txt):
+                segs.append({"start": cur, "zh": txt})
+        buf = []
+
     for line in vtt.splitlines():
         line = line.strip()
-        if not line or "-->" in line or line.isdigit():
+        if "-->" in line:
+            flush()
+            cur = _vtt_ts(line) or 0
+        elif not line or line.isdigit() or line.upper().startswith(("WEBVTT", "KIND", "LANGUAGE", "NOTE", "STYLE")):
             continue
-        if line.upper().startswith(("WEBVTT", "KIND", "LANGUAGE", "NOTE", "STYLE")):
-            continue
-        line = re.sub(r"<[^>]+>", "", line).strip()
-        if line and (not out or out[-1] != line):
-            out.append(line)
-    return "\n".join(out)
+        else:
+            buf.append(line)
+    flush()
+    return segs
+
+
+def vtt_to_text(vtt: str) -> str:
+    return "\n".join(s["zh"] for s in vtt_to_segments(vtt))
 
 
 def video_url_to_text(url: str):
-    """Trả (text, title) cho link video: ưu tiên phụ đề, không có thì nghe-ra-chữ."""
+    """Trả (text, title, segments) cho link video: ưu tiên phụ đề, không có thì nghe-ra-chữ.
+
+    segments = [{start, zh}] (giây) để app sync câu theo video.
+    """
     if not _has("yt_dlp"):
         raise HTTPException(400, "Chưa cài yt-dlp (pip install yt-dlp).")
     import yt_dlp
@@ -268,9 +306,9 @@ def video_url_to_text(url: str):
         for fn in sorted(os.listdir(td)):
             if fn.endswith(".vtt"):
                 with open(os.path.join(td, fn), encoding="utf-8", errors="ignore") as f:
-                    txt = vtt_to_text(f.read())
-                if txt:
-                    return txt, title
+                    segs = vtt_to_segments(f.read())
+                if segs:
+                    return "\n".join(s["zh"] for s in segs), title, segs
         if not capabilities()["asr"]:
             raise HTTPException(400, "Video không có phụ đề tiếng Trung và chưa cài faster-whisper để nghe.")
         audio_opts = {"format": "bestaudio/best", "outtmpl": os.path.join(td, "a.%(ext)s"), "quiet": True, "no_warnings": True}
@@ -279,7 +317,8 @@ def video_url_to_text(url: str):
         for fn in os.listdir(td):
             if fn.startswith("a."):
                 with open(os.path.join(td, fn), "rb") as f:
-                    return media_bytes_to_text(f.read(), os.path.splitext(fn)[1] or ".m4a"), title
+                    segs = media_bytes_to_segments(f.read(), os.path.splitext(fn)[1] or ".m4a")
+                return "\n".join(s["zh"] for s in segs), title, segs
         raise HTTPException(422, "Không lấy được nội dung từ video.")
 
 
@@ -607,8 +646,9 @@ def ingest(req: IngestReq):
     url = (req.url or "").strip()
     if not url.startswith(("http://", "https://")):
         raise HTTPException(400, "URL phải bắt đầu bằng http:// hoặc https://")
+    segments = []
     if _is_video_url(url):
-        text, title = video_url_to_text(url)
+        text, title, segments = video_url_to_text(url)
         kind = "video"
     else:
         try:
@@ -621,7 +661,7 @@ def ingest(req: IngestReq):
     text = (text or "").strip()
     if not text:
         raise HTTPException(422, "Không bóc được nội dung từ link này.")
-    return {"text": text, "title": title or "", "kind": kind, "chars": len(text)}
+    return {"text": text, "title": title or "", "kind": kind, "chars": len(text), "segments": segments or []}
 
 
 class GenHskkReq(BaseModel):
