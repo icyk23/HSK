@@ -778,6 +778,25 @@ export async function renderHome() {
   );
   root.append(hero);
 
+  // P1 — "Tiếp tục" việc đang dở (shadowing video · dịch truyện · nháp Viết)
+  const cont = await homeContinueItems();
+  if (cont.length) {
+    const sec = el("div", { style: "margin-top:18px" });
+    sec.append(el("div", { class: "row spread", style: "margin-bottom:10px" }, el("h2", { class: "view-title", style: "margin:0" }, "Tiếp tục"), el("span", { class: "muted small" }, "Việc bạn đang làm dở")));
+    const grid = el("div", { class: "home-continue" });
+    for (const it of cont) {
+      grid.append(el("button", { class: "continue-card", onclick: it.go },
+        el("span", { class: "cc-ic" }, iconEl(it.icon)),
+        el("span", { class: "cc-body" },
+          el("span", { class: "cc-title" }, it.title),
+          el("span", { class: "cc-sub muted small" }, it.sub),
+          it.total ? el("span", { class: "story-prog", style: "margin-top:8px" }, el("span", { style: `width:${Math.round((it.done / it.total) * 100)}%` })) : null),
+        el("span", { class: "cc-go" }, iconEl("play"))));
+    }
+    sec.append(grid);
+    root.append(sec);
+  }
+
   // Onboarding: gợi ý 3 bước bắt đầu (lần đầu, ẩn được)
   if (!s.onboardDismissed) {
     const card = el("div", { class: "panel", style: "margin-top:16px" });
@@ -800,13 +819,30 @@ export async function renderHome() {
     root.append(card);
   }
 
-  // Số liệu nhanh
-  root.append(el("div", { class: "stat-grid", style: "margin-top:18px" },
+  // P2 — Mục tiêu hôm nay (thanh tiến độ + động viên)
+  {
+    const goal = Math.max(1, s.newPerDay || 15);
+    const reached = todayStat.reviews >= goal;
+    const pct = Math.min(100, Math.round((todayStat.reviews / goal) * 100));
+    const fill = el("span", { style: `width:${pct}%` });
+    if (reached) fill.style.background = "var(--ok)";
+    const goalCard = el("div", { class: "panel stack", style: "margin-top:18px" });
+    goalCard.append(el("div", { class: "row spread" },
+      el("b", {}, reached ? iconEl("check") : null, " Mục tiêu hôm nay"),
+      el("span", { class: "chip" + (reached ? " st known" : "") }, `${todayStat.reviews}/${goal} lượt ôn`)));
+    goalCard.append(el("div", { class: "progress", style: "margin:10px 0 0" }, fill));
+    goalCard.append(el("p", { class: "muted small", style: "margin:8px 0 0" },
+      reached ? "Tuyệt vời! Bạn đã đạt mục tiêu hôm nay — chuỗi ngày được giữ vững." : `Còn ${goal - todayStat.reviews} lượt ôn nữa là đạt mục tiêu.`));
+    root.append(goalCard);
+  }
+
+  // Số liệu nhanh + tiến độ bộ thẻ (P4: thanh thay vì chữ)
+  root.append(el("div", { class: "stat-grid", style: "margin-top:14px" },
     statBox(learned, "Đã học"),
     statBox(due, "Đến hạn ôn"),
-    statBox(todayStat.reviews, "Lượt ôn hôm nay"),
-    statBox(`${learned}/${total}`, "Tiến độ bộ thẻ"),
+    statBox(total - learned, "Chưa học"),
   ));
+  root.append(el("div", { class: "panel", style: "margin-top:12px" }, progressRow("Tiến độ bộ thẻ", learned, total)));
 
   // Thẻ AI · Qwen3: trạng thái backend + lối tắt Cài đặt
   {
@@ -873,11 +909,11 @@ export async function renderHome() {
   root.append(el("h2", { class: "view-title", style: "margin-top:26px" }, "Vào nhanh"));
   const tiles = el("div", { class: "home-tiles" });
   const TILES = [
-    ["cards", "Từ vựng", "Flashcard · SRS · Quiz", "study"],
-    ["exam", "Luyện đề", "HSK6 · HSKK 高级", "exam"],
+    ["cards", "Từ vựng", "Flashcard · SRS · Quiz", "vocabHub"],
+    ["exam", "Luyện đề", "HSK6 · HSKK 高级", "examHub"],
     ["comm", "Giao tiếp", "Phản xạ · Phát âm", "comm"],
     ["trans", "Dịch thuật", "Trung ↔ Việt", "trans"],
-    ["trad", "Phồn thể", "简 → 繁", "tradHome"],
+    ["trad", "Phồn thể", "简 → 繁", "tradHub"],
     ["ingest", "Nạp tài liệu", "Truyện · phụ đề · văn bản", "ingest"],
   ];
   for (const [ic, name, desc, view] of TILES) {
@@ -895,6 +931,43 @@ export async function renderHome() {
     const v = n.textContent.trim();
     if (/^\d+$/.test(v)) countUp(n, parseInt(v, 10));
   }));
+}
+
+// Mở thẳng Shadowing cho 1 tài liệu (dùng ở "Tiếp tục").
+function openShadowMaterial(m) {
+  const zhS = (m.sentences || []).filter((x) => !x.chapter && x.zh);
+  commSel.sceneIds = [];
+  commPersonal = zhS.map((x) => ({ zh: x.zh, vi: x.vi, t: x.t }));
+  commPersonalLabel = m.title; commPersonalVideo = matVideo(m); commPersonalMatId = m.id;
+  commSrcMode = "material";
+  commView = { screen: "shadow", started: true };
+  navigate("comm");
+}
+
+// Gom việc đang dở để hiện ở Trang chủ. Trả tối đa 4 thẻ.
+async function homeContinueItems() {
+  const items = [];
+  let materials = [];
+  try { materials = await lessons.listMaterials(); } catch {}
+  const translated = new Set(store.getTranslations().map((t) => t.source));
+  for (const m of materials) {
+    const sents = (m.sentences || []).filter((x) => !x.chapter && x.zh);
+    if (!sents.length) continue;
+    if (m.source && m.source.kind === "video" && m.source.url) {
+      const prog = store.getShadowProgress(m.id);
+      const done = sents.filter((_, i) => prog[i]).length;
+      if (done > 0 && done < sents.length) items.push({ icon: "video", title: m.title, sub: `Shadowing video · ${done}/${sents.length} câu`, done, total: sents.length, go: () => openShadowMaterial(m) });
+    }
+    const tDone = sents.filter((x) => translated.has(x.zh)).length;
+    if (tDone > 0 && tDone < sents.length) items.push({ icon: "trans", title: m.title, sub: `Dịch theo truyện · ${tDone}/${sents.length} câu`, done: tDone, total: sents.length, go: () => { transView = { screen: "story", materialId: m.id }; navigate("trans"); } });
+  }
+  try {
+    for (const ex of await getAllExams()) {
+      const w = store.getExamProgress(ex.id).writing;
+      if (w && w.text && countChars(w.text) > 0) items.push({ icon: "keyboard", title: ex.title, sub: `Viết 缩写 · ${countChars(w.text)} chữ nháp`, done: 0, total: 0, go: () => { examView = { screen: "writing", examId: ex.id, tab: "choose" }; navigate("exam"); } });
+    }
+  } catch {}
+  return items.slice(0, 4);
 }
 
 function progressRow(label, learned, total, colorKey) {

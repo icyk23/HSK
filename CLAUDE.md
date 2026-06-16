@@ -145,6 +145,12 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] TRANG CHỦ cải tiến (P1+P2+P4): (P1) dải "Tiếp tục" ngay sau hero — gom việc dở từ dữ liệu sẵn có:
+    shadowing video (shadowProg), dịch theo truyện (translations vs câu material), nháp Viết
+    (examProgress.writing); mỗi thẻ icon+tên+tiến độ+thanh, 1 chạm vào đúng chỗ (openShadowMaterial/
+    transView/examView). (P2) "Mục tiêu hôm nay": thanh tiến độ lượt ôn/newPerDay + động viên, xanh khi đạt.
+    (P4) "Tiến độ bộ thẻ" thành thanh (progressRow) + ô "Chưa học"; "Vào nhanh" trỏ hub (vocabHub/examHub/
+    tradHub) cho nhất quán. E2E: 2 thẻ tiếp tục, goal 6/15, click Shadowing mở đúng video. 0 lỗi.
 [x] SYNC đợt 3: toolbar (Ẩn chữ = blur .sync-zh, rê chuột lộ — luyện nghe · Lặp ∞/1×/3×/5× rồi sang câu kế ·
     chip "Đã luyện n/N") + LƯU TIẾN ĐỘ shadowing theo câu (store.shadowProg keyed matId, vào backup;
     nút ✓ mỗi câu, auto-đánh dấu khi chấm phát âm ≥80% qua micButton onScore). commPersonalMatId mang id

@@ -1030,6 +1030,19 @@ button.btn:hover { transform: translateY(-1px); }
 [data-theme="dark"] .home-streak-num { text-shadow: var(--glow); }
 .home-streak-lbl { font-family: var(--font-mono); font-size: 11px; letter-spacing: .18em; color: var(--text-muted); margin-top: 4px; }
 
+/* Trang chủ — dải "Tiếp tục" */
+.home-continue { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .home-continue { grid-template-columns: 1fr; } }
+.continue-card { display: flex; align-items: center; gap: 14px; text-align: left; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); cursor: pointer; transition: transform .12s, border-color .12s; }
+.continue-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.continue-card .cc-ic { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
+.continue-card .cc-ic .ic { width: 22px; height: 22px; }
+.continue-card .cc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.continue-card .cc-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.continue-card .cc-go { flex: none; color: var(--text-muted); }
+.continue-card .cc-go .ic { width: 18px; height: 18px; }
+.continue-card .story-prog { width: 100%; }
+
 .home-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .home-tile {
   display: flex; gap: 14px; align-items: center; text-align: left; cursor: pointer;
