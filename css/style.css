@@ -458,8 +458,14 @@ mark.hl { background: var(--accent-soft); color: var(--accent); border-radius: 3
 
 .explain { background: rgba(224,161,6,.10); border-left: 3px solid var(--warn); border-radius: 0 8px 8px 0; padding: 8px 12px; font-size: 14px; }
 .result-bar, .submit-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; position: sticky; bottom: 10px; }
-.submit-bar { justify-content: center; }
+.submit-bar { padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
 .result-bar { background: var(--accent-soft); }
+/* Bộ đếm chữ phần Viết */
+.write-meter { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); }
+.write-meter.ok { color: var(--ok); font-weight: 600; }
+.write-meter .wm-bar { width: 70px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.write-meter .wm-bar > span { display: block; height: 100%; background: var(--accent); }
+.write-meter.ok .wm-bar > span { background: var(--ok); }
 
 .timer-disp { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; }
 .count-ok { color: var(--ok); font-weight: 600; }

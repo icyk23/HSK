@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] LUYỆN ĐỀ — Đọc/Viết cải tiến (P1-P4): (P1) thanh nộp dính đáy hiện "Đã trả lời x/N" (cập nhật qua
+    form change) + chặn nộp khi còn trống (confirm). (P2) đồng hồ tuỳ chọn phần Đọc (readingTimer đếm
+    xuôi, Bấm giờ/Tạm dừng). (P3) chấm xong tự cuộn tới ô kết quả + hiện "Thời gian". (P4) phần Viết:
+    bộ đếm chữ thành "n/target chữ" + thanh .write-meter, xanh khi ≥85% mục tiêu. readingCounts helper;
+    clearReadingTimer ở renderExam. E2E: timer 0:02, 0/12→1/12, confirm "còn 11 câu", result có time, 0 lỗi.
 [x] TỪ VỰNG — Thư mục cải tiến (P1-P4): (P1) công tắc "Lưới / Chi tiết" — Chi tiết = mỗi từ 1 hàng
     简(繁)·pinyin·Hán-Việt·nghĩa·nghe (wordRow) → xem nghĩa được, hợp mobile (bỏ phụ thuộc hover).
     (P2) mỗi folder có thanh tiến độ + "thuộc x/N" (từ store.getProgress). (P3) "Bộ của tôi" trống có

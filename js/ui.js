@@ -1282,10 +1282,26 @@ async function renderFileViewer(host, fm) {
 let examView = { screen: "list", examId: null };
 let readingState = null;       // { examId, answers, graded, score, total }
 let writeTimer = null;         // setInterval id cho đồng hồ phần Viết
+let readingTimer = null, readingElapsed = 0; // đồng hồ tuỳ chọn phần Đọc
 function clearWriteTimer() { if (writeTimer) { clearInterval(writeTimer); writeTimer = null; } }
+function clearReadingTimer() { if (readingTimer) { clearInterval(readingTimer); readingTimer = null; } }
+
+// Đếm tổng câu + số câu đã trả lời (mọi loại item) của phần Đọc.
+function readingCounts(exam) {
+  const a = readingState.answers; let total = 0, answered = 0;
+  const ans = (k) => a[k] !== undefined && a[k] !== null;
+  for (const sec of exam.reading) for (const item of sec.items) {
+    if (item.type === "mcq") { total++; if (ans(item.id)) answered++; }
+    else if (item.type === "cloze") item.blanks.forEach((_, i) => { total++; if (ans(`${item.id}:${i}`)) answered++; });
+    else if (item.type === "sentence-cloze") item.answers.forEach((_, i) => { total++; if (ans(`${item.id}:${i}`)) answered++; });
+    else if (item.type === "reading") item.questions.forEach((_, i) => { total++; if (ans(`${item.id}:${i}`)) answered++; });
+  }
+  return { total, answered };
+}
 
 export async function renderExam() {
   clearWriteTimer();
+  clearReadingTimer();
   revokeViewerUrl();
   clearCommState(); // dừng TTS / nhận diện giọng nếu đang chạy (dùng chung với HSKK)
   const root = clear();
@@ -1550,9 +1566,22 @@ function examGenBar() {
 async function examReading(root) {
   const exam = await getExam(examView.examId);
   if (!exam) { examView = { screen: "list" }; return renderExam(); }
-  if (!readingState || readingState.examId !== exam.id) readingState = { examId: exam.id, answers: {}, graded: false };
+  if (!readingState || readingState.examId !== exam.id) { readingState = { examId: exam.id, answers: {}, graded: false }; readingElapsed = 0; }
 
   root.append(examTopbar(exam.title + " · Đọc"));
+
+  // P2 — đồng hồ tuỳ chọn (đếm xuôi)
+  if (!readingState.graded) {
+    const timeTx = el("span", { class: "mono" }, fmtTime(readingElapsed));
+    const startBtn = el("button", { class: "btn ghost small" }, iconEl("timer"), el("span", { class: "btn-tx" }, "Bấm giờ"));
+    const tick = () => { readingElapsed++; timeTx.textContent = fmtTime(readingElapsed); };
+    startBtn.onclick = () => {
+      if (readingTimer) { clearReadingTimer(); startBtn.lastChild.textContent = "Tiếp tục"; }
+      else { readingTimer = setInterval(tick, 1000); startBtn.lastChild.textContent = "Tạm dừng"; }
+    };
+    root.append(el("div", { class: "row", style: "margin-bottom:12px" }, el("b", {}, iconEl("timer")), timeTx, startBtn));
+  }
+
   const form = el("div", { class: "exam-reading" });
   for (const sec of exam.reading) {
     form.append(el("div", { class: "exam-section-head" },
@@ -1570,9 +1599,12 @@ async function examReading(root) {
     bar.append(el("div", { class: "row spread" },
       el("b", {}, `Kết quả: ${readingState.score}/${readingState.total} đúng · ${pct}%`),
       el("span", { class: "chip" + (wrong ? " st learning" : " st known") }, wrong ? `Sai ${wrong} câu` : "Đúng hết!")));
-    if (hist.length > 1) bar.append(el("span", { class: "muted small" }, `Tốt nhất: ${bestPct}% · đã làm ${hist.length} lần`));
+    const sub = [];
+    if (readingState.timeUsed) sub.push(`Thời gian: ${fmtTime(readingState.timeUsed)}`);
+    if (hist.length > 1) sub.push(`Tốt nhất: ${bestPct}% · đã làm ${hist.length} lần`);
+    if (sub.length) bar.append(el("span", { class: "muted small" }, sub.join(" · ")));
     const acts = el("div", { class: "row" },
-      el("button", { class: "btn primary", onclick: () => { readingState = { examId: exam.id, answers: {}, graded: false }; renderExam(); } }, iconEl("replay"), "Làm lại"));
+      el("button", { class: "btn primary", onclick: () => { readingState = { examId: exam.id, answers: {}, graded: false }; readingElapsed = 0; renderExam(); } }, iconEl("replay"), "Làm lại"));
     if (wrong) acts.append(el("button", { class: "btn ghost", onclick: scrollToFirstWrong }, iconEl("eye"), el("span", { class: "btn-tx" }, "Tới câu sai đầu tiên")));
     bar.append(acts);
     if (hist.length > 1) {
@@ -1582,9 +1614,20 @@ async function examReading(root) {
       det.append(ul); bar.append(det);
     }
     root.append(bar);
+    // P3 — cuộn tới ô kết quả để thấy điểm ngay
+    requestAnimationFrame(() => bar.scrollIntoView({ behavior: "smooth", block: "center" }));
   } else {
+    // P1 — đếm câu đã trả lời (cập nhật trực tiếp) + chặn nộp khi còn trống
+    const counts = readingCounts(exam);
+    const progTx = el("span", { class: "muted small" }, `Đã trả lời ${counts.answered}/${counts.total}`);
+    form.addEventListener("change", () => { const c = readingCounts(exam); progTx.textContent = `Đã trả lời ${c.answered}/${c.total}`; });
     root.append(el("div", { class: "submit-bar" },
-      el("button", { class: "btn primary", onclick: () => gradeReading(exam) }, "Nộp bài & chấm")));
+      progTx,
+      el("button", { class: "btn primary", onclick: () => {
+        const c = readingCounts(exam);
+        if (c.answered < c.total && !confirm(`Còn ${c.total - c.answered} câu chưa trả lời. Nộp luôn?`)) return;
+        gradeReading(exam);
+      } }, "Nộp bài & chấm")));
   }
 }
 
@@ -1679,10 +1722,11 @@ function gradeReading(exam) {
     else if (item.type === "reading") item.questions.forEach((q, i) => { total++; if (a[`${item.id}:${i}`] === q.answer) score++; });
   }
   readingState.graded = true; readingState.score = score; readingState.total = total;
+  readingState.timeUsed = readingElapsed;
+  clearReadingTimer();
   store.saveReadingResult(exam.id, { score, total, answers: a });
   toast(`Đã chấm: ${score}/${total} câu đúng`);
   renderExam();
-  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 }
 
 function scrollToFirstWrong() {
@@ -1735,11 +1779,14 @@ async function examWriting(root) {
   const ta = el("textarea", { rows: "10", placeholder: "Viết bản tóm tắt của bạn ở đây…" });
   ta.value = saved.text || "";
   const target = w.targetChars || 400;
-  const counter = el("span", { class: "muted small" });
+  const counterTx = el("span", { class: "small" });
+  const counterBar = el("span", { class: "wm-bar" }, el("span", {}));
+  const counter = el("div", { class: "write-meter", title: `Mục tiêu ~${target} chữ` }, counterTx, counterBar);
   const updateCount = () => {
     const n = countChars(ta.value);
-    counter.textContent = `${n} / ~${target} chữ`;
-    counter.classList.toggle("count-ok", n >= target * 0.8);
+    counterTx.textContent = `${n}/${target} chữ`;
+    counterBar.firstChild.style.width = Math.min(100, Math.round((n / target) * 100)) + "%";
+    counter.classList.toggle("ok", n >= target * 0.85);   // đạt khoảng yêu cầu
   };
   updateCount();
   let saveT = null;
