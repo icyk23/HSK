@@ -1759,12 +1759,26 @@ function shadowVideoSync(root, lines, url) {
   const s = store.getSettings();
   const list = el("div", { class: "sync-list" });
   let seek = () => {};
-  const rows = lines.map((l) => el("button", { class: "sync-row", onclick: () => seek(l.t) },
-    el("span", { class: "sync-t mono" }, fmtTime(l.t)),
-    el("span", { class: "sync-zh" }, l.zh),
-    l.vi ? el("span", { class: "sync-vi muted small" }, l.vi) : null));
+  let loopIdx = -1;
+  const loopBtns = [];
+  const toggleLoop = (i) => {
+    loopIdx = (loopIdx === i) ? -1 : i;
+    loopBtns.forEach((b, k) => b.classList.toggle("on", k === loopIdx));
+    if (loopIdx >= 0) seek(lines[loopIdx].t);
+  };
+  const rows = lines.map((l, i) => {
+    const main = el("div", { class: "sync-main", onclick: () => seek(l.t) },
+      el("span", { class: "sync-t mono" }, fmtTime(l.t)),
+      el("span", { class: "sync-zh" }, l.zh),
+      l.vi ? el("span", { class: "sync-vi muted small" }, l.vi) : null);
+    const loopBtn = el("button", { class: "sync-btn", title: "Lặp câu này", onclick: () => toggleLoop(i) }, iconEl("replay"));
+    loopBtns.push(loopBtn);
+    const actions = el("div", { class: "sync-actions" }, loopBtn);
+    if (hasRecognition()) actions.append(micButton(() => l.zh, s, { score: true }));
+    return el("div", { class: "sync-row" }, main, actions);
+  });
   rows.forEach((r) => list.append(r));
-  root.append(el("p", { class: "muted small", style: "margin:10px 2px 4px" }, "Bấm một câu để tua video tới đó · câu đang phát sẽ tự sáng."));
+  root.append(el("p", { class: "muted small", style: "margin:10px 2px 4px" }, "Bấm câu để tua video · nút lặp để lặp 1 câu · nút Nói để chấm phát âm. Câu đang phát tự sáng."));
   root.append(list);
 
   let getTime = () => 0;
@@ -1787,6 +1801,11 @@ function shadowVideoSync(root, lines, url) {
   let active = -1;
   commSyncTimer = setInterval(() => {
     const ct = getTime();
+    if (loopIdx >= 0) {
+      const start = lines[loopIdx].t;
+      const end = (loopIdx + 1 < lines.length) ? lines[loopIdx + 1].t : start + 8;
+      if (ct >= end - 0.1 || ct < start - 0.4) { seek(start); return; }
+    }
     let idx = -1;
     for (let i = 0; i < lines.length; i++) { if (lines[i].t <= ct + 0.2) idx = i; else break; }
     if (idx !== active) {
@@ -1916,7 +1935,8 @@ function commSourceBar(scenes, opts = {}) {
       const mat = el("div", { class: "comm-chips" });
       for (const { m, zh } of usable) {
         const on = commPersonalLabel === m.title;
-        mat.append(commChip(`${m.title} (${zh.length})`, on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi, t: x.t })), m.title, matVideo(m)); }));
+        const vid = matVideo(m);
+        mat.append(commChip([vid ? iconEl("video") : null, el("span", {}, `${m.title} (${zh.length})`)], on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi, t: x.t })), m.title, vid); }));
       }
       wrap.append(el("div", { class: "muted small", style: "margin-top:4px" }, opts.materialHint || "Chọn tài liệu đã nạp:"), mat);
     } else {

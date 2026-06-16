@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] SYNC nâng cấp: transcript mỗi câu có NÚT LẶP (A-B loop: loopIdx, tua về đầu câu khi tới câu kế) +
+    NÚT NÓI chấm phát âm (micButton score % khớp chữ Hán) ngay trên hàng. Chip tài liệu video có icon
+    "video" phân biệt với tài liệu chữ. CSS .sync-row(flex)/.sync-main/.sync-actions/.sync-btn.on.
+    Demo E2E: 3 video (chip có icon) + 1 chữ; sync 4 câu, mỗi câu loop+mic, lặp toggle. 0 lỗi.
 [x] SYNC CÂU THEO TIMESTAMP (video): backend /ingest GIỮ mốc thời gian — vtt_to_segments (parse cue VTT)
     + media_bytes_to_segments (Whisper seg.start) → trả segments:[{start,zh}]. createLesson dựng câu
     {zh,t} + lesson.timed; commPersonal mang t. Shadowing tài liệu video timed → shadowVideoSync:
