@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] DỊCH THUẬT — KHÚC = CHƯƠNG: storyChunks bỏ cắt 8-đoạn, mỗi chương = 1 khúc (nhãn = tiêu đề chương,
+    vd 第一章; không có chương → "Cả bài"); thư mục truyện liệt kê theo chương, vào chương dịch từng ĐOẠN
+    một. transStory/header bỏ chữ "Khúc", hiện tên chương. E2E: nạp 2 chương → 2 khúc 第一章/第二章
+    (0/2 đoạn mỗi chương), mở chương → 2 hàng đoạn. 0 lỗi.
 [x] DỊCH THUẬT theo ĐOẠN: nạp tài liệu gắn chỉ số đoạn p (analyzeText/createLesson tách \n→đoạn→câu).
     unitsFromSents gộp câu cùng p thành ĐƠN VỊ đoạn {text,ref(=join vi),pinyin}; storyChunks chia khúc
     theo đoạn (8 đoạn/khúc, nhãn "đoạn i–j"); trình dịch song ngữ mỗi hàng = 1 ĐOẠN (gộp câu) + nghe +

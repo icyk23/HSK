@@ -2631,8 +2631,8 @@ function transStory(root) {
     const full = c.done >= c.total;
     wrap.append(el("div", { class: "lesson-task" },
       el("div", { class: "row spread" },
-        el("span", {}, `Khúc ${i + 1}${c.label && c.label !== "Cả bài" ? " · " + c.label : ""}`),
-        el("span", { class: "chip" + (full ? " st known" : "") }, `${c.done}/${c.total}`)),
+        el("span", {}, c.label && c.label !== "Cả bài" ? c.label : (chunks.length > 1 ? `Chương ${i + 1}` : "Cả bài")),
+        el("span", { class: "chip" + (full ? " st known" : "") }, `${c.done}/${c.total} đoạn`)),
       el("div", { class: "row" },
         el("button", { class: "btn small primary", onclick: () => openTransTask(m.id, c) }, full ? "Ôn lại" : (c.done ? "Tiếp tục" : "Bắt đầu")))));
   });
@@ -2663,7 +2663,7 @@ async function transTaskRunner(root) {
 
   root.append(el("div", { class: "exam-topbar" },
     el("button", { class: "btn ghost", onclick: () => { transView = { screen: "story", materialId: m.id }; renderTrans(); } }, "← " + (m.title || "Truyện")),
-    el("span", { class: "muted" }, `Khúc: ${label && label !== "Cả bài" ? label : "cả bài"}`), doneEl));
+    el("span", { class: "muted" }, label && label !== "Cả bài" ? label : "Cả bài"), doneEl));
   root.append(el("div", { class: "story-prog", style: "margin-bottom:12px" }, barFill));
   root.append(el("div", { class: "trans-split-head" }, el("span", {}, srcLabel), el("span", {}, dstLabel)));
 
@@ -3090,27 +3090,22 @@ function materialUnits(m) {
   return unitsFromSents((m.sentences || []).filter((s) => !s.chapter && (s[key] || "").trim()), key);
 }
 
-// Chia 1 tài liệu thành các "khúc" dịch theo ĐOẠN (chương → nhóm 8 đoạn) + tiến độ.
+// Mỗi CHƯƠNG = 1 khúc dịch; trong khúc hiển thị từng ĐOẠN để dịch lần lượt.
 function storyChunks(lesson) {
   const key = lesson.lang === "zh" ? "zh" : "vi";
   const dir = lesson.lang === "zh" ? "zh2vi" : "vi2zh";
   const chapters = lesson.chapters && lesson.chapters.length ? lesson.chapters : [{ title: null, start: 0, end: lesson.sentences.length }];
   const saved = new Set(store.getTranslations().map((t) => t.source));
-  const PER = 8; // số đoạn mỗi khúc
   const out = [];
-  for (const ch of chapters) {
+  chapters.forEach((ch, ci) => {
     const sents = [];
     for (let i = ch.start; i < ch.end; i++) { const s = lesson.sentences[i]; if (s && !s.chapter && (s[key] || "").trim()) sents.push(s); }
-    if (!sents.length) continue;
+    if (!sents.length) return;
     const units = unitsFromSents(sents, key);
-    for (let i = 0; i < units.length; i += PER) {
-      const part = units.slice(i, i + PER);
-      const done = part.filter((u) => saved.has(u.text)).length;
-      const chapLbl = ch.title || (chapters.length > 1 ? "Mở đầu" : "");
-      const partLbl = units.length > PER ? `${chapLbl ? " · " : ""}đoạn ${i + 1}–${Math.min(i + PER, units.length)}` : "";
-      out.push({ dir, units: part, total: part.length, done, label: (`${chapLbl}${partLbl}`).replace(/\s+/g, " ").trim() || "Cả bài" });
-    }
-  }
+    const done = units.filter((u) => saved.has(u.text)).length;
+    const label = ch.title || (chapters.length > 1 ? `Chương ${ci + 1}` : "Cả bài");
+    out.push({ dir, units, total: units.length, done, label });
+  });
   return out;
 }
 
