@@ -2299,6 +2299,10 @@ function commDrillQA(root, scenes) {
   root.append(commSourceBar(scenes, { genQa: true }));
   const bank = shuffle(qaBank(scenes).slice());
   if (!bank.length) { root.append(commEmptyNote("cặp hỏi–đáp")); return; }
+  // P3 — ẩn câu hỏi để luyện nghe
+  let hideQ = false;
+  const hideBtn = el("button", { class: "btn ghost small", onclick: () => { hideQ = !hideQ; hideBtn.classList.toggle("on", hideQ); paint(); } }, iconEl("eye"), el("span", { class: "btn-tx" }, "Ẩn câu hỏi"));
+  root.append(el("div", { class: "row", style: "margin-bottom:8px;justify-content:flex-end" }, hideBtn));
   const progress = el("div", { class: "comm-progress muted small" });
   const card = el("div", { class: "panel comm-card" });
   const controls = el("div", { class: "row comm-controls" });
@@ -2311,11 +2315,11 @@ function commDrillQA(root, scenes) {
     const qa = cur();
     progress.textContent = `Câu ${idx + 1} / ${bank.length}`;
     card.innerHTML = "";
-    card.append(el("div", { class: "comm-q" },
+    card.append(el("div", { class: "comm-q" + (hideQ ? " blur-zh" : "") },
       el("div", { class: "hanzi-line" }, qa.q),
-      qa.q_pinyin && el("div", { class: "pinyin" }, qa.q_pinyin),
+      qa.q_pinyin && el("div", { class: "pinyin" + (hideQ ? " blur-zh" : "") }, qa.q_pinyin),
       qa.q_vi && el("div", { class: "meaning" }, qa.q_vi)));
-    card.append(el("div", { class: "comm-hint muted" }, "→ Bạn trả lời thế nào? (nói ra miệng)"));
+    card.append(el("div", { class: "comm-hint muted" }, hideQ ? "Nghe rồi trả lời — rê chuột để xem chữ" : "→ Bạn trả lời thế nào? (nói ra miệng)"));
     speak(qa.q, { rate: s.speechRate });
     paintControls();
   }
@@ -2338,10 +2342,17 @@ function commDrillQA(root, scenes) {
   function paintControls() {
     controls.innerHTML = "";
     controls.append(el("button", { class: "btn", onclick: () => speak(cur().q, { rate: s.speechRate }) }, iconEl("replay"), "Nghe câu hỏi"));
-    if (hasRecognition()) controls.append(micButton(() => cur().a, s));
+    if (hasRecognition()) controls.append(micButton(() => cur().a, s, { score: false }));
     if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, iconEl("bulb"), "Gợi ý đáp án"));
     controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp theo →"));
   }
+  commKeyHandler = (e) => {
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.code === "Space") { e.preventDefault(); speak(cur().q, { rate: s.speechRate }); }
+    else if (e.key === "g" || e.key === "G") { e.preventDefault(); reveal(); }
+    else if (e.code === "Enter" || e.code === "ArrowRight") { e.preventDefault(); next(); }
+  };
+  root.append(el("p", { class: "muted small", style: "margin-top:8px" }, "Phím tắt: Space = nghe lại · G = gợi ý · Enter/→ = tiếp"));
   paint();
 }
 
@@ -2515,6 +2526,7 @@ function commDrillPattern(root, scenes) {
     controls.innerHTML = "";
     if (!revealed) controls.append(el("button", { class: "btn", onclick: reveal }, iconEl("bulb"), "Đáp án"));
     else controls.append(el("button", { class: "btn", onclick: () => speak(comm.fillFrame(curP().frame, curS().zh), { rate: s.speechRate }) }, iconEl("speaker"), "Nghe"));
+    if (hasRecognition()) controls.append(micButton(() => comm.fillFrame(curP().frame, curS().zh), s, { score: true }));
     controls.append(el("button", { class: "btn primary", onclick: next }, "Tiếp →"));
   }
   renderBody(); paintControls();

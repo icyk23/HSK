@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] GIAO TIẾP — drill cải tiến (P1-P4): (P1) nút Nói ở Hỏi–đáp đổi score:false (câu hỏi mở → chỉ ghi
+    "Bạn nói:…", không chấm % sai lệch). (P2) phím tắt Hỏi–đáp Space=nghe lại·G=gợi ý·Enter/→=tiếp +
+    dòng nhắc. (P3) nút "Ẩn câu hỏi" (blur .comm-q.blur-zh, rê chuột lộ) để luyện nghe. (P4) thêm mic
+    chấm phát âm cho "Thay thế mẫu câu" (câu cố định nên chấm % hợp lý). CSS .comm-q.blur-zh/.btn.ghost.on.
+    E2E: QA mic+hide+blur+hint, Pattern mic sau reveal, 0 lỗi.
 [x] LUYỆN ĐỀ — Đọc/Viết cải tiến (P1-P4): (P1) thanh nộp dính đáy hiện "Đã trả lời x/N" (cập nhật qua
     form change) + chặn nộp khi còn trống (confirm). (P2) đồng hồ tuỳ chọn phần Đọc (readingTimer đếm
     xuôi, Bấm giờ/Tạm dừng). (P3) chấm xong tự cuộn tới ô kết quả + hiện "Thời gian". (P4) phần Viết:
