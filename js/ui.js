@@ -1237,7 +1237,6 @@ async function examHskList(root) {
   root.append(examSubTabs(renderExam));
   if (examView.tab === "load") {
     root.append(examGenBar());
-    root.append(examImportBar());
     root.append(await libraryBar());
     return;
   }
@@ -1278,7 +1277,6 @@ async function hskkListPage(root) {
   root.append(examSubTabs(renderExamHskk));
   if (examView.tab === "load") {
     root.append(hskkGenBar());
-    root.append(hskkImportBar());
     return;
   }
   root.append(el("p", { class: "muted small", style: "margin:-6px 2px 12px" }, "3 phần: 听后复述 (nghe·kể lại) · 朗读 (đọc to·chấm phát âm) · 回答问题 (trả lời câu hỏi). Dùng Chrome/Edge để chấm phát âm."));
@@ -1321,24 +1319,6 @@ function hskkGenBar() {
     el("div", { class: "exam-head" }, el("h3", {}, iconEl("ai"), " Sinh đề HSKK ", el("span", { class: "ai-tag" }, "Qwen3"))),
     el("p", { class: "muted small" }, "Nhập chủ đề → Qwen3 soạn đề 3 phần (nghe-kể lại · đọc to · trả lời câu hỏi) kèm pinyin, nghĩa Việt và gợi ý dàn ý."),
     el("div", { class: "row", style: "margin-top:6px" }, topicInput, genBtn));
-}
-
-function hskkImportBar() {
-  const ta = el("textarea", { rows: "4", placeholder: 'Dán JSON đề HSKK: { "title":"...", "retell":[{zh,vi}], "read":{zh,vi}, "answer":[{q_zh,q_vi,outline_vi}] }' });
-  const fileInput = el("input", { type: "file", accept: ".json" });
-  fileInput.addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) ta.value = await f.text(); });
-  const doImport = () => {
-    const { exam, error } = parseHskkJson(ta.value.trim());
-    if (error) return toast(error);
-    store.saveUserHskk(exam);
-    toast("Đã nhập đề HSKK: " + exam.title);
-    examView.tab = "choose"; renderExamHskk();
-  };
-  return el("details", { class: "panel exam-import" },
-    el("summary", {}, iconEl("upload"), " Nhập đề HSKK (JSON)"),
-    el("p", { class: "muted small" }, "Dán JSON hoặc chọn file."),
-    el("div", { class: "field" }, ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: doImport }, "Nhập đề")));
 }
 
 async function examHskk(root) {
@@ -1446,25 +1426,6 @@ function hskkAnswer(root, ex) {
     if (items.length > 1) controls.append(el("button", { class: "btn ghost", onclick: () => { i = (i + 1) % items.length; paint(); } }, "Câu sau →"));
   }
   paint();
-}
-
-function examImportBar() {
-  const ta = el("textarea", { rows: "4", placeholder: 'Dán JSON đề. Cấu trúc: { "title": "...", "reading": [...], "writing": {...} }' });
-  const fileInput = el("input", { type: "file", accept: ".json" });
-  fileInput.addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) ta.value = await f.text(); });
-  const doImport = () => {
-    const { exam, error } = parseExamJson(ta.value.trim());
-    if (error) return toast(error);
-    store.saveUserExam(exam);
-    toast("Đã nhập đề: " + exam.title);
-    examView.tab = "choose"; renderExam();
-  };
-  return el("details", { class: "panel exam-import" },
-    el("summary", {}, iconEl("upload"), " Nhập đề JSON"),
-    el("p", { class: "muted small" }, "Dán JSON hoặc chọn file."),
-    el("div", { class: "field" }, ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: doImport }, "Nhập đề")),
-  );
 }
 
 // Sinh đề đọc hiểu từ một đoạn văn bằng Qwen3 (cần backend).
@@ -1766,6 +1727,7 @@ let commPersonalQa = [];         // [{q,q_pinyin,q_vi,a,a_pinyin,a_vi}] sinh t�
 let commPersonalQaLabel = "";
 let commPersonalPattern = [];    // [{frame,frame_vi,slots}] sinh từ tài liệu (Thay thế mẫu câu)
 let commPersonalPatternLabel = "";
+let commSrcMode = "scene";       // segmented nguồn câu: "scene" | "material"
 
 function clearCommState() {
   if (commTimer) { clearInterval(commTimer); commTimer = null; }
@@ -1827,22 +1789,32 @@ async function commHome(root, scenes) {
   }
 }
 
-// Thanh nguồn câu (tình huống + tài liệu) — đặt ở ĐẦU mỗi phương thức (không còn ở trang chủ Giao tiếp).
+// Thanh nguồn câu: segmented "Tình huống" / "Tài liệu của tôi" → chọn rõ nguồn rồi mới luyện.
 function commSourceBar(scenes, opts = {}) {
   const wrap = el("div", { class: "panel comm-source" });
   wrap.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
-  const chips = el("div", { class: "comm-chips" });
   const clearPersonal = () => { commPersonal = []; commPersonalLabel = ""; commPersonalQa = []; commPersonalQaLabel = ""; commPersonalPattern = []; commPersonalPatternLabel = ""; };
-  const allOn = !commSel.sceneIds && !commPersonal.length && !commPersonalQa.length && !commPersonalPattern.length;
-  chips.append(commChip("Tất cả tình huống", allOn, () => { clearPersonal(); commSel.sceneIds = null; renderComm(); }));
-  for (const s of scenes) {
-    const on = !commPersonal.length && !commPersonalQa.length && !commPersonalPattern.length && commSel.sceneIds && commSel.sceneIds.includes(s.id);
-    chips.append(commChip(`${s.icon} ${s.title}`, on, () => { clearPersonal(); toggleScene(s.id, scenes); }));
-  }
-  wrap.append(chips);
 
+  const seg = el("div", { class: "subtabs", style: "margin:10px 0 6px" });
+  const mk = (id, label, icon) => el("button", { class: "subtab" + (commSrcMode === id ? " on" : ""), onclick: () => { commSrcMode = id; renderComm(); } }, iconEl(icon), el("span", {}, " " + label));
+  seg.append(mk("scene", "Tình huống", "comm"), mk("material", "Tài liệu của tôi", "ingest"));
+  wrap.append(seg);
+
+  if (commSrcMode === "scene") {
+    const chips = el("div", { class: "comm-chips" });
+    const allOn = !commSel.sceneIds && !commPersonal.length && !commPersonalQa.length && !commPersonalPattern.length;
+    chips.append(commChip("Tất cả tình huống", allOn, () => { clearPersonal(); commSel.sceneIds = null; renderComm(); }));
+    for (const s of scenes) {
+      const on = !commPersonal.length && !commPersonalQa.length && !commPersonalPattern.length && commSel.sceneIds && commSel.sceneIds.includes(s.id);
+      chips.append(commChip(`${s.icon} ${s.title}`, on, () => { clearPersonal(); toggleScene(s.id, scenes); }));
+    }
+    wrap.append(chips);
+    return wrap;
+  }
+
+  // commSrcMode === "material"
   if (opts.genPattern) {
-    genFromMaterialSection(wrap, "Hoặc sinh mẫu câu từ tài liệu đã nạp (cần Qwen3):", commPersonalPatternLabel, async (zh, title) => {
+    genFromMaterialSection(wrap, "Chọn tài liệu để sinh mẫu câu (cần Qwen3):", commPersonalPatternLabel, async (zh, title) => {
       const { patterns } = await comm.genPattern(zh.map((x) => x.zh).join(" "), 6);
       if (!patterns || !patterns.length) { toast("Không sinh được mẫu câu."); return false; }
       commPersonal = []; commPersonalLabel = ""; commPersonalQa = []; commPersonalQaLabel = "";
@@ -1852,7 +1824,7 @@ function commSourceBar(scenes, opts = {}) {
       return true;
     });
   } else if (opts.genQa) {
-    genFromMaterialSection(wrap, "Hoặc sinh Hỏi–đáp từ tài liệu đã nạp (cần Qwen3):", commPersonalQaLabel, async (zh, title) => {
+    genFromMaterialSection(wrap, "Chọn tài liệu để sinh Hỏi–đáp (cần Qwen3):", commPersonalQaLabel, async (zh, title) => {
       const { pairs } = await comm.genQa(zh.map((x) => x.zh).join(" "), 8);
       if (!pairs || !pairs.length) { toast("Không sinh được câu hỏi."); return false; }
       commPersonal = []; commPersonalLabel = ""; commPersonalPattern = []; commPersonalPatternLabel = "";
@@ -1869,14 +1841,15 @@ function commSourceBar(scenes, opts = {}) {
         const on = commPersonalLabel === m.title;
         mat.append(commChip(`${m.title} (${zh.length})`, on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi })), m.title); }));
       }
-      wrap.append(el("div", { class: "muted small", style: "margin-top:8px" }, opts.materialHint || "Hoặc theo tài liệu đã nạp:"), mat);
+      wrap.append(el("div", { class: "muted small", style: "margin-top:4px" }, opts.materialHint || "Chọn tài liệu đã nạp:"), mat);
     } else {
-      wrap.append(el("p", { class: "muted small", style: "margin-top:6px" }, "Chưa có tài liệu — vào Nạp tài liệu để luyện theo truyện của bạn."));
+      wrap.append(commNoMaterial());
     }
-  } else if (opts.materialNote) {
-    wrap.append(el("p", { class: "muted small", style: "margin-top:6px" }, opts.materialNote));
   }
   return wrap;
+}
+function commNoMaterial() {
+  return el("p", { class: "muted small", style: "margin-top:6px" }, "Chưa có tài liệu — vào ", el("a", { class: "lk", onclick: () => navigate("ingest") }, "Nạp tài liệu"), " để luyện theo truyện của bạn.");
 }
 
 // Mục "sinh nội dung từ tài liệu" (Hỏi–đáp / Mẫu câu). doGen(zh, title) async → trả truthy nếu thành công.
@@ -2843,6 +2816,22 @@ async function tradPairs() {
 let tradFilter = { level: "all", limit: 80 };
 let tradRefOpen = false;
 let tradSrsSession = null;
+let tradScope = null;            // null = toàn bộ; { label, simps:Set<string> }
+let tradSel = new Set();         // tick chọn ở Thư mục (theo simp)
+
+function scopedPairs(pairs) { return tradScope && tradScope.simps ? pairs.filter((p) => tradScope.simps.has(p.simp)) : pairs; }
+function scopeLabel() { return tradScope ? tradScope.label : "Tất cả chữ"; }
+// Đặt phạm vi học (từ Thư mục / Bộ của tôi / Lộ trình) rồi mở phương thức.
+function setTradScope(label, simps, view) {
+  tradScope = simps ? { label, simps: new Set(simps) } : null;
+  tradSrsSession = null; tradQuiz = null;
+  navigate(view);
+}
+function tradScopeBar(backView) {
+  return el("div", { class: "row spread", style: "margin-bottom:10px" },
+    el("span", { class: "chip lvl" }, scopeLabel()),
+    el("button", { class: "btn ghost small", onclick: () => navigate(backView) }, "← Đổi phạm vi"));
+}
 
 /* ----- LỘ TRÌNH (home) ----- */
 export async function renderTradHome() {
@@ -2870,7 +2859,7 @@ export async function renderTradHome() {
   const wrap = el("div", { class: "trad-road" });
   for (const st of steps) {
     const pct = st.total ? Math.round((st.done / st.total) * 100) : 0;
-    wrap.append(el("button", { class: "road-step", onclick: () => navigate(st.view) },
+    wrap.append(el("button", { class: "road-step", onclick: () => setTradScope(null, null, st.view) },
       el("span", { class: "road-n" }, st.n),
       el("span", { class: "road-body" },
         el("span", { class: "road-title" }, st.title),
@@ -2900,7 +2889,7 @@ export async function renderTradRules() {
   const row = el("div", { class: "row", style: "margin-top:16px" });
   row.append(el("button", { class: "btn" + (meta.rulesDone ? " ghost" : " primary"), onclick: () => { store.saveTradMeta({ rulesDone: !meta.rulesDone }); renderTradRules(); } },
     iconEl(meta.rulesDone ? "reset" : "check"), meta.rulesDone ? "Bỏ đánh dấu đã nắm" : "Đã nắm quy luật"));
-  row.append(el("button", { class: "btn", onclick: () => navigate("tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, "Sang ② Thẻ nhớ →")));
+  row.append(el("button", { class: "btn", onclick: () => setTradScope(null, null, "tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, "Sang Thẻ nhớ →")));
   root.append(row);
 }
 
@@ -2908,15 +2897,16 @@ export async function renderTradRules() {
 export async function renderTradSrs() {
   clearCommState();
   const root = clear();
-  const pairs = await tradPairs();
-  root.append(el("h1", { class: "view-title" }, "② Thẻ nhớ 简→繁"));
-  if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.")); return; }
+  const pairs = scopedPairs(await tradPairs());
+  root.append(el("h1", { class: "view-title" }, "Thẻ nhớ 简→繁"));
+  root.append(tradScopeBar("tradFolder"));
+  if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Phạm vi này chưa có chữ phồn thể.", "cards")); return; }
   const s = store.getSettings();
-  if (!tradSrsSession) {
+  if (!tradSrsSession || tradSrsSession.scopeLabel !== scopeLabel()) {
     const prog = store.getTradSrs();
     const cards = pairs.map((p) => ({ ...p, id: p.simp }));
     const queue = srs.buildQueue(cards, prog, { newPerDay: s.newPerDay, reviewLimit: s.reviewLimit });
-    tradSrsSession = { queue, idx: 0, revealed: false, flip: false };
+    tradSrsSession = { queue, idx: 0, revealed: false, flip: false, scopeLabel: scopeLabel() };
   }
   const sess = tradSrsSession;
 
@@ -3020,22 +3010,95 @@ function tradPairCard(p, s) {
     p.examples.length ? el("div", { class: "trad-ex" }, "VD: " + p.examples.slice(0, 3).map((e) => `${e.s}/${e.t}`).join(" · ")) : null);
 }
 
+/* ----- THƯ MỤC: duyệt chữ phồn thể theo cấp + tick chọn ----- */
+export async function renderTradFolder() {
+  clearCommState();
+  const root = clear();
+  const pairs = await tradPairs();
+  root.append(el("h1", { class: "view-title" }, "Phồn thể · Thư mục"));
+  if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.", "trad")); return; }
+  root.append(el("p", { class: "muted small", style: "margin:-6px 2px 12px" }, "Tick chọn chữ (theo cấp HSK) rồi học bằng Thẻ nhớ / Quiz hoặc lưu thành bộ. Hoặc bấm ▶ Học cấp để luyện nhanh cả cấp."));
+
+  if (tradSel.size) {
+    const simps = [...tradSel];
+    root.append(el("div", { class: "panel ai-pop", style: "margin-bottom:12px" },
+      el("div", { class: "row spread" }, el("b", {}, `Đã chọn ${tradSel.size} chữ`),
+        el("button", { class: "btn ghost small", onclick: () => { tradSel.clear(); renderTradFolder(); } }, "Bỏ chọn")),
+      el("div", { class: "row", style: "margin-top:8px" },
+        el("button", { class: "btn primary", onclick: () => setTradScope(`Đã chọn ${simps.length} chữ`, simps, "tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, " Thẻ nhớ")),
+        el("button", { class: "btn", onclick: () => setTradScope(`Đã chọn ${simps.length} chữ`, simps, "tradComp") }, iconEl("exam"), el("span", { class: "btn-tx" }, " Quiz")),
+        el("button", { class: "btn", onclick: () => saveTradSetPrompt(simps) }, iconEl("save"), el("span", { class: "btn-tx" }, " Lưu thành bộ")))));
+  }
+
+  const byLevel = {};
+  for (const p of pairs) (byLevel[p.level] = byLevel[p.level] || []).push(p);
+  for (const lv of Object.keys(byLevel).map(Number).sort((a, b) => a - b)) {
+    const arr = byLevel[lv];
+    const allSel = arr.every((p) => tradSel.has(p.simp));
+    const head = el("div", { class: "row spread" },
+      el("b", {}, `HSK${lv}`, el("span", { class: "muted small" }, ` · ${arr.length} chữ`)),
+      el("div", { class: "row" },
+        el("button", { class: "btn ghost small", onclick: () => { for (const p of arr) allSel ? tradSel.delete(p.simp) : tradSel.add(p.simp); renderTradFolder(); } }, allSel ? "Bỏ cấp" : "Chọn cả cấp"),
+        el("button", { class: "btn small", onclick: () => setTradScope(`HSK${lv}`, arr.map((p) => p.simp), "tradSrs") }, iconEl("play"), el("span", { class: "btn-tx" }, " Học cấp"))));
+    const grid = el("div", { class: "comm-chips" });
+    for (const p of arr) grid.append(commChip(`${p.simp}→${p.trad}`, tradSel.has(p.simp), () => { tradSel.has(p.simp) ? tradSel.delete(p.simp) : tradSel.add(p.simp); renderTradFolder(); }));
+    root.append(el("div", { class: "panel stack" }, head, grid));
+  }
+}
+
+function saveTradSetPrompt(simps) {
+  const name = prompt("Tên bộ chữ phồn thể:", `Bộ ${simps.length} chữ`);
+  if (name == null) return;
+  store.saveTradSet({ id: "ts-" + Date.now().toString(36), name: name.trim() || `Bộ ${simps.length} chữ`, chars: simps, createdAt: new Date().toISOString() });
+  tradSel.clear();
+  toast("Đã lưu bộ. Xem ở “Bộ của tôi”.");
+  navigate("tradSets");
+}
+
+/* ----- BỘ CỦA TÔI (phồn thể) ----- */
+export async function renderTradSets() {
+  clearCommState();
+  const root = clear();
+  root.append(el("h1", { class: "view-title" }, "Phồn thể · Bộ của tôi"));
+  const sets = store.getTradSets();
+  if (!sets.length) {
+    root.append(emptyState("Chưa có bộ chữ nào", "Vào tab Thư mục, tick chọn chữ rồi “Lưu thành bộ”.", "trad",
+      { label: "Sang Thư mục", icon: "play", onClick: () => navigate("tradFolder") }));
+    return;
+  }
+  const srsMap = store.getTradSrs();
+  for (const set of sets) {
+    const chars = set.chars || [];
+    const learned = chars.filter((c) => { const st = srsMap[c]; return st && st.reps > 0; }).length;
+    const preview = chars.slice(0, 18).join(" ") + (chars.length > 18 ? " …" : "");
+    root.append(el("div", { class: "panel stack" },
+      el("div", { class: "row spread" }, el("b", {}, set.name), el("span", { class: "muted small" }, `${chars.length} chữ · đã học ${learned}`)),
+      el("div", { class: "muted small" }, preview),
+      el("div", { class: "row" },
+        el("button", { class: "btn primary", onclick: () => setTradScope(set.name, chars, "tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, " Thẻ nhớ")),
+        el("button", { class: "btn", onclick: () => setTradScope(set.name, chars, "tradComp") }, iconEl("exam"), el("span", { class: "btn-tx" }, " Quiz")),
+        el("button", { class: "btn ghost", onclick: () => { if (confirm("Xóa bộ này?")) { store.deleteTradSet(set.id); renderTradSets(); } } }, "Xóa"))));
+  }
+}
+
 let tradQuiz = null;
 export async function renderTradComp() {
   clearCommState();
   const root = clear();
-  root.append(el("h1", { class: "view-title" }, "③ Quiz nhận diện phồn thể"));
+  root.append(el("h1", { class: "view-title" }, "Quiz nhận diện phồn thể"));
+  root.append(tradScopeBar("tradFolder"));
   root.append(await tradQuizPanel());
   root.append(el("div", { class: "row", style: "margin-top:12px" },
-    el("button", { class: "btn ghost", onclick: () => navigate("tradRules") }, iconEl("reset"), "Ôn lại ① Bộ thủ"),
-    el("button", { class: "btn ghost", onclick: () => navigate("tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, "Học tiếp ② Thẻ nhớ"))));
+    el("button", { class: "btn ghost", onclick: () => navigate("tradRules") }, iconEl("reset"), "Ôn lại Bộ thủ"),
+    el("button", { class: "btn ghost", onclick: () => navigate("tradSrs") }, iconEl("cards"), el("span", { class: "btn-tx" }, "Học tiếp Thẻ nhớ"))));
 }
 
 async function tradQuizPanel() {
-  const pairs = await tradPairs();
+  const pairs = scopedPairs(await tradPairs());
   const box = el("div", { class: "panel stack" });
   box.append(el("div", { class: "row spread" }, el("b", {}, "Quiz: đọc phồn thể → chọn giản thể"), tradQuiz ? el("span", { class: "muted small" }, `Điểm ${tradQuiz.score}/${tradQuiz.total}`) : null));
-  if (!pairs.length) { box.append(el("p", { class: "muted small" }, "Chưa có dữ liệu.")); return box; }
+  if (pairs.length < 4) { box.append(el("p", { class: "muted small" }, "Phạm vi cần ≥4 chữ để làm quiz.")); return box; }
+  if (tradQuiz && tradQuiz.scopeLabel !== scopeLabel()) tradQuiz = null;
   if (!tradQuiz || tradQuiz.next) tradQuiz = makeTradQuestion(pairs, tradQuiz);
   const q = tradQuiz;
   box.append(el("div", { class: "trad-quiz-q" }, q.pair.trad));
@@ -3057,7 +3120,7 @@ function makeTradQuestion(pairs, prev) {
   const pair = pairs[Math.floor(Math.random() * pairs.length)];
   const opts = new Set([pair.simp]);
   while (opts.size < 4 && opts.size < pairs.length) opts.add(pairs[Math.floor(Math.random() * pairs.length)].simp);
-  return { pair, options: [...opts].sort(() => Math.random() - 0.5), picked: null, score: prev ? prev.score : 0, total: prev ? prev.total : 0, next: false };
+  return { pair, options: [...opts].sort(() => Math.random() - 0.5), picked: null, score: prev ? prev.score : 0, total: prev ? prev.total : 0, next: false, scopeLabel: scopeLabel() };
 }
 function pickTrad(o) {
   if (tradQuiz.picked) return;

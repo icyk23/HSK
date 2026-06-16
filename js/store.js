@@ -13,6 +13,7 @@ const KEYS = {
   wordSets: "hsk.wordSets",  // bộ từ tự lưu (tick chọn) — [{id,name,cardIds,createdAt}]
   tradSrs: "hsk.tradSrs",    // SRS thẻ phồn thể 简→繁, keyed theo chữ giản thể
   tradMeta: "hsk.tradMeta",  // tiến độ lộ trình Phồn thể: { rulesDone, quizBest:{score,total} }
+  tradSets: "hsk.tradSets",  // bộ chữ phồn thể tự lưu — [{id,name,chars:[simp],createdAt}]
   commRecords: "hsk.commRecords", // kỷ lục Giao tiếp: { sprintBest:{ "30":n,"60":n,"90":n } }
 };
 
@@ -248,6 +249,18 @@ export function saveWordSet(set) {
 export function deleteWordSet(id) {
   write(KEYS.wordSets, getWordSets().filter((s) => s.id !== id));
 }
+export function getTradSets() {
+  return read(KEYS.tradSets, []);
+}
+export function saveTradSet(set) {
+  const all = getTradSets();
+  const i = all.findIndex((s) => s.id === set.id);
+  if (i >= 0) all[i] = set; else all.unshift(set);
+  write(KEYS.tradSets, all);
+}
+export function deleteTradSet(id) {
+  write(KEYS.tradSets, getTradSets().filter((s) => s.id !== id));
+}
 
 export function getTranslations() {
   return read(KEYS.translations, []);
@@ -293,6 +306,7 @@ export function exportAll() {
     wordSets: getWordSets(),
     tradSrs: getTradSrs(),
     tradMeta: getTradMeta(),
+    tradSets: getTradSets(),
     commRecords: getCommRecords(),
     exportedAt: new Date().toISOString(),
   };
@@ -312,5 +326,6 @@ export function importAll(data) {
   if (data.wordSets) write(KEYS.wordSets, data.wordSets);
   if (data.tradSrs) write(KEYS.tradSrs, data.tradSrs);
   if (data.tradMeta) write(KEYS.tradMeta, data.tradMeta);
+  if (data.tradSets) write(KEYS.tradSets, data.tradSets);
   if (data.commRecords) write(KEYS.commRecords, data.commRecords);
 }

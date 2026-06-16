@@ -282,6 +282,7 @@ button.btn:disabled { opacity: .45; cursor: not-allowed; }
   border-radius: 999px; padding: 1px 7px;
 }
 .ai-pop { animation: popIn .28s cubic-bezier(.2,.7,.3,1) both; }
+.lk { color: var(--accent); cursor: pointer; text-decoration: underline; }
 
 /* Tab con trong trang (Luyện đề: Chọn đề / Nạp đề) — segmented control */
 .subtabs { display: inline-flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
