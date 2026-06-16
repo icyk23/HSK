@@ -7,6 +7,7 @@ const KEYS = {
   stats: "hsk.stats",        // daily review log
   classOverrides: "hsk.classOverrides", // sửa nhóm thủ công, keyed by cardId
   exams: "hsk.exams",        // đề luyện thi do người dùng nhập
+  hskk: "hsk.hskk",          // đề HSKK 高级 do người dùng nhập / Qwen3 sinh
   examProgress: "hsk.examProgress", // kết quả Đọc + bản nháp Viết, keyed by examId
   translations: "hsk.translations", // Dịch thuật — "Bài đã dịch" của người dùng (+ Qwen3 chấm)
   wordSets: "hsk.wordSets",  // bộ từ tự lưu (tick chọn) — [{id,name,cardIds,createdAt}]
@@ -197,6 +198,19 @@ export function saveUserExam(exam) {
 export function deleteUserExam(id) {
   write(KEYS.exams, getUserExams().filter((e) => e.id !== id));
 }
+export function getUserHskk() {
+  return read(KEYS.hskk, []);
+}
+export function saveUserHskk(exam) {
+  const exams = getUserHskk();
+  const idx = exams.findIndex((e) => e.id === exam.id);
+  if (idx >= 0) exams[idx] = exam;
+  else exams.push(exam);
+  write(KEYS.hskk, exams);
+}
+export function deleteUserHskk(id) {
+  write(KEYS.hskk, getUserHskk().filter((e) => e.id !== id));
+}
 export function getExamProgress(examId) {
   return read(KEYS.examProgress, {})[examId] || {};
 }
@@ -273,6 +287,7 @@ export function exportAll() {
     statsTrad: read(KEYS.stats + ".trad", {}),
     classOverrides: getClassOverrides(),
     exams: getUserExams(),
+    hskk: getUserHskk(),
     examProgress: read(KEYS.examProgress, {}),
     translations: getTranslations(),
     wordSets: getWordSets(),
@@ -291,6 +306,7 @@ export function importAll(data) {
   if (data.statsTrad) write(KEYS.stats + ".trad", data.statsTrad);
   if (data.classOverrides) write(KEYS.classOverrides, data.classOverrides);
   if (data.exams) write(KEYS.exams, data.exams);
+  if (data.hskk) write(KEYS.hskk, data.hskk);
   if (data.examProgress) write(KEYS.examProgress, data.examProgress);
   if (data.translations) write(KEYS.translations, data.translations);
   if (data.wordSets) write(KEYS.wordSets, data.wordSets);

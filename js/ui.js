@@ -8,7 +8,7 @@ import * as lessons from "./lessons.js";
 import * as trad from "./trad.js";
 import { navigate, setScript } from "./main.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
-import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExams, getHskk } from "./exams.js";
+import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExams, getHskk, parseHskkJson } from "./exams.js";
 import { unzip } from "./unzip.js";
 import * as lib from "./library.js";
 import { STRUCT_LABELS, SEMANTIC_LABELS } from "./classify.js";
@@ -1212,9 +1212,29 @@ async function hskkBar() {
   const box = el("div", { class: "panel exam-import" });
   box.append(el("div", { class: "exam-head" }, el("h3", {}, iconEl("mic"), " HSKK 高级 — luyện thi nói"), el("span", { class: "chip" }, "mẫu")));
   box.append(el("p", { class: "muted small" }, "3 phần: 听后复述 (nghe·kể lại) · 朗读 (đọc to·chấm phát âm) · 回答问题 (trả lời câu hỏi). Dùng Chrome/Edge để chấm phát âm."));
+  const topicInput = el("input", { type: "text", placeholder: "Chủ đề (vd: 环境保护, 科技与生活)…" });
+  const genBtn = el("button", { class: "btn", onclick: doGenHskk }, iconEl("ai"), " Sinh đề HSKK");
+  async function doGenHskk() {
+    if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để sinh đề HSKK.");
+    genBtn.disabled = true; toast("Đang sinh đề HSKK bằng Qwen3… có thể mất một lúc.");
+    try {
+      const { exam } = await comm.genHskk(topicInput.value.trim());
+      const { exam: norm, error } = parseHskkJson(exam);
+      if (error) return toast("Đề sinh ra không hợp lệ: " + error);
+      store.saveUserHskk(norm);
+      toast(`Đã tạo đề HSKK “${norm.title}”.`);
+      renderExam();
+    } catch (e) { toast("Lỗi: " + e.message); }
+    finally { genBtn.disabled = false; }
+  }
+  box.append(el("div", { class: "row", style: "margin:6px 0" }, topicInput, genBtn));
+
   if (!exams.length) { box.append(el("p", { class: "muted small" }, "Chưa có đề HSKK.")); return box; }
   const list = el("div", { class: "exam-actions" });
-  for (const ex of exams) list.append(el("button", { class: "btn primary", onclick: () => { examView = { screen: "hskk", examId: ex.id, part: "retell" }; renderExam(); } }, iconEl("mic"), " " + ex.title));
+  for (const ex of exams) {
+    list.append(el("button", { class: "btn primary", onclick: () => { examView = { screen: "hskk", examId: ex.id, part: "retell" }; renderExam(); } }, iconEl("mic"), " " + ex.title));
+    if (!ex.builtin) list.append(el("button", { class: "btn ghost small", onclick: () => { if (confirm("Xóa đề HSKK này?")) { store.deleteUserHskk(ex.id); renderExam(); } } }, "Xóa"));
+  }
   box.append(list);
   return box;
 }

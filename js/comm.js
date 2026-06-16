@@ -168,6 +168,11 @@ export async function ingestUrl(url) {
   return postJson("/ingest", { url });
 }
 
+// Sinh đề HSKK 高级 từ chủ đề (Luyện đề). Trả { exam }.
+export async function genHskk(topic) {
+  return postJson("/gen-hskk", { topic });
+}
+
 async function postJson(path, payload) {
   const url = backendUrl();
   if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");

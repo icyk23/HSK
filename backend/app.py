@@ -567,6 +567,54 @@ def ingest(req: IngestReq):
     return {"text": text, "title": title or "", "kind": kind, "chars": len(text)}
 
 
+class GenHskkReq(BaseModel):
+    topic: str = ""
+
+
+@app.post("/gen-hskk")
+def gen_hskk(req: GenHskkReq):
+    """Sinh một đề thi nói HSKK 高级 quanh một chủ đề (module Luyện đề)."""
+    topic = (req.topic or "").strip() or "生活与社会"
+    prompt = (
+        "Bạn là người ra đề thi nói HSKK 高级 (cấp cao). Soạn MỘT đề quanh chủ đề: "
+        f"“{topic}”. Đề gồm 3 phần:\n"
+        "1) retell: 2 đoạn văn tiếng Trung NGẮN (mỗi đoạn 80–120 chữ, có cốt truyện hoặc ý nghĩa) để thí sinh nghe rồi kể lại;\n"
+        "2) read: 1 đoạn văn tiếng Trung (80–120 chữ) để đọc to;\n"
+        "3) answer: 2 câu hỏi nghị luận để thí sinh nói ý kiến.\n\n"
+        'Trả về DUY NHẤT JSON {"title": tiêu đề ngắn tiếng Việt, '
+        '"retell":[{"zh","vi"}], "read":{"zh","vi"}, '
+        '"answer":[{"q_zh","q_pinyin","q_vi","outline_vi"}]}. '
+        "Mọi đoạn/câu hỏi bằng tiếng Trung giản thể; vi/q_vi là nghĩa tiếng Việt; "
+        "q_pinyin là pinyin CÓ DẤU; outline_vi là gợi ý dàn ý tiếng Việt. Không viết gì ngoài JSON."
+    )
+    try:
+        data = _ollama_json(prompt, 0.6)
+    except Exception as e:
+        raise HTTPException(502, f"Không gọi được Qwen3/Ollama: {e}")
+    retell = [
+        {"zh": str(x.get("zh", "")).strip(), "vi": str(x.get("vi", ""))}
+        for x in (data.get("retell") or []) if isinstance(x, dict) and str(x.get("zh", "")).strip()
+    ]
+    rd = data.get("read")
+    read = {"zh": str(rd.get("zh", "")).strip(), "vi": str(rd.get("vi", ""))} \
+        if isinstance(rd, dict) and str(rd.get("zh", "")).strip() else None
+    answer = [
+        {"q_zh": str(x.get("q_zh", "")).strip(), "q_pinyin": str(x.get("q_pinyin", "")),
+         "q_vi": str(x.get("q_vi", "")), "outline_vi": str(x.get("outline_vi", ""))}
+        for x in (data.get("answer") or []) if isinstance(x, dict) and str(x.get("q_zh", "")).strip()
+    ]
+    if not retell and not read and not answer:
+        raise HTTPException(422, "Không sinh được đề HSKK.")
+    exam = {
+        "title": str(data.get("title") or f"HSKK 高级 — {topic}"),
+        "note": "Sinh tự động bằng Qwen3.",
+        "retell": retell, "read": read, "answer": answer,
+    }
+    return {"exam": exam}
+
+
 @app.get("/")
 def root():
-    return {"name": "HSK backend", "endpoints": ["/health", "/extract", "/ingest", "/grade", "/grade-writing", "/gen-qa", "/gen-exam"], "model": QWEN_MODEL}
+    return {"name": "HSK backend",
+            "endpoints": ["/health", "/extract", "/ingest", "/grade", "/grade-writing", "/gen-qa", "/gen-exam", "/gen-hskk"],
+            "model": QWEN_MODEL}

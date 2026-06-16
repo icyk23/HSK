@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] BACKEND QWEN3 — sinh đề HSKK 高级: endpoint POST /gen-hskk {topic} → đề 3 phần (retell[{zh,vi}] +
+    read{zh,vi} + answer[{q_zh,q_pinyin,q_vi,outline_vi}]); comm.genHskk(); store thêm KEYS.hskk +
+    getUserHskk/saveUserHskk/deleteUserHskk (vào export/import backup); exams.getHskkExams gộp bundled+user,
+    parseHskkJson validate; hskkBar thêm ô chủ đề + "Sinh đề HSKK" + nút Xóa cho đề người dùng. E2E mock OK
+    (sinh → vào danh sách → mở → phần answer hiện đúng câu). 7 endpoint AI. Cần Ollama để chạy thật.
 [x] BACKEND QWEN3 — gửi LINK (web/YouTube): endpoint POST /ingest → web bóc bằng trafilatura (fallback
     strip HTML), video/YouTube bằng yt-dlp (ưu tiên phụ đề zh, không có thì tải audio → faster-whisper);
     trả {text,title}. comm.ingestUrl(); "Nạp mới" thêm ô link + nút "Bóc từ link" → điền text+tiêu đề →

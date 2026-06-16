@@ -70,3 +70,6 @@ Khi backend sống, các nút AI tự bật: **Giao tiếp** (bóc tự động 
 - `POST /gen-exam` (JSON): `{ text, n }` →
   `{ exam:{title,note,reading:[…]}, count }`
   (Luyện đề — sinh đề đọc hiểu trắc nghiệm từ một đoạn văn; passage = văn bản gốc)
+- `POST /gen-hskk` (JSON): `{ topic }` →
+  `{ exam:{title,note,retell:[{zh,vi}],read:{zh,vi},answer:[{q_zh,q_pinyin,q_vi,outline_vi}]} }`
+  (Luyện đề — sinh đề thi nói HSKK 高级 từ một chủ đề)
