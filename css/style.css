@@ -1149,6 +1149,20 @@ summary .ic svg, .exam-head h3 .ic svg { width: 17px; height: 17px; vertical-ali
 .story-prog.big { height: 9px; border-radius: 4px; margin-top: 8px; }
 [data-theme="dark"] .story-prog > span { box-shadow: 0 0 10px rgba(255, 58, 71, .5); }
 
+/* Trình dịch song ngữ chia đôi màn hình */
+.trans-split-head { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-weight: 700; font-size: 13px; color: var(--text-muted); padding: 6px 2px; text-transform: uppercase; letter-spacing: .04em; }
+.trans-editor { display: flex; flex-direction: column; }
+.trans-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px 0; border-top: 1px solid var(--border); align-items: start; }
+.trans-row:first-child { border-top: none; }
+.trans-src .hanzi-line { font-size: calc(18px * var(--hanzi-scale)); line-height: 1.7; }
+.trans-dst { width: 100%; min-height: 56px; resize: vertical; }
+.trans-split2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+@media (max-width: 760px) {
+  .trans-split-head { grid-template-columns: 1fr; }
+  .trans-split-head span:last-child { display: none; }
+  .trans-row, .trans-split2 { grid-template-columns: 1fr; }
+}
+
 /* ===================== PHỒN THỂ — lộ trình ===================== */
 .trad-road { display: grid; gap: 12px; margin-top: 14px; }
 .road-step {

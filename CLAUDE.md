@@ -145,6 +145,12 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] DỊCH THUẬT — trình dịch SONG NGỮ CHIA ĐÔI: transTaskRunner viết lại thành editor 2 cột (nguồn |
+    bản dịch của bạn) theo khúc/chương — mỗi câu 1 hàng: 简+pinyin+nghe+"Tham khảo"(Qwen3 sent.vi) bên
+    trái, textarea tự lưu (saveStorySentence keyed theo nguồn, debounce+blur) bên phải; chip "x/N đã dịch"
+    + thanh tiến độ cập nhật trực tiếp. Luyện tự do cũng chia đôi (.trans-split2) + đếm chữ + Ctrl/⌘+Enter
+    lưu. "Bài đã dịch" thêm lọc Tất cả/Đã chấm/Cần ôn(<8đ). CSS .trans-row/.trans-split-head/.trans-split2.
+    E2E: editor 2 hàng + tham khảo, 1/2 đã dịch lưu qua reload, free split2, lọc Cần ôn. 0 lỗi.
 [x] GIAO TIẾP — drill cải tiến (P1-P4): (P1) nút Nói ở Hỏi–đáp đổi score:false (câu hỏi mở → chỉ ghi
     "Bạn nói:…", không chấm % sai lệch). (P2) phím tắt Hỏi–đáp Space=nghe lại·G=gợi ý·Enter/→=tiếp +
     dòng nhắc. (P3) nút "Ẩn câu hỏi" (blur .comm-q.blur-zh, rê chuột lộ) để luyện nghe. (P4) thêm mic
