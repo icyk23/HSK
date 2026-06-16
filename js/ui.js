@@ -797,8 +797,8 @@ export async function renderHome() {
     root.append(sec);
   }
 
-  // Onboarding: gợi ý 3 bước bắt đầu (lần đầu, ẩn được)
-  if (!s.onboardDismissed) {
+  // Onboarding: chỉ hiện cho người MỚI (chưa học gì & chưa có việc dở), vẫn ẩn được
+  if (!s.onboardDismissed && learned === 0 && cont.length === 0) {
     const card = el("div", { class: "panel", style: "margin-top:16px" });
     card.append(el("div", { class: "row spread" },
       el("b", {}, "Bắt đầu nhanh trong 3 bước"),
@@ -819,50 +819,24 @@ export async function renderHome() {
     root.append(card);
   }
 
-  // P2 — Mục tiêu hôm nay (thanh tiến độ + động viên)
+  // "Hôm nay" — gộp mục tiêu + số liệu + tiến độ bộ thẻ vào MỘT panel cho gọn
   {
     const goal = Math.max(1, s.newPerDay || 15);
     const reached = todayStat.reviews >= goal;
     const pct = Math.min(100, Math.round((todayStat.reviews / goal) * 100));
     const fill = el("span", { style: `width:${pct}%` });
     if (reached) fill.style.background = "var(--ok)";
-    const goalCard = el("div", { class: "panel stack", style: "margin-top:18px" });
-    goalCard.append(el("div", { class: "row spread" },
+    const miniStat = (n, l) => el("div", { class: "ms" }, el("span", { class: "ms-num" }, String(n)), el("span", { class: "ms-lbl" }, l));
+    const panel = el("div", { class: "panel stack", style: "margin-top:18px" });
+    panel.append(el("div", { class: "row spread" },
       el("b", {}, reached ? iconEl("check") : null, " Mục tiêu hôm nay"),
       el("span", { class: "chip" + (reached ? " st known" : "") }, `${todayStat.reviews}/${goal} lượt ôn`)));
-    goalCard.append(el("div", { class: "progress", style: "margin:10px 0 0" }, fill));
-    goalCard.append(el("p", { class: "muted small", style: "margin:8px 0 0" },
+    panel.append(el("div", { class: "progress", style: "margin:10px 0 0" }, fill));
+    panel.append(el("p", { class: "muted small", style: "margin:8px 0 0" },
       reached ? "Tuyệt vời! Bạn đã đạt mục tiêu hôm nay — chuỗi ngày được giữ vững." : `Còn ${goal - todayStat.reviews} lượt ôn nữa là đạt mục tiêu.`));
-    root.append(goalCard);
-  }
-
-  // Số liệu nhanh + tiến độ bộ thẻ (P4: thanh thay vì chữ)
-  root.append(el("div", { class: "stat-grid", style: "margin-top:14px" },
-    statBox(learned, "Đã học"),
-    statBox(due, "Đến hạn ôn"),
-    statBox(total - learned, "Chưa học"),
-  ));
-  root.append(el("div", { class: "panel", style: "margin-top:12px" }, progressRow("Tiến độ bộ thẻ", learned, total)));
-
-  // Thẻ AI · Qwen3: trạng thái backend + lối tắt Cài đặt
-  {
-    const configured = !!(s.commBackendUrl || "").trim();
-    const dot = el("span", { class: "ha-dot " + (configured ? "on" : "off") });
-    const statusTx = el("span", { class: "muted small" }, configured ? "Đang kiểm tra kết nối…" : "Chưa bật — app vẫn chạy đủ trong trình duyệt.");
-    const aiCard = el("div", { class: "panel ai-panel", style: "margin-top:16px" });
-    aiCard.append(el("div", { class: "home-ai" },
-      el("div", { class: "ha-ic" }, iconEl("ai")),
-      el("div", { class: "ha-body" },
-        el("div", {}, el("b", {}, "AI · Qwen3 "), el("span", { class: "ai-tag" }, "local")),
-        el("div", { style: "margin-top:2px" }, dot, statusTx)),
-      el("button", { class: "btn", onclick: () => navigate("settings") }, iconEl("settings"), el("span", { class: "btn-tx" }, configured ? "Cài đặt" : "Bật AI"))));
-    aiCard.append(el("p", { class: "muted small", style: "margin-top:10px" }, "Khi bật: chấm Dịch & Viết, sinh đề đọc hiểu/HSKK, sinh Hỏi–đáp & mẫu câu, bóc nội dung từ ảnh/PDF/link."));
-    root.append(aiCard);
-    if (configured) comm.pingBackend().then((h) => {
-      if (h && h.ollama) { dot.className = "ha-dot on"; statusTx.textContent = `Đã kết nối · ${h.model || "Qwen3"}`; }
-      else if (h) { dot.className = "ha-dot on"; statusTx.textContent = "Backend chạy · chưa thấy Ollama."; }
-      else { dot.className = "ha-dot off"; statusTx.textContent = "Đã cấu hình nhưng không kết nối được."; }
-    });
+    panel.append(el("div", { class: "mini-stats" }, miniStat(learned, "Đã học"), miniStat(due, "Đến hạn ôn"), miniStat(total - learned, "Chưa học")));
+    panel.append(progressRow("Tiến độ bộ thẻ", learned, total));
+    root.append(panel);
   }
 
   // Tra cứu nhanh: gõ chữ Hán / pinyin / nghĩa → kết quả từ bộ thẻ
@@ -905,8 +879,9 @@ export async function renderHome() {
   trackBox.append(trackRow);
   root.append(trackBox);
 
-  // Vào nhanh các module
-  root.append(el("h2", { class: "view-title", style: "margin-top:26px" }, "Vào nhanh"));
+  // Vào nhanh các module — chỉ hiện trên mobile (desktop đã có sidebar)
+  const quick = el("div", { class: "home-quick", style: "margin-top:26px" });
+  quick.append(el("h2", { class: "view-title", style: "margin:0 0 12px" }, "Vào nhanh"));
   const tiles = el("div", { class: "home-tiles" });
   const TILES = [
     ["cards", "Từ vựng", "Flashcard · SRS · Quiz", "vocabHub"],
@@ -924,7 +899,8 @@ export async function renderHome() {
         el("span", { class: "home-tile-desc muted no-cc" }, desc)),
     ));
   }
-  root.append(tiles);
+  quick.append(tiles);
+  root.append(quick);
 
   // đếm số tăng dần cho số nguyên thuần
   requestAnimationFrame(() => root.querySelectorAll(".home-streak-num, .stat-box .num").forEach((n) => {

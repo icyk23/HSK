@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] TRANG CHỦ gọn lại (trước dài ~10 khối): BỎ HẲN thẻ AI; GỘP mục tiêu+số liệu+tiến độ bộ thẻ thành
+    1 panel "Mục tiêu hôm nay" (goal bar + 3 mini-stats Đã học/Đến hạn/Chưa học + thanh bộ thẻ);
+    "Vào nhanh" chỉ hiện mobile (.home-quick ẩn ≥900px vì desktop có sidebar); Onboarding chỉ hiện khi
+    learned=0 & không có việc dở. Còn: Hero→Tiếp tục→Hôm nay→Tra cứu→Track. E2E desktop/mobile 0 lỗi.
 [x] TRANG CHỦ cải tiến (P1+P2+P4): (P1) dải "Tiếp tục" ngay sau hero — gom việc dở từ dữ liệu sẵn có:
     shadowing video (shadowProg), dịch theo truyện (translations vs câu material), nháp Viết
     (examProgress.writing); mỗi thẻ icon+tên+tiến độ+thanh, 1 chạm vào đúng chỗ (openShadowMaterial/
