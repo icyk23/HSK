@@ -1271,6 +1271,39 @@ async function examLibrary(root) {
   if (!coll) { examView = { screen: "list" }; return renderExam(); }
   root.append(examTopbar("" + coll.name));
 
+  // Sinh đề đọc hiểu từ TẤT CẢ PDF trong bộ (Qwen3) → tự vào "Chọn đề"
+  const pdfs = coll.fileMeta.filter((fm) => lib.fileKind(fm) === "pdf");
+  if (pdfs.length) {
+    const genAllBtn = el("button", { class: "btn primary" }, iconEl("ai"), el("span", { class: "btn-tx" }, ` Sinh đề từ cả bộ (${pdfs.length} PDF)`));
+    genAllBtn.onclick = async () => {
+      if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để sinh đề.");
+      genAllBtn.disabled = true;
+      let made = 0;
+      for (let i = 0; i < pdfs.length; i++) {
+        const fm = pdfs[i];
+        toast(`Đang xử lý ${i + 1}/${pdfs.length}: ${fm.name}…`);
+        try {
+          const blob = await lib.getFileBlob(fm.id);
+          if (!blob) continue;
+          const lines = await comm.extractViaBackend(blob, fm.name, "pdf", false);
+          const text = (lines || []).map((l) => l.zh).join("\n").trim();
+          if (text.length < 30) continue;
+          const { exam } = await comm.genExam(text, 5);
+          const { exam: norm, error } = parseExamJson(JSON.stringify({ ...exam, title: exam.title || fm.name.replace(/\.[^.]+$/, "") }));
+          if (error) continue;
+          store.saveUserExam(norm); made++;
+        } catch (e) { /* bỏ qua file lỗi, tiếp tục */ }
+      }
+      genAllBtn.disabled = false;
+      toast(made ? `Đã sinh ${made} đề từ bộ này → vào "Chọn đề".` : "Không sinh được đề nào (PDF có thể là ảnh scan / thiếu chữ).");
+      if (made) { examView = { screen: "list", tab: "choose" }; renderExam(); }
+    };
+    root.append(el("div", { class: "ai-panel panel", style: "margin-bottom:14px" },
+      el("div", { class: "row spread" },
+        el("b", {}, "Tự sinh đề đọc hiểu ", el("span", { class: "ai-tag" }, "Qwen3")), genAllBtn),
+      el("p", { class: "muted small", style: "margin:8px 0 0" }, "Bóc chữ từ mỗi PDF rồi để Qwen3 soạn đề đọc hiểu trắc nghiệm → tự thêm vào “Chọn đề luyện”. (Câu hỏi do AI soạn theo nội dung, không phải đề gốc; cần backend.)")));
+  }
+
   const layout = el("div", { class: "lib-layout" });
   const fileList = el("div", { class: "lib-files" });
   for (const fm of coll.fileMeta) {

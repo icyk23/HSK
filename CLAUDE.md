@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] KHO ĐỀ ZIP → SINH ĐỀ HÀNG LOẠT: trong bộ tài liệu (examLibrary) thêm nút "Sinh đề từ cả bộ (N PDF)"
+    (ai-panel): duyệt mọi PDF → comm.extractViaBackend (PDF→chữ, OCR nếu scan) → comm.genExam → parseExamJson
+    → saveUserExam (tiêu đề = tên file), bỏ qua file lỗi, xong nhảy về "Chọn đề". Câu hỏi do Qwen3 soạn theo
+    nội dung (không phải đề gốc), không cần duyệt. Cần backend. E2E mock: 2 PDF → 2 đề vào Chọn đề, 0 lỗi.
 [x] CÀI ĐẶT — P1+P2 + rà soát: backup đã đủ (tradSets/shadowProg/hskk/commRecords...). (P1) tự ping AI khi
     mở Cài đặt nếu có URL → hiện trạng thái ngay. (P2) panel "Phiên bản" (APP_VERSION trong main.js, chip
     no-cc) + nút "Kiểm tra cập nhật" (reg.update → SW controllerchange tự reload). E2E: auto-status, chip
