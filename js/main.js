@@ -175,5 +175,15 @@ cc.ensureS2T().then(() => { go("home"); });
 
 // PWA service worker (ignored when opened via file://)
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  // Khi service worker mới tiếp quản (sau cập nhật) → tự tải lại 1 lần để dùng bản mới ngay.
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloaded || !hadController) return;
+    reloaded = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register("./sw.js").then((reg) => {
+    if (reg.update) reg.update().catch(() => {});
+  }).catch(() => {});
 }
