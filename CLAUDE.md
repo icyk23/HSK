@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] HUB LƯỚI THẺ kiểu Giao tiếp cho module có tab con: Từ vựng/Luyện đề/Phồn thể bỏ thanh tab con,
+    vào module = lưới thẻ (comm-grid: icon + tên + số đếm + mô tả) → bấm thẻ vào mục con (view ẩn) +
+    nút "← [module]" về hub. NAV: mỗi module 1 tab hub (vocabHub/examHub/tradHub) + mục con hidden.
+    navCard/hubBack helper. Quét desktop (bấm mọi thẻ) + mobile = 0 lỗi.
 [x] 4 YÊU CẦU: (1) Phồn thể có cấu trúc giống Từ vựng — thêm tab Thư mục (duyệt 993 chữ theo cấp HSK +
     tick chọn) & Bộ của tôi (store.tradSets, backup), học scoped Thẻ nhớ/Quiz (tradScope, view ẩn,
     vào qua ▶/▶Học cấp); giữ Lộ trình & Bộ thủ. (2) Đổi TOÀN BỘ icon sang phong cách ANGULAR

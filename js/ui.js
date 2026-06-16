@@ -304,6 +304,7 @@ export async function renderVocab() {
   const s = store.getSettings();
   const deck = await getDeck(s.activeDeckId);
   await ensureMaterials();
+  root.append(hubBack("Từ vựng", "vocabHub"));
   root.append(el("h1", { class: "view-title" }, "Từ vựng — Thư mục"));
   if (!deck) { root.append(emptyState("Chưa chọn bộ thẻ", "Vào tab Nguồn từ để chọn bộ thẻ.")); return; }
 
@@ -577,6 +578,7 @@ export async function renderManage() {
   const s = store.getSettings();
   const decks = await getAllDecks();
 
+  root.append(hubBack("Từ vựng", "vocabHub"));
   root.append(el("h1", { class: "view-title" }, "Nguồn từ"));
 
   const list = el("div", { class: "stack" });
@@ -1233,6 +1235,7 @@ function examTopbar(title) {
 /* ---------- HSK — danh sách & nạp đề ---------- */
 async function examHskList(root) {
   examView.screen = "list";
+  root.append(hubBack("Luyện đề", "examHub"));
   root.append(el("h1", { class: "view-title" }, "Luyện đề · HSK"));
   root.append(examSubTabs(renderExam));
   if (examView.tab === "load") {
@@ -1273,6 +1276,7 @@ async function examHskList(root) {
 /* ---------- HSKK 高级 (thi nói) — danh sách & nạp đề ---------- */
 async function hskkListPage(root) {
   examView.screen = "hskklist";
+  root.append(hubBack("Luyện đề", "examHub"));
   root.append(el("h1", { class: "view-title" }, "Luyện đề · HSKK 高级"));
   root.append(examSubTabs(renderExamHskk));
   if (examView.tab === "load") {
@@ -1898,6 +1902,62 @@ function commDrillCard(icon, title, badge, desc, enabled, screen) {
     el("div", { class: "comm-drill-body" },
       el("div", { class: "comm-drill-title" }, title, el("span", { class: "chip" }, badge)),
       el("div", { class: "muted small" }, desc)));
+}
+
+/* ---------- Hub kiểu Giao tiếp: lưới thẻ chọn mục con ---------- */
+function navCard(iconName, title, badge, desc, view) {
+  return el("button", { class: "comm-drill", onclick: () => navigate(view) },
+    el("div", { class: "comm-drill-ic" }, iconEl(iconName)),
+    el("div", { class: "comm-drill-body" },
+      el("div", { class: "comm-drill-title" }, title, badge != null ? el("span", { class: "chip" }, badge) : null),
+      el("div", { class: "muted small" }, desc)));
+}
+function hubBack(label, view) {
+  return el("div", { class: "exam-topbar" }, el("button", { class: "btn ghost", onclick: () => navigate(view) }, "← " + label));
+}
+
+export async function renderVocabHub() {
+  clearCommState();
+  const root = clear();
+  root.append(el("h1", { class: "view-title" }, "Từ vựng"));
+  root.append(el("p", { class: "muted small", style: "margin:-6px 2px 14px" }, "Chọn cách quản lý & học từ vựng."));
+  const deck = await getDeck(store.getSettings().activeDeckId);
+  const total = deck ? deck.cards.length : 0;
+  const sets = store.getWordSets().length;
+  const grid = el("div", { class: "comm-grid" });
+  grid.append(navCard("folder", "Thư mục", `${total} từ`, "Duyệt theo cấp HSK / nhóm nghĩa / tài liệu, tick chọn để học ngay hoặc lưu thành bộ.", "vocab"));
+  grid.append(navCard("cards", "Bộ của tôi", `${sets} bộ`, "Học các bộ từ đã lưu bằng Flashcard · Quiz · Gõ pinyin · Nghe.", "wordsets"));
+  grid.append(navCard("book", "Nguồn từ", null, "Quản lý bộ thẻ nguồn: chọn deck, nhập CSV.", "manage"));
+  root.append(grid);
+}
+
+export async function renderExamHub() {
+  clearCommState();
+  revokeViewerUrl();
+  const root = clear();
+  root.append(el("h1", { class: "view-title" }, "Luyện đề"));
+  root.append(el("p", { class: "muted small", style: "margin:-6px 2px 14px" }, "Chọn loại đề để luyện."));
+  const hsk = (await getAllExams()).length;
+  const hskk = (await getHskkExams()).length;
+  const grid = el("div", { class: "comm-grid" });
+  grid.append(navCard("exam", "HSK", `${hsk} đề`, "Đọc hiểu trắc nghiệm tự chấm + Viết 缩写. Sinh đề bằng Qwen3 hoặc tải kho đề.", "exam"));
+  grid.append(navCard("mic", "HSKK 高级", `${hskk} đề`, "Thi nói: nghe-kể lại · đọc to · trả lời câu hỏi. Sinh đề theo chủ đề.", "examHskk"));
+  root.append(grid);
+}
+
+export async function renderTradHub() {
+  clearCommState();
+  const root = clear();
+  root.append(el("h1", { class: "view-title" }, "Phồn thể 繁"));
+  root.append(el("p", { class: "muted small", style: "margin:-6px 2px 14px" }, "Học đọc chữ phồn thể (繁→简)."));
+  const pairs = await tradPairs();
+  const sets = store.getTradSets().length;
+  const grid = el("div", { class: "comm-grid" });
+  grid.append(navCard("play", "Lộ trình", "3 bước", "Hướng dẫn người mới: bộ thủ → thẻ nhớ → quiz, có tiến độ.", "tradHome"));
+  grid.append(navCard("folder", "Thư mục", `${pairs.length} chữ`, "Duyệt chữ phồn thể theo cấp HSK, tick chọn để học hoặc lưu thành bộ.", "tradFolder"));
+  grid.append(navCard("cards", "Bộ của tôi", `${sets} bộ`, "Học các bộ chữ đã lưu bằng Thẻ nhớ / Quiz.", "tradSets"));
+  grid.append(navCard("trad", "Bộ thủ", null, "Quy luật thành phần Giản↔Phồn để đoán & đọc chữ nhanh.", "tradRules"));
+  root.append(grid);
 }
 
 // Backend có xử lý được loại file này không (theo năng lực /health).
@@ -2838,6 +2898,7 @@ export async function renderTradHome() {
   clearCommState();
   const root = clear();
   const pairs = await tradPairs();
+  root.append(hubBack("Phồn thể", "tradHub"));
   root.append(el("h1", { class: "view-title" }, "Phồn thể — lộ trình cho người mới"));
   if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.")); return; }
   root.append(el("p", { class: "muted small" }, `App học giản thể; lộ trình này giúp bạn ĐỌC được ${pairs.length} chữ phồn thể HSK qua 3 bước.`));
@@ -2875,7 +2936,8 @@ export async function renderTradHome() {
 export async function renderTradRules() {
   clearCommState();
   const root = clear();
-  root.append(el("h1", { class: "view-title" }, "① Quy luật bộ thủ Giản ↔ Phồn"));
+  root.append(hubBack("Phồn thể", "tradHub"));
+  root.append(el("h1", { class: "view-title" }, "Quy luật bộ thủ Giản ↔ Phồn"));
   root.append(el("p", { class: "muted small" }, "Phần lớn chữ phồn thể khác giản thể ở MỘT thành phần lặp lại. Nhớ các cặp bộ thủ này, bạn sẽ đoán & đọc chữ phồn thể nhanh hơn nhiều."));
   const tbl = el("div", { class: "trad-comp-grid" });
   for (const c of trad.TRAD_COMPONENTS) {
@@ -3015,6 +3077,7 @@ export async function renderTradFolder() {
   clearCommState();
   const root = clear();
   const pairs = await tradPairs();
+  root.append(hubBack("Phồn thể", "tradHub"));
   root.append(el("h1", { class: "view-title" }, "Phồn thể · Thư mục"));
   if (!pairs.length) { root.append(emptyState("Chưa có dữ liệu", "Bộ thẻ chưa có chữ phồn thể.", "trad")); return; }
   root.append(el("p", { class: "muted small", style: "margin:-6px 2px 12px" }, "Tick chọn chữ (theo cấp HSK) rồi học bằng Thẻ nhớ / Quiz hoặc lưu thành bộ. Hoặc bấm ▶ Học cấp để luyện nhanh cả cấp."));
@@ -3059,6 +3122,7 @@ function saveTradSetPrompt(simps) {
 export async function renderTradSets() {
   clearCommState();
   const root = clear();
+  root.append(hubBack("Phồn thể", "tradHub"));
   root.append(el("h1", { class: "view-title" }, "Phồn thể · Bộ của tôi"));
   const sets = store.getTradSets();
   if (!sets.length) {
@@ -3138,6 +3202,7 @@ function pickTrad(o) {
 export async function renderWordsets() {
   clearCommState();
   const root = clear();
+  root.append(hubBack("Từ vựng", "vocabHub"));
   root.append(el("h1", { class: "view-title" }, "Bộ của tôi"));
   const sets = store.getWordSets();
   if (!sets.length) {
