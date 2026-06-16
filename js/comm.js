@@ -178,6 +178,11 @@ export async function translateLines(lines) {
   return postJson("/translate", { lines });
 }
 
+// Sinh mẫu câu thay thế từ đoạn văn (Giao tiếp). Trả { patterns:[{frame,frame_vi,slots}], count }.
+export async function genPattern(text, n = 5) {
+  return postJson("/gen-pattern", { text, n });
+}
+
 async function postJson(path, payload) {
   const url = backendUrl();
   if (!url) throw new Error("Chưa cấu hình backend Qwen3 trong Cài đặt.");

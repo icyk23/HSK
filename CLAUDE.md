@@ -145,6 +145,12 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] HOÀN TẤT STUB AI + ĐÁNH BÓNG: (1) /gen-pattern sinh mẫu câu 句型替换 từ tài liệu → drill "Thay thế"
+    nay cá nhân hoá như Hỏi–đáp (helper genFromMaterialSection dùng chung; commPersonalPattern vào
+    patternBank+summary); (2) Sprint Việt→Trung dùng tài liệu đã "Dịch tham khảo" (opts.material mang
+    s.vi → viLineBank); (3) "Sinh đề đọc hiểu từ PDF (Qwen3)" trong Thư viện = chuỗi /extract→/gen-exam
+    →saveUserExam; (4) dọn copy stub cũ ("sắp có/sẽ thêm"). 9 endpoint AI. Chạy thử: quét 9 tab tier1 +
+    mọi tab con = 0 lỗi console; Pattern sinh từ tài liệu hiển thị đúng. (Mock backend; cần Ollama chạy thật.)
 [x] BACKEND QWEN3 — tự dịch câu khi Nạp: endpoint POST /translate {lines}→{translations} (tái dùng
     translate_lines); comm.translateLines(); panel "Dịch tham khảo (Qwen3)" ở màn tài liệu (Nạp) dịch
     câu zh→vi theo lô 20, lưu s.vi vào material + thanh tiến độ. Dịch thuật "theo truyện" hiện

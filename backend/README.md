@@ -69,6 +69,9 @@ Khi backend sống, các nút AI tự bật: **Giao tiếp** (bóc tự động 
 - `POST /gen-qa` (JSON): `{ text, n }` →
   `{ pairs:[{q,q_pinyin,q_vi,a,a_pinyin,a_vi}], count }`
   (Giao tiếp — sinh Hỏi–đáp từ tài liệu đã nạp)
+- `POST /gen-pattern` (JSON): `{ text, n }` →
+  `{ patterns:[{frame,frame_vi,slots:[{zh,vi}]}], count }`
+  (Giao tiếp — sinh mẫu câu thay thế 句型替换 từ tài liệu)
 - `POST /gen-exam` (JSON): `{ text, n }` →
   `{ exam:{title,note,reading:[…]}, count }`
   (Luyện đề — sinh đề đọc hiểu trắc nghiệm từ một đoạn văn; passage = văn bản gốc)

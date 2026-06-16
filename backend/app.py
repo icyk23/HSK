@@ -499,6 +499,50 @@ def gen_qa(req: GenQaReq):
     return {"pairs": out, "count": len(out)}
 
 
+class GenPatternReq(BaseModel):
+    text: str = ""
+    n: int = 5
+
+
+@app.post("/gen-pattern")
+def gen_pattern(req: GenPatternReq):
+    """Sinh mẫu câu thay thế (句型替换) từ một đoạn văn (module Giao tiếp)."""
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(400, "Thiếu văn bản nguồn.")
+    n = max(3, min(int(req.n or 5), 8))
+    prompt = (
+        "Bạn là giáo viên tiếng Trung dạy mẫu câu (句型替换). Dựa trên ĐOẠN VĂN sau, rút ra "
+        f"{n} MẪU CÂU tiếng Trung hữu ích để luyện nói. Mỗi mẫu chừa ĐÚNG MỘT chỗ trống ghi là {{}} "
+        "để thay thế, kèm 3–4 phương án điền vào.\n\n"
+        f"ĐOẠN VĂN:\n{text[:4000]}\n\n"
+        'Trả về DUY NHẤT JSON {"patterns":[{"frame": câu tiếng Trung có {}, '
+        '"frame_vi": bản dịch tiếng Việt cũng có {}, "slots":[{"zh","vi"}]}]}. '
+        "frame và frame_vi BẮT BUỘC chứa {}. Không viết gì ngoài JSON."
+    )
+    try:
+        data = _ollama_json(prompt, 0.5)
+    except Exception as e:
+        raise HTTPException(502, f"Không gọi được Qwen3/Ollama: {e}")
+    out = []
+    for p in (data.get("patterns") or []):
+        if not isinstance(p, dict):
+            continue
+        frame = str(p.get("frame", "")).strip()
+        frame_vi = str(p.get("frame_vi", "")).strip()
+        if "{}" not in frame or "{}" not in frame_vi:
+            continue
+        slots = [
+            {"zh": str(s.get("zh", "")).strip(), "vi": str(s.get("vi", ""))}
+            for s in (p.get("slots") or []) if isinstance(s, dict) and str(s.get("zh", "")).strip()
+        ]
+        if len(slots) >= 2:
+            out.append({"frame": frame, "frame_vi": frame_vi, "slots": slots})
+    if not out:
+        raise HTTPException(422, "Không sinh được mẫu câu từ văn bản này.")
+    return {"patterns": out, "count": len(out)}
+
+
 class GenExamReq(BaseModel):
     text: str = ""
     n: int = 5
@@ -629,5 +673,5 @@ def gen_hskk(req: GenHskkReq):
 @app.get("/")
 def root():
     return {"name": "HSK backend",
-            "endpoints": ["/health", "/extract", "/ingest", "/translate", "/grade", "/grade-writing", "/gen-qa", "/gen-exam", "/gen-hskk"],
+            "endpoints": ["/health", "/extract", "/ingest", "/translate", "/grade", "/grade-writing", "/gen-qa", "/gen-pattern", "/gen-exam", "/gen-hskk"],
             "model": QWEN_MODEL}
