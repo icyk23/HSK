@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] CÀI ĐẶT — P1+P2 + rà soát: backup đã đủ (tradSets/shadowProg/hskk/commRecords...). (P1) tự ping AI khi
+    mở Cài đặt nếu có URL → hiện trạng thái ngay. (P2) panel "Phiên bản" (APP_VERSION trong main.js, chip
+    no-cc) + nút "Kiểm tra cập nhật" (reg.update → SW controllerchange tự reload). E2E: auto-status, chip
+    v76. 0 lỗi. → HOÀN TẤT rà soát 9 section (Trang chủ·Từ vựng·Luyện đề·Giao tiếp·Dịch·Phồn thể·Nạp·Tiến độ·Cài đặt).
 [x] TIẾN ĐỘ — thêm mục Giao tiếp + Luyện đề (P1-P2): Giao tiếp = Shadowing video mỗi tài liệu (n/N câu
     từ store.shadowProg) + kỷ lục Sprint (commRecords.sprintBest 30/60/90s). Luyện đề = mỗi đề điểm Đọc
     tốt nhất % (readingHistory) + số lần + nháp Viết (countChars). E2E: Shadowing·Vlog 2/3, Sprint 30s:12,

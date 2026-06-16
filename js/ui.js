@@ -6,7 +6,7 @@ import { speak, hasChineseVoice, hasRecognition, recognizeChinese, stopSpeaking 
 import * as comm from "./comm.js";
 import * as lessons from "./lessons.js";
 import * as trad from "./trad.js";
-import { navigate, setScript } from "./main.js";
+import { navigate, setScript, APP_VERSION } from "./main.js";
 import { getAllDecks, getDeck, parseCsv } from "./decks.js";
 import { getAllExams, getExam, countReadingQuestions, parseExamJson, getHskkExams, getHskk, parseHskkJson } from "./exams.js";
 import { unzip } from "./unzip.js";
@@ -1122,6 +1122,7 @@ export async function renderSettings() {
     el("div", { class: "field" }, el("label", {}, "Địa chỉ backend"), backendInput),
     el("div", { class: "row" }, el("button", { class: "btn", onclick: testBackend }, iconEl("plug"), "Lưu & kiểm tra"), backendStatus),
   ));
+  if (s.commBackendUrl) testBackend();   // P1 — tự kiểm tra khi mở Cài đặt
 
   // data
   root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
@@ -1136,7 +1137,25 @@ export async function renderSettings() {
     } }, iconEl("reset"), "Đặt lại tiến độ học"),
   ));
 
+  // Phiên bản + kiểm tra cập nhật (P2)
+  root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
+    el("div", { class: "row spread" },
+      el("b", {}, "Phiên bản ", el("span", { class: "chip no-cc" }, APP_VERSION)),
+      el("button", { class: "btn ghost small", onclick: checkUpdate }, iconEl("reset"), el("span", { class: "btn-tx" }, "Kiểm tra cập nhật"))),
+    el("p", { class: "muted small", style: "margin:0" }, "Nếu thấy giao diện cũ sau khi cập nhật, bấm nút trên hoặc tải lại trang (Ctrl/⌘ + Shift + R).")));
+
   root.append(el("p", { class: "muted center", style: "margin-top:20px;font-size:12px" }, "Mọi dữ liệu lưu ngay trên thiết bị của bạn (offline). Nhớ xuất sao lưu định kỳ."));
+}
+
+async function checkUpdate() {
+  if (!("serviceWorker" in navigator)) return toast("Trình duyệt không hỗ trợ cập nhật offline.");
+  toast("Đang kiểm tra cập nhật…");
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return toast("Chưa cài như app (mở qua http/https để bật cập nhật).");
+    await reg.update();
+    toast("Đã kiểm tra. Có bản mới thì trang sẽ tự tải lại.");
+  } catch { toast("Không kiểm tra được cập nhật."); }
 }
 
 async function exportData() {

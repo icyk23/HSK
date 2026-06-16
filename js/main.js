@@ -5,6 +5,8 @@ import * as ui from "./ui.js";
 import * as cc from "./cc.js";
 import { icon } from "./icons.js";
 
+export const APP_VERSION = "v76";  // đồng bộ với CACHE trong sw.js
+
 const VIEWS = {
   home: ui.renderHome,
   study: ui.renderStudy,
