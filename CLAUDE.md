@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] TỪ VỰNG — Thư mục cải tiến (P1-P4): (P1) công tắc "Lưới / Chi tiết" — Chi tiết = mỗi từ 1 hàng
+    简(繁)·pinyin·Hán-Việt·nghĩa·nghe (wordRow) → xem nghĩa được, hợp mobile (bỏ phụ thuộc hover).
+    (P2) mỗi folder có thanh tiến độ + "thuộc x/N" (từ store.getProgress). (P3) "Bộ của tôi" trống có
+    nút "Mở Thư mục". (P4) khi gõ tìm/lọc trạng thái → banner "Học/Ôn N từ đang lọc" (studyScope).
+    CSS .folder-prog/.folder-bar, .folder-rows/.wrow. E2E: 100 hàng chi tiết, banner, empty action, 0 lỗi.
 [x] TRANG CHỦ gọn lại (trước dài ~10 khối): BỎ HẲN thẻ AI; GỘP mục tiêu+số liệu+tiến độ bộ thẻ thành
     1 panel "Mục tiêu hôm nay" (goal bar + 3 mini-stats Đã học/Đến hạn/Chưa học + thanh bộ thẻ);
     "Vào nhanh" chỉ hiện mobile (.home-quick ẩn ≥900px vì desktop có sidebar); Onboarding chỉ hiện khi

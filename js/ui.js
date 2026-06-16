@@ -279,7 +279,7 @@ export function handleStudyKey(e) {
    ============================================================ */
 const SEM_ORDER = Object.keys(SEMANTIC_LABELS); // A1..F6
 const SEM_COLORS = { A: "#d65745", B: "#d97706", C: "#7c3aed", D: "#0f766e", E: "#2563eb", F: "#6b7280" };
-let vocab = { level: "all", sem: "all", struct: "all", status: "all", review: false, sort: "level", q: "", limit: 100, editing: null, material: "all", groupBy: "level", open: new Set() };
+let vocab = { level: "all", sem: "all", struct: "all", status: "all", review: false, sort: "level", q: "", limit: 100, editing: null, material: "all", groupBy: "level", open: new Set(), view: "grid" };
 let vocabSel = new Set();   // cardId đang tick chọn
 let folderLimit = {};       // số từ hiện trong mỗi thư mục
 
@@ -316,7 +316,11 @@ export async function renderVocab() {
     ["Mọi trạng thái", "Chưa học", "Đang học", "Đến hạn", "Đã thuộc"], vocab.status, (v) => { vocab.status = v; renderFolders(); });
   root.append(el("div", { class: "panel vocab-filter" },
     el("div", { class: "field", style: "margin-bottom:10px" }, search),
-    el("div", { class: "filter-grid" }, groupSel, statusSel)));
+    el("div", { class: "filter-grid" }, groupSel, statusSel),
+    el("div", { class: "row", style: "margin-top:10px;justify-content:flex-end" },
+      el("div", { class: "subtabs" },
+        el("button", { class: "subtab" + (vocab.view === "grid" ? " on" : ""), onclick: () => { vocab.view = "grid"; renderFolders(); } }, iconEl("cards"), el("span", {}, " Lưới")),
+        el("button", { class: "subtab" + (vocab.view === "detail" ? " on" : ""), onclick: () => { vocab.view = "detail"; renderFolders(); } }, iconEl("book"), el("span", {}, " Chi tiết"))))));
 
   root.append(el("div", { id: "vocab-selbar" }));
   root.append(el("div", { id: "vocab-folders" }));
@@ -359,6 +363,7 @@ function renderFolders() {
   getDeck(store.getSettings().activeDeckId).then((deck) => {
     const host2 = document.getElementById("vocab-folders");
     if (!deck || !host2) return;
+    const s = store.getSettings();
     const cards = deck.cards.map(store.mergeClassification).filter((c) => matchVocab(c, vocab));
     const groups = groupCards(cards, vocab.groupBy);
     if (!groups.length) {
@@ -366,7 +371,15 @@ function renderFolders() {
         vocab.groupBy === "material" ? "Chưa có tài liệu nào. Vào Nạp tài liệu để thêm." : "Không có từ nào khớp."));
       return;
     }
-    for (const g of groups) host2.append(folderEl(g));
+    // P4 — học nhanh tất cả từ đang lọc (đổi nhãn khi lọc "đến hạn")
+    if (cards.length && (vocab.q || vocab.status !== "all")) {
+      const due = vocab.status === "due";
+      host2.append(el("div", { class: "row", style: "margin-bottom:12px" },
+        el("button", { class: "btn primary", onclick: () => studyScope(cards.map((c) => c.id), due ? "Đến hạn ôn" : "Từ đang lọc", "study") },
+          iconEl(due ? "replay" : "play"), el("span", { class: "btn-tx" }, `${due ? "Ôn" : "Học"} ${cards.length} từ đang lọc`))));
+    }
+    const ctx = { progress: store.getProgress(), charMode: s.charMode, view: vocab.view, rate: s.speechRate };
+    for (const g of groups) host2.append(folderEl(g, ctx));
   });
 }
 
@@ -377,24 +390,48 @@ function toggleFolderSel(g, select) {
   renderFolders(); renderSelBar();
 }
 
-function folderEl(g) {
+function folderEl(g, ctx = {}) {
   const open = vocab.open.has(g.key);
   const selN = g.cards.reduce((n, c) => n + (vocabSel.has(c.id) ? 1 : 0), 0);
   const allSel = selN === g.cards.length && g.cards.length > 0;
+  const prog = ctx.progress || store.getProgress();
+  const learned = g.cards.reduce((n, c) => n + (prog[c.id] && prog[c.id].reps > 0 ? 1 : 0), 0);
+  const pct = g.cards.length ? Math.round((learned / g.cards.length) * 100) : 0;
   const head = el("div", { class: "folder-head" },
     cbx(allSel, selN > 0 && !allSel, (e) => { e.stopPropagation(); toggleFolderSel(g, !allSel); }),
     el("div", { class: "folder-name", onclick: () => { if (open) vocab.open.delete(g.key); else vocab.open.add(g.key); renderFolders(); } }, `${open ? "▾" : "▸"} ${g.label}`),
-    el("span", { class: "folder-ct" }, `${selN ? selN + "/" : ""}${g.cards.length}`),
+    el("span", { class: "folder-prog" },
+      el("span", { class: "folder-bar" }, el("span", { style: `width:${pct}%` + (pct >= 100 ? ";background:var(--ok)" : "") })),
+      el("span", { class: "muted small" }, `${selN ? selN + " chọn · " : ""}thuộc ${learned}/${g.cards.length}`)),
     el("button", { class: "btn ghost small folder-go", title: "Học nhóm này (Flashcard)", onclick: (e) => { e.stopPropagation(); studyScope(g.cards.map((c) => c.id), g.label, "study"); } }, iconEl("play")));
   const box = el("div", { class: "folder" }, head);
   if (open) {
     const lim = folderLimit[g.key] || 100;
-    const wrap = el("div", { class: "folder-words" });
-    g.cards.slice(0, lim).forEach((c) => wrap.append(wordChip(c)));
-    box.append(wrap);
+    if (ctx.view === "detail") {
+      const wrap = el("div", { class: "folder-rows" });
+      g.cards.slice(0, lim).forEach((c) => wrap.append(wordRow(c, ctx)));
+      box.append(wrap);
+    } else {
+      const wrap = el("div", { class: "folder-words" });
+      g.cards.slice(0, lim).forEach((c) => wrap.append(wordChip(c)));
+      box.append(wrap);
+    }
     if (g.cards.length > lim) box.append(el("button", { class: "btn ghost small", onclick: () => { folderLimit[g.key] = lim + 100; renderFolders(); } }, `Hiện thêm (${g.cards.length - lim})`));
   }
   return box;
+}
+
+// Hàng chi tiết: 简(繁) · pinyin · Hán-Việt · nghĩa · nghe (P1 — xem được nghĩa, hợp mobile).
+function wordRow(c, ctx = {}) {
+  const on = vocabSel.has(c.id);
+  const { main, sub } = displayHanzi(c, ctx.charMode);
+  const toggle = () => { if (on) vocabSel.delete(c.id); else vocabSel.add(c.id); renderFolders(); renderSelBar(); };
+  return el("div", { class: "wrow" + (on ? " on" : ""), onclick: toggle },
+    el("span", { class: "wcb" + (on ? " on" : "") }, on ? "✓" : ""),
+    el("span", { class: "wrow-zh" }, main, sub ? el("span", { class: "wrow-zh2 no-cc" }, sub) : null),
+    el("span", { class: "wrow-py pinyin" }, c.pinyin || ""),
+    el("span", { class: "wrow-mean muted small" }, (c.han_viet ? `[${c.han_viet}] ` : "") + (c.meaning || "")),
+    el("button", { class: "btn ghost small wrow-audio", title: "Nghe", onclick: (e) => { e.stopPropagation(); speak(c.simplified, { rate: ctx.rate }); } }, iconEl("speaker")));
 }
 
 function wordChip(c) {
@@ -3408,7 +3445,7 @@ export async function renderWordsets() {
   root.append(el("h1", { class: "view-title" }, "Bộ của tôi"));
   const sets = store.getWordSets();
   if (!sets.length) {
-    root.append(emptyState("Chưa có bộ từ nào", "Vào tab Thư mục, tick chọn từ rồi “Lưu thành bộ”."));
+    root.append(emptyState("Chưa có bộ từ nào", "Vào Thư mục, tick chọn từ rồi “Lưu thành bộ” để học theo nhóm của bạn.", "cards", { label: "Mở Thư mục", icon: "folder", onClick: () => navigate("vocab") }));
     return;
   }
   const deck = await getDeck(store.getSettings().activeDeckId);
