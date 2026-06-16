@@ -264,6 +264,24 @@ button.btn:disabled { opacity: .45; cursor: not-allowed; }
   box-shadow: var(--shadow);
 }
 
+/* Khối tính năng AI (Qwen3) — nhận diện thống nhất: viền accent trái + nền phớt */
+.ai-panel {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--surface)), var(--surface));
+}
+.ai-panel::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent);
+}
+.ai-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 999px; padding: 1px 7px;
+}
+
 .field { display: grid; gap: 6px; margin-bottom: 14px; }
 .field label { font-size: 14px; font-weight: 600; }
 .field input[type="text"], .field input[type="number"], .field select, .field textarea {

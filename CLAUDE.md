@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] ĐÁNH BÓNG UI — nhận diện khối AI: thêm CSS .ai-panel (viền accent trái + nền phớt color-mix) + .ai-tag
+    ("QWEN3" pill); áp cho các panel Qwen3 (Sinh đề từ văn bản, Dịch tham khảo, hộp chấm Viết, hộp chấm
+    Dịch thuật, panel AI ở Cài đặt) → các tính năng AI trông như một bộ thống nhất, dễ nhận. Quan sát
+    bằng screenshot desktop+mobile (UI nền vốn đã chỉn chu/responsive). Quét 9 tab + tab con = 0 lỗi.
 [x] HOÀN TẤT STUB AI + ĐÁNH BÓNG: (1) /gen-pattern sinh mẫu câu 句型替换 từ tài liệu → drill "Thay thế"
     nay cá nhân hoá như Hỏi–đáp (helper genFromMaterialSection dùng chung; commPersonalPattern vào
     patternBank+summary); (2) Sprint Việt→Trung dùng tài liệu đã "Dịch tham khảo" (opts.material mang

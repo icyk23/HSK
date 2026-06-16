@@ -956,8 +956,8 @@ export async function renderSettings() {
     const yn = (b) => (b ? "✓" : "✗");
     backendStatus.innerHTML = `<span style="color:var(--ok)">Đã kết nối</span> · Ollama ${yn(h.ollama)} (${h.model || "?"}) · PDF ${yn(caps.pdf_text)} · OCR ảnh ${yn(caps.ocr)} · Nghe video/audio ${yn(caps.asr)} · Link web ${yn(caps.web)} · YouTube ${yn(caps.ytdlp)}`;
   };
-  root.append(el("div", { class: "panel stack", style: "margin-top:14px" },
-    el("b", {}, "AI · Qwen3 (tùy chọn)"),
+  root.append(el("div", { class: "panel stack ai-panel", style: "margin-top:14px" },
+    el("b", {}, "AI ", el("span", { class: "ai-tag" }, "Qwen3"), el("span", { class: "muted small", style: "font-weight:400" }, " · tùy chọn")),
     el("p", { class: "muted small" }, "Backend local (Ollama) mở khoá AI: chấm & sửa Dịch thuật, chấm Viết 缩写 (Luyện đề), và bóc câu từ ảnh/PDF/audio/video (Giao tiếp). Để trống thì app vẫn chạy đủ trong trình duyệt. Hướng dẫn cài: thư mục backend/ (chạy bash run.sh)."),
     el("div", { class: "field" }, el("label", {}, "Địa chỉ backend"), backendInput),
     el("div", { class: "row" }, el("button", { class: "btn", onclick: testBackend }, iconEl("plug"), "Lưu & kiểm tra"), backendStatus),
@@ -1401,8 +1401,8 @@ function examGenBar() {
     } catch (e) { toast("Lỗi: " + e.message); }
     finally { genBtn.disabled = false; }
   }
-  return el("details", { class: "panel exam-import" },
-    el("summary", {}, iconEl("ai"), " Sinh đề từ văn bản (Qwen3)"),
+  return el("details", { class: "panel exam-import ai-panel" },
+    el("summary", {}, iconEl("ai"), " Sinh đề từ văn bản ", el("span", { class: "ai-tag" }, "Qwen3")),
     el("p", { class: "muted small" }, "Dán đoạn văn tiếng Trung → Qwen3 soạn câu hỏi đọc hiểu trắc nghiệm (đoạn văn giữ nguyên). Cần bật backend trong Cài đặt."),
     el("div", { class: "field" }, ta),
     el("div", { class: "row" }, el("label", { class: "muted small" }, "Số câu:"), nInput, genBtn),
@@ -1647,9 +1647,9 @@ async function examWriting(root) {
 }
 
 function writingGradeBox(g) {
-  const box = el("div", { class: "panel stack", style: "margin-top:12px;border-color:var(--accent)" });
+  const box = el("div", { class: "panel stack ai-panel", style: "margin-top:12px" });
   box.append(el("div", { class: "row spread" },
-    el("b", {}, iconEl("ai"), "Qwen3 chấm Viết"),
+    el("b", {}, iconEl("ai"), " Qwen3 chấm Viết"),
     g.score != null ? el("span", { class: "chip lvl" }, `${g.score}/100`) : null));
   if (g.scores) {
     const L = { noi_dung: "Nội dung", mach_lac: "Mạch lạc", ngu_phap: "Ngữ pháp", dung_tu: "Dùng từ" };
@@ -2396,8 +2396,8 @@ async function gradeTransDraft() {
 }
 
 function transGradeBox(g, srcIsZh) {
-  const box = el("div", { class: "panel stack", style: "margin-top:12px;border-color:var(--accent)" });
-  box.append(el("div", { class: "row spread" }, el("b", {}, iconEl("ai"), "Qwen3 chấm"), g.score != null ? el("span", { class: "chip lvl" }, `Điểm: ${g.score}/10`) : null));
+  const box = el("div", { class: "panel stack ai-panel", style: "margin-top:12px" });
+  box.append(el("div", { class: "row spread" }, el("b", {}, iconEl("ai"), " Qwen3 chấm"), g.score != null ? el("span", { class: "chip lvl" }, `Điểm: ${g.score}/10`) : null));
   if (g.corrected) box.append(el("div", {}, el("div", { class: "muted small" }, "Bản dịch đã sửa:"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.corrected)));
   if (g.reference) box.append(el("details", {}, el("summary", { class: "small" }, "Bản dịch tham khảo"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.reference)));
   if (Array.isArray(g.notes) && g.notes.length) {
@@ -2572,8 +2572,8 @@ function lessonTranslatePanel(lesson) {
   const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
   if (!zhS.length) return null;
   const done = zhS.filter((s) => s.vi).length;
-  const box = el("div", { class: "panel stack" });
-  box.append(el("div", { class: "row spread" }, el("b", {}, "Dịch tham khảo (Qwen3)"), el("span", { class: "muted small" }, `${done}/${zhS.length} câu`)));
+  const box = el("div", { class: "panel stack ai-panel" });
+  box.append(el("div", { class: "row spread" }, el("b", {}, "Dịch tham khảo ", el("span", { class: "ai-tag" }, "Qwen3")), el("span", { class: "muted small" }, `${done}/${zhS.length} câu`)));
   box.append(el("p", { class: "muted small" }, "Dịch toàn bộ câu sang tiếng Việt làm bản tham khảo — hiện trong Dịch thuật “theo truyện” và làm nghĩa khi Shadowing. Cần backend Qwen3 (Cài đặt)."));
   box.append(el("div", { class: "story-prog" }, el("span", { style: `width:${zhS.length ? Math.round((done / zhS.length) * 100) : 0}%` })));
   const btn = el("button", { class: "btn primary", onclick: run }, iconEl("ai"), done >= zhS.length ? " Dịch lại toàn bộ" : ` Dịch ${zhS.length - done} câu chưa có`);
