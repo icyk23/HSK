@@ -29,7 +29,7 @@ pip install -r requirements.txt
 uvicorn app:app --port 8000
 ```
 
-Hoặc gọn: `bash run.sh` (tự cài requirements rồi chạy ở cổng 8000).
+Hoặc gọn: `bash run.sh` (macOS/Linux) · `run.bat` (Windows) — tự cài requirements rồi chạy ở cổng 8000.
 
 Có thể bỏ bớt thư viện nặng nếu không cần:
 - Không đọc ảnh → bỏ `rapidocr-onnxruntime pillow numpy`
