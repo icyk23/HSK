@@ -502,6 +502,12 @@ mark.hl { background: var(--accent-soft); color: var(--accent); border-radius: 3
 .sync-btn { display: inline-flex; align-items: center; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 8px; padding: 5px; cursor: pointer; }
 .sync-btn .ic { width: 16px; height: 16px; }
 .sync-btn.on, .sync-btn:hover { border-color: var(--accent); color: var(--accent); }
+.sync-btn.ok { border-color: var(--ok); color: var(--ok); }
+.sync-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.sync-toolbar .btn.on { border-color: var(--accent); color: var(--accent); }
+.sync-list.hide-zh .sync-zh { filter: blur(7px); transition: filter .12s; }
+.sync-list.hide-zh .sync-row:hover .sync-zh { filter: none; }   /* rê chuột để lộ khi muốn kiểm tra */
+.sync-row.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
 .comm-personal { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; }
 .comm-personal summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .comm-libfiles { display: grid; gap: 6px; margin-top: 8px; }

@@ -15,6 +15,7 @@ const KEYS = {
   tradMeta: "hsk.tradMeta",  // tiến độ lộ trình Phồn thể: { rulesDone, quizBest:{score,total} }
   tradSets: "hsk.tradSets",  // bộ chữ phồn thể tự lưu — [{id,name,chars:[simp],createdAt}]
   commRecords: "hsk.commRecords", // kỷ lục Giao tiếp: { sprintBest:{ "30":n,"60":n,"90":n } }
+  shadowProg: "hsk.shadowProg", // tiến độ shadowing video: { [matId]: { [câu i]: true } }
 };
 
 export const DEFAULT_SETTINGS = {
@@ -212,6 +213,17 @@ export function saveUserHskk(exam) {
 export function deleteUserHskk(id) {
   write(KEYS.hskk, getUserHskk().filter((e) => e.id !== id));
 }
+// Tiến độ shadowing video (câu đã luyện) — keyed theo material id.
+export function getShadowProgress(matId) {
+  if (!matId) return {};
+  return read(KEYS.shadowProg, {})[matId] || {};
+}
+export function saveShadowProgress(matId, prog) {
+  if (!matId) return;
+  const all = read(KEYS.shadowProg, {});
+  all[matId] = prog;
+  write(KEYS.shadowProg, all);
+}
 export function getExamProgress(examId) {
   return read(KEYS.examProgress, {})[examId] || {};
 }
@@ -308,6 +320,7 @@ export function exportAll() {
     tradMeta: getTradMeta(),
     tradSets: getTradSets(),
     commRecords: getCommRecords(),
+    shadowProg: read(KEYS.shadowProg, {}),
     exportedAt: new Date().toISOString(),
   };
 }
@@ -328,4 +341,5 @@ export function importAll(data) {
   if (data.tradMeta) write(KEYS.tradMeta, data.tradMeta);
   if (data.tradSets) write(KEYS.tradSets, data.tradSets);
   if (data.commRecords) write(KEYS.commRecords, data.commRecords);
+  if (data.shadowProg) write(KEYS.shadowProg, data.shadowProg);
 }

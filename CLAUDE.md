@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] SYNC đợt 3: toolbar (Ẩn chữ = blur .sync-zh, rê chuột lộ — luyện nghe · Lặp ∞/1×/3×/5× rồi sang câu kế ·
+    chip "Đã luyện n/N") + LƯU TIẾN ĐỘ shadowing theo câu (store.shadowProg keyed matId, vào backup;
+    nút ✓ mỗi câu, auto-đánh dấu khi chấm phát âm ≥80% qua micButton onScore). commPersonalMatId mang id
+    tài liệu. E2E: 0/4→1/4 lưu qua reload, ẩn chữ, lặp đổi 1×. 0 lỗi.
 [x] SYNC nâng cấp: transcript mỗi câu có NÚT LẶP (A-B loop: loopIdx, tua về đầu câu khi tới câu kế) +
     NÚT NÓI chấm phát âm (micButton score % khớp chữ Hán) ngay trên hàng. Chip tài liệu video có icon
     "video" phân biệt với tài liệu chữ. CSS .sync-row(flex)/.sync-main/.sync-actions/.sync-btn.on.

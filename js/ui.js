@@ -1733,6 +1733,7 @@ let commPersonalPattern = [];    // [{frame,frame_vi,slots}] sinh từ tài li�
 let commPersonalPatternLabel = "";
 let commSrcMode = "scene";       // segmented nguồn câu: "scene" | "material"
 let commPersonalVideo = "";      // URL video của tài liệu nguồn (hiện màn hình video khi luyện)
+let commPersonalMatId = "";      // id tài liệu nguồn (để lưu tiến độ shadowing)
 let commSyncTimer = null;        // interval dò thời gian video để highlight câu
 const matVideo = (m) => (m && m.source && m.source.kind === "video" && m.source.url) ? m.source.url : "";
 
@@ -1757,29 +1758,54 @@ function shadowVideoSync(root, lines, url) {
   const host = el("div", { class: "video-embed" });
   root.append(host);
   const s = store.getSettings();
+  const matId = commPersonalMatId;
+  const prog = store.getShadowProgress(matId);
   const list = el("div", { class: "sync-list" });
   let seek = () => {};
-  let loopIdx = -1;
-  const loopBtns = [];
+  let loopIdx = -1, loopsDone = 0;
+  const LOOP_MODES = [["∞", Infinity], ["1×", 1], ["3×", 3], ["5×", 5]];
+  let loopMode = 0;
+  const loopBtns = [], doneBtns = [], rows = [];
+
+  // Tiến độ câu
+  const doneEl = el("span", { class: "chip" });
+  const updateDone = () => { const n = lines.filter((_, i) => prog[i]).length; doneEl.textContent = `Đã luyện ${n}/${lines.length}`; };
+  const markDone = (i, val = true) => {
+    if (val) prog[i] = true; else delete prog[i];
+    store.saveShadowProgress(matId, prog);
+    rows[i].classList.toggle("done", !!prog[i]);
+    doneBtns[i].classList.toggle("ok", !!prog[i]);
+    updateDone();
+  };
   const toggleLoop = (i) => {
-    loopIdx = (loopIdx === i) ? -1 : i;
+    loopIdx = (loopIdx === i) ? -1 : i; loopsDone = 0;
     loopBtns.forEach((b, k) => b.classList.toggle("on", k === loopIdx));
     if (loopIdx >= 0) seek(lines[loopIdx].t);
   };
-  const rows = lines.map((l, i) => {
+
+  // Toolbar: ẩn chữ · số lần lặp · tiến độ
+  const hideBtn = el("button", { class: "btn ghost small", onclick: () => { list.classList.toggle("hide-zh"); hideBtn.classList.toggle("on"); } }, iconEl("eye"), el("span", { class: "btn-tx" }, "Ẩn chữ"));
+  const loopModeBtn = el("button", { class: "btn ghost small", title: "Số lần lặp mỗi câu rồi sang câu kế", onclick: () => { loopMode = (loopMode + 1) % LOOP_MODES.length; loopsDone = 0; loopModeBtn.lastChild.textContent = "Lặp " + LOOP_MODES[loopMode][0]; } }, iconEl("replay"), el("span", { class: "btn-tx" }, "Lặp ∞"));
+  root.append(el("div", { class: "sync-toolbar" }, hideBtn, loopModeBtn, doneEl));
+  root.append(el("p", { class: "muted small", style: "margin:8px 2px 4px" }, "Bấm câu để tua · ↺ lặp 1 câu · Nói để chấm phát âm (≥80% tự đánh dấu đã luyện) · ✓ đánh dấu thủ công."));
+
+  lines.forEach((l, i) => {
     const main = el("div", { class: "sync-main", onclick: () => seek(l.t) },
       el("span", { class: "sync-t mono" }, fmtTime(l.t)),
       el("span", { class: "sync-zh" }, l.zh),
       l.vi ? el("span", { class: "sync-vi muted small" }, l.vi) : null);
     const loopBtn = el("button", { class: "sync-btn", title: "Lặp câu này", onclick: () => toggleLoop(i) }, iconEl("replay"));
     loopBtns.push(loopBtn);
-    const actions = el("div", { class: "sync-actions" }, loopBtn);
-    if (hasRecognition()) actions.append(micButton(() => l.zh, s, { score: true }));
-    return el("div", { class: "sync-row" }, main, actions);
+    const doneBtn = el("button", { class: "sync-btn" + (prog[i] ? " ok" : ""), title: "Đánh dấu đã luyện", onclick: () => markDone(i, !prog[i]) }, iconEl("check"));
+    doneBtns.push(doneBtn);
+    const actions = el("div", { class: "sync-actions" }, loopBtn, doneBtn);
+    if (hasRecognition()) actions.append(micButton(() => l.zh, s, { score: true, onScore: (pct) => { if (pct >= 80) markDone(i); } }));
+    const row = el("div", { class: "sync-row" + (prog[i] ? " done" : "") }, main, actions);
+    rows.push(row);
+    list.append(row);
   });
-  rows.forEach((r) => list.append(r));
-  root.append(el("p", { class: "muted small", style: "margin:10px 2px 4px" }, "Bấm câu để tua video · nút lặp để lặp 1 câu · nút Nói để chấm phát âm. Câu đang phát tự sáng."));
   root.append(list);
+  updateDone();
 
   let getTime = () => 0;
   const yt = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
@@ -1804,7 +1830,16 @@ function shadowVideoSync(root, lines, url) {
     if (loopIdx >= 0) {
       const start = lines[loopIdx].t;
       const end = (loopIdx + 1 < lines.length) ? lines[loopIdx + 1].t : start + 8;
-      if (ct >= end - 0.1 || ct < start - 0.4) { seek(start); return; }
+      if (ct >= end - 0.1) {
+        loopsDone++;
+        const N = LOOP_MODES[loopMode][1];
+        if (N !== Infinity && loopsDone >= N) {
+          markDone(loopIdx); loopsDone = 0;
+          if (loopIdx + 1 < lines.length) { toggleLoop(loopIdx + 1); } else { toggleLoop(loopIdx); }
+        } else { seek(start); }
+        return;
+      }
+      if (ct < start - 0.4) { seek(start); return; }
     }
     let idx = -1;
     for (let i = 0; i < lines.length; i++) { if (lines[i].t <= ct + 0.2) idx = i; else break; }
@@ -1889,7 +1924,7 @@ async function commHome(root, scenes) {
 function commSourceBar(scenes, opts = {}) {
   const wrap = el("div", { class: "panel comm-source" });
   wrap.append(el("div", { class: "row spread" }, el("b", {}, "Nguồn câu"), el("span", { class: "muted small" }, commSourceSummary(scenes))));
-  const clearPersonal = () => { commPersonal = []; commPersonalLabel = ""; commPersonalQa = []; commPersonalQaLabel = ""; commPersonalPattern = []; commPersonalPatternLabel = ""; commPersonalVideo = ""; };
+  const clearPersonal = () => { commPersonal = []; commPersonalLabel = ""; commPersonalQa = []; commPersonalQaLabel = ""; commPersonalPattern = []; commPersonalPatternLabel = ""; commPersonalVideo = ""; commPersonalMatId = ""; };
 
   const seg = el("div", { class: "subtabs", style: "margin:10px 0 6px" });
   const mk = (id, label, icon) => el("button", { class: "subtab" + (commSrcMode === id ? " on" : ""), onclick: () => { commSrcMode = id; renderComm(); } }, iconEl(icon), el("span", {}, " " + label));
@@ -1936,7 +1971,7 @@ function commSourceBar(scenes, opts = {}) {
       for (const { m, zh } of usable) {
         const on = commPersonalLabel === m.title;
         const vid = matVideo(m);
-        mat.append(commChip([vid ? iconEl("video") : null, el("span", {}, `${m.title} (${zh.length})`)], on, () => { commSel.sceneIds = []; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi, t: x.t })), m.title, vid); }));
+        mat.append(commChip([vid ? iconEl("video") : null, el("span", {}, `${m.title} (${zh.length})`)], on, () => { commSel.sceneIds = []; commPersonalMatId = m.id; setPersonalSource(zh.map((x) => ({ zh: x.zh, vi: x.vi, t: x.t })), m.title, vid); }));
       }
       wrap.append(el("div", { class: "muted small", style: "margin-top:4px" }, opts.materialHint || "Chọn tài liệu đã nạp:"), mat);
     } else {
@@ -2081,7 +2116,7 @@ function pronunMarks(marks) {
   for (const m of marks) span.append(el("span", { class: m.ok ? "ok" : "bad" }, m.c));
   return span;
 }
-function micButton(getTarget, s, { score = true } = {}) {
+function micButton(getTarget, s, { score = true, onScore = null } = {}) {
   const btn = el("button", { class: "btn" });
   const setMic = (txt, rec = false) => { btn.classList.toggle("rec", rec); btn.replaceChildren(iconEl("mic"), el("span", { class: "btn-tx" }, txt)); };
   setMic("Nói");
@@ -2096,6 +2131,7 @@ function micButton(getTarget, s, { score = true } = {}) {
           const { pct, marks } = scorePronun(getTarget(), txt);
           out.append(el("b", { class: pct >= 80 ? "ok" : pct >= 50 ? "" : "bad" }, `${pct}% `), pronunMarks(marks),
             el("span", { class: "muted" }, ` · bạn nói: ${txt || "(không rõ)"}`));
+          if (onScore) onScore(pct);
         } else {
           out.append(el("span", { class: "muted" }, "Bạn nói: "), el("b", {}, txt || "(không rõ)"));
         }
@@ -2866,7 +2902,7 @@ function buildTasks(lesson) {
   const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
   if (zhS.length) {
     tasks.push({ label: `Luyện nói ${zhS.length} câu (Shadowing)`, total: zhS.length, done: lesson.manual.shadow ? zhS.length : 0, manual: "shadow",
-      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh, vi: s.vi, t: s.t })); commPersonalLabel = lesson.title; commPersonalVideo = matVideo(lesson); commView = { screen: "shadow", started: true }; navigate("comm"); } });
+      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh, vi: s.vi, t: s.t })); commPersonalLabel = lesson.title; commPersonalVideo = matVideo(lesson); commPersonalMatId = lesson.id; commView = { screen: "shadow", started: true }; navigate("comm"); } });
   }
   return tasks;
 }
