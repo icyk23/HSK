@@ -145,6 +145,13 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] LUYỆN ĐỀ TÁCH HSK / HSKK + 3 ĐÁNH BÓNG: (A) Luyện đề nay có 2 tab con (NAV) HSK & HSKK
+    (view exam / examHskk); mỗi tab có segmented "Chọn đề luyện" / "Nạp đề" (examSubTabs, examView.tab).
+    HSK Nạp = Sinh đề văn bản + Nhập JSON + Kho đề zip; HSKK Nạp = Sinh đề chủ đề + Nhập JSON
+    (hskkGenBar/hskkImportBar); back đúng danh sách từng loại; sau nạp/sinh tự về "Chọn đề".
+    (B) Trang chủ thêm thẻ "AI · Qwen3" (chấm xanh trạng thái + ping backend + lối tắt Cài đặt).
+    (C) emptyState nâng cấp (icon + nút hành động); hộp chấm Viết/Dịch có hiệu ứng .ai-pop.
+    CSS .subtabs/.subtab + .home-ai. Quét 9 tab desktop+mobile = 0 lỗi; back HSK/HSKK OK.
 [x] ĐÁNH BÓNG UI — nhận diện khối AI: thêm CSS .ai-panel (viền accent trái + nền phớt color-mix) + .ai-tag
     ("QWEN3" pill); áp cho các panel Qwen3 (Sinh đề từ văn bản, Dịch tham khảo, hộp chấm Viết, hộp chấm
     Dịch thuật, panel AI ở Cài đặt) → các tính năng AI trông như một bộ thống nhất, dễ nhận. Quan sát

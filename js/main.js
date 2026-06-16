@@ -13,6 +13,7 @@ const VIEWS = {
   type: ui.renderType,
   quiz: ui.renderQuiz,
   exam: ui.renderExam,
+  examHskk: ui.renderExamHskk,
   comm: ui.renderComm,
   trans: ui.renderTrans,
   listen: ui.renderListen,
@@ -40,7 +41,10 @@ const NAV = [
     { view: "listen", label: "Nghe", hidden: true },
     { view: "type", label: "Gõ pinyin", hidden: true },
   ] },
-  { id: "exam", label: "Luyện đề", icon: "exam", tabs: [{ view: "exam", label: "Luyện đề" }] },
+  { id: "exam", label: "Luyện đề", icon: "exam", tabs: [
+    { view: "exam", label: "HSK" },
+    { view: "examHskk", label: "HSKK" },
+  ] },
   { id: "comm", label: "Giao tiếp", icon: "comm", tabs: [{ view: "comm", label: "Giao tiếp" }] },
   { id: "trans", label: "Dịch thuật", icon: "trans", tabs: [{ view: "trans", label: "Dịch thuật" }] },
   { id: "phon", label: "Phồn thể", icon: "trad", tabs: [

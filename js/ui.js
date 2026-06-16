@@ -806,6 +806,27 @@ export async function renderHome() {
     statBox(`${learned}/${total}`, "Tiến độ bộ thẻ"),
   ));
 
+  // Thẻ AI · Qwen3: trạng thái backend + lối tắt Cài đặt
+  {
+    const configured = !!(s.commBackendUrl || "").trim();
+    const dot = el("span", { class: "ha-dot " + (configured ? "on" : "off") });
+    const statusTx = el("span", { class: "muted small" }, configured ? "Đang kiểm tra kết nối…" : "Chưa bật — app vẫn chạy đủ trong trình duyệt.");
+    const aiCard = el("div", { class: "panel ai-panel", style: "margin-top:16px" });
+    aiCard.append(el("div", { class: "home-ai" },
+      el("div", { class: "ha-ic" }, iconEl("ai")),
+      el("div", { class: "ha-body" },
+        el("div", {}, el("b", {}, "AI · Qwen3 "), el("span", { class: "ai-tag" }, "local")),
+        el("div", { style: "margin-top:2px" }, dot, statusTx)),
+      el("button", { class: "btn", onclick: () => navigate("settings") }, iconEl("settings"), el("span", { class: "btn-tx" }, configured ? "Cài đặt" : "Bật AI"))));
+    aiCard.append(el("p", { class: "muted small", style: "margin-top:10px" }, "Khi bật: chấm Dịch & Viết, sinh đề đọc hiểu/HSKK, sinh Hỏi–đáp & mẫu câu, bóc nội dung từ ảnh/PDF/link."));
+    root.append(aiCard);
+    if (configured) comm.pingBackend().then((h) => {
+      if (h && h.ollama) { dot.className = "ha-dot on"; statusTx.textContent = `Đã kết nối · ${h.model || "Qwen3"}`; }
+      else if (h) { dot.className = "ha-dot on"; statusTx.textContent = "Backend chạy · chưa thấy Ollama."; }
+      else { dot.className = "ha-dot off"; statusTx.textContent = "Đã cấu hình nhưng không kết nối được."; }
+    });
+  }
+
   // Tra cứu nhanh: gõ chữ Hán / pinyin / nghĩa → kết quả từ bộ thẻ
   const lookup = el("div", { class: "panel stack", style: "margin-top:16px" }, el("b", {}, "Tra cứu nhanh"));
   const lkInp = el("input", { type: "text", placeholder: "Gõ chữ Hán · pinyin · nghĩa…" });
@@ -1038,8 +1059,10 @@ function selectRow(values, labels, current, onChange) {
   return sel;
 }
 
-function emptyState(title, msg) {
-  return el("div", { class: "empty" }, el("div", { class: "big" }, iconEl("book")), el("h2", {}, title), el("p", {}, msg));
+function emptyState(title, msg, icon = "book", action = null) {
+  const box = el("div", { class: "empty" }, el("div", { class: "big" }, iconEl(icon)), el("h2", {}, title), el("p", {}, msg));
+  if (action) box.append(el("button", { class: "btn primary", style: "margin-top:16px", onclick: action.onClick }, action.icon ? iconEl(action.icon) : null, " " + action.label));
+  return box;
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
@@ -1147,7 +1170,7 @@ async function renderFileViewer(host, fm) {
         if (error) return toast("Đề không hợp lệ: " + error);
         store.saveUserExam(norm);
         toast(`Đã tạo đề “${norm.title}” · ${count} câu từ PDF.`);
-        examView = { screen: "list" }; renderExam();
+        examView = { screen: "list", tab: "choose" }; renderExam();
       } catch (e) { toast("Lỗi: " + e.message); }
       finally { pdfBtn.disabled = false; }
     }
@@ -1181,25 +1204,49 @@ export async function renderExam() {
   if (examView.screen === "reading") return examReading(root);
   if (examView.screen === "writing") return examWriting(root);
   if (examView.screen === "library") return examLibrary(root);
+  return examHskList(root);
+}
+
+// Luyện đề HSKK 高级 (tab con riêng).
+export async function renderExamHskk() {
+  clearWriteTimer();
+  revokeViewerUrl();
+  clearCommState();
+  const root = clear();
   if (examView.screen === "hskk") return examHskk(root);
-  return examList(root);
+  return hskkListPage(root);
+}
+
+// Thanh tab con trong Luyện đề: Chọn đề luyện / Nạp đề.
+function examSubTabs(render) {
+  if (!examView.tab) examView.tab = "choose";
+  const mk = (id, label, icon) => el("button", { class: "subtab" + (examView.tab === id ? " on" : ""), onclick: () => { examView.tab = id; render(); } }, iconEl(icon), el("span", {}, " " + label));
+  return el("div", { class: "subtabs" }, mk("choose", "Chọn đề luyện", "book"), mk("load", "Nạp đề", "upload"));
 }
 
 function examTopbar(title) {
   return el("div", { class: "exam-topbar" },
-    el("button", { class: "btn ghost", onclick: () => { examView = { screen: "list" }; renderExam(); } }, "← Danh sách đề"),
+    el("button", { class: "btn ghost", onclick: () => { examView = { screen: "list", tab: examView.tab || "choose" }; renderExam(); } }, "← Danh sách đề"),
     el("span", { class: "muted" }, title));
 }
 
-/* ---------- Màn hình danh sách đề ---------- */
-async function examList(root) {
-  root.append(el("h1", { class: "view-title" }, "Luyện đề"));
-  root.append(await hskkBar());
-  root.append(examGenBar());
-  root.append(examImportBar());
-  root.append(await libraryBar());
+/* ---------- HSK — danh sách & nạp đề ---------- */
+async function examHskList(root) {
+  examView.screen = "list";
+  root.append(el("h1", { class: "view-title" }, "Luyện đề · HSK"));
+  root.append(examSubTabs(renderExam));
+  if (examView.tab === "load") {
+    root.append(examGenBar());
+    root.append(examImportBar());
+    root.append(await libraryBar());
+    return;
+  }
   const exams = await getAllExams();
-  if (!exams.length) { root.append(emptyState("Chưa có đề", "Nhập đề JSON ở trên để bắt đầu.")); return; }
+  if (!exams.length) {
+    root.append(emptyState("Chưa có đề HSK", "Sang tab “Nạp đề” để sinh đề bằng Qwen3, nhập đề JSON hoặc tải kho đề.",
+      "exam", { label: "Nạp đề", onClick: () => { examView.tab = "load"; renderExam(); } }));
+    return;
+  }
 
   const list = el("div", { class: "exam-list" });
   for (const ex of exams) {
@@ -1224,14 +1271,39 @@ async function examList(root) {
   root.append(list);
 }
 
-/* ---------- HSKK 高级 (thi nói) ---------- */
-async function hskkBar() {
+/* ---------- HSKK 高级 (thi nói) — danh sách & nạp đề ---------- */
+async function hskkListPage(root) {
+  examView.screen = "hskklist";
+  root.append(el("h1", { class: "view-title" }, "Luyện đề · HSKK 高级"));
+  root.append(examSubTabs(renderExamHskk));
+  if (examView.tab === "load") {
+    root.append(hskkGenBar());
+    root.append(hskkImportBar());
+    return;
+  }
+  root.append(el("p", { class: "muted small", style: "margin:-6px 2px 12px" }, "3 phần: 听后复述 (nghe·kể lại) · 朗读 (đọc to·chấm phát âm) · 回答问题 (trả lời câu hỏi). Dùng Chrome/Edge để chấm phát âm."));
   const exams = await getHskkExams();
-  const box = el("div", { class: "panel exam-import" });
-  box.append(el("div", { class: "exam-head" }, el("h3", {}, iconEl("mic"), " HSKK 高级 — luyện thi nói"), el("span", { class: "chip" }, "mẫu")));
-  box.append(el("p", { class: "muted small" }, "3 phần: 听后复述 (nghe·kể lại) · 朗读 (đọc to·chấm phát âm) · 回答问题 (trả lời câu hỏi). Dùng Chrome/Edge để chấm phát âm."));
+  if (!exams.length) {
+    root.append(emptyState("Chưa có đề HSKK", "Sang tab “Nạp đề” để sinh đề theo chủ đề bằng Qwen3 hoặc nhập đề JSON.",
+      "mic", { label: "Nạp đề", onClick: () => { examView.tab = "load"; renderExamHskk(); } }));
+    return;
+  }
+  const list = el("div", { class: "exam-list" });
+  for (const ex of exams) {
+    const actions = el("div", { class: "exam-actions" });
+    actions.append(el("button", { class: "btn primary", onclick: () => { examView = { screen: "hskk", examId: ex.id, part: "retell", tab: examView.tab }; renderExamHskk(); } }, iconEl("mic"), " Luyện nói"));
+    if (!ex.builtin) actions.append(el("button", { class: "btn ghost", onclick: () => { if (confirm("Xóa đề HSKK này?")) { store.deleteUserHskk(ex.id); renderExamHskk(); } } }, "Xóa"));
+    list.append(el("div", { class: "panel exam-card" },
+      el("div", { class: "exam-head" }, el("h3", {}, ex.title), ex.builtin && el("span", { class: "chip" }, "mẫu")),
+      ex.note && el("p", { class: "muted small" }, ex.note),
+      actions));
+  }
+  root.append(list);
+}
+
+function hskkGenBar() {
   const topicInput = el("input", { type: "text", placeholder: "Chủ đề (vd: 环境保护, 科技与生活)…" });
-  const genBtn = el("button", { class: "btn", onclick: doGenHskk }, iconEl("ai"), " Sinh đề HSKK");
+  const genBtn = el("button", { class: "btn primary", onclick: doGenHskk }, iconEl("ai"), " Sinh đề HSKK");
   async function doGenHskk() {
     if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để sinh đề HSKK.");
     genBtn.disabled = true; toast("Đang sinh đề HSKK bằng Qwen3… có thể mất một lúc.");
@@ -1241,30 +1313,44 @@ async function hskkBar() {
       if (error) return toast("Đề sinh ra không hợp lệ: " + error);
       store.saveUserHskk(norm);
       toast(`Đã tạo đề HSKK “${norm.title}”.`);
-      renderExam();
+      examView.tab = "choose"; renderExamHskk();
     } catch (e) { toast("Lỗi: " + e.message); }
     finally { genBtn.disabled = false; }
   }
-  box.append(el("div", { class: "row", style: "margin:6px 0" }, topicInput, genBtn));
+  return el("div", { class: "panel exam-import ai-panel" },
+    el("div", { class: "exam-head" }, el("h3", {}, iconEl("ai"), " Sinh đề HSKK ", el("span", { class: "ai-tag" }, "Qwen3"))),
+    el("p", { class: "muted small" }, "Nhập chủ đề → Qwen3 soạn đề 3 phần (nghe-kể lại · đọc to · trả lời câu hỏi) kèm pinyin, nghĩa Việt và gợi ý dàn ý."),
+    el("div", { class: "row", style: "margin-top:6px" }, topicInput, genBtn));
+}
 
-  if (!exams.length) { box.append(el("p", { class: "muted small" }, "Chưa có đề HSKK.")); return box; }
-  const list = el("div", { class: "exam-actions" });
-  for (const ex of exams) {
-    list.append(el("button", { class: "btn primary", onclick: () => { examView = { screen: "hskk", examId: ex.id, part: "retell" }; renderExam(); } }, iconEl("mic"), " " + ex.title));
-    if (!ex.builtin) list.append(el("button", { class: "btn ghost small", onclick: () => { if (confirm("Xóa đề HSKK này?")) { store.deleteUserHskk(ex.id); renderExam(); } } }, "Xóa"));
-  }
-  box.append(list);
-  return box;
+function hskkImportBar() {
+  const ta = el("textarea", { rows: "4", placeholder: 'Dán JSON đề HSKK: { "title":"...", "retell":[{zh,vi}], "read":{zh,vi}, "answer":[{q_zh,q_vi,outline_vi}] }' });
+  const fileInput = el("input", { type: "file", accept: ".json" });
+  fileInput.addEventListener("change", async (e) => { const f = e.target.files[0]; if (f) ta.value = await f.text(); });
+  const doImport = () => {
+    const { exam, error } = parseHskkJson(ta.value.trim());
+    if (error) return toast(error);
+    store.saveUserHskk(exam);
+    toast("Đã nhập đề HSKK: " + exam.title);
+    examView.tab = "choose"; renderExamHskk();
+  };
+  return el("details", { class: "panel exam-import" },
+    el("summary", {}, iconEl("upload"), " Nhập đề HSKK (JSON)"),
+    el("p", { class: "muted small" }, "Dán JSON hoặc chọn file."),
+    el("div", { class: "field" }, ta),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: doImport }, "Nhập đề")));
 }
 
 async function examHskk(root) {
   const ex = await getHskk(examView.examId);
-  if (!ex) { examView = { screen: "list" }; return renderExam(); }
+  if (!ex) { examView = { screen: "hskklist", tab: examView.tab || "choose" }; return renderExamHskk(); }
   const part = examView.part || "retell";
-  root.append(examTopbar(ex.title));
+  root.append(el("div", { class: "exam-topbar" },
+    el("button", { class: "btn ghost", onclick: () => { examView = { screen: "hskklist", tab: examView.tab || "choose" }; renderExamHskk(); } }, "← Danh sách HSKK"),
+    el("span", { class: "muted" }, ex.title)));
   const nav = el("div", { class: "hskk-nav" });
   for (const [id, label] of [["retell", "第一部分 · 听后复述"], ["read", "第二部分 · 朗读"], ["answer", "第三部分 · 回答问题"]])
-    nav.append(el("button", { class: "comm-chip" + (part === id ? " on" : ""), onclick: () => { examView = { ...examView, part: id }; renderExam(); } }, label));
+    nav.append(el("button", { class: "comm-chip" + (part === id ? " on" : ""), onclick: () => { examView = { ...examView, part: id }; renderExamHskk(); } }, label));
   root.append(nav);
   if (ex.note && part === "retell") root.append(el("p", { class: "muted small" }, ex.note));
   if (part === "read") return hskkRead(root, ex);
@@ -1371,7 +1457,7 @@ function examImportBar() {
     if (error) return toast(error);
     store.saveUserExam(exam);
     toast("Đã nhập đề: " + exam.title);
-    renderExam();
+    examView.tab = "choose"; renderExam();
   };
   return el("details", { class: "panel exam-import" },
     el("summary", {}, iconEl("upload"), " Nhập đề JSON"),
@@ -1397,7 +1483,7 @@ function examGenBar() {
       if (error) return toast("Đề sinh ra không hợp lệ: " + error);
       store.saveUserExam(norm);
       toast(`Đã tạo đề “${norm.title}” · ${count} câu.`);
-      renderExam();
+      examView.tab = "choose"; renderExam();
     } catch (e) { toast("Lỗi: " + e.message); }
     finally { genBtn.disabled = false; }
   }
@@ -1647,7 +1733,7 @@ async function examWriting(root) {
 }
 
 function writingGradeBox(g) {
-  const box = el("div", { class: "panel stack ai-panel", style: "margin-top:12px" });
+  const box = el("div", { class: "panel stack ai-panel ai-pop", style: "margin-top:12px" });
   box.append(el("div", { class: "row spread" },
     el("b", {}, iconEl("ai"), " Qwen3 chấm Viết"),
     g.score != null ? el("span", { class: "chip lvl" }, `${g.score}/100`) : null));
@@ -2396,7 +2482,7 @@ async function gradeTransDraft() {
 }
 
 function transGradeBox(g, srcIsZh) {
-  const box = el("div", { class: "panel stack ai-panel", style: "margin-top:12px" });
+  const box = el("div", { class: "panel stack ai-panel ai-pop", style: "margin-top:12px" });
   box.append(el("div", { class: "row spread" }, el("b", {}, iconEl("ai"), " Qwen3 chấm"), g.score != null ? el("span", { class: "chip lvl" }, `Điểm: ${g.score}/10`) : null));
   if (g.corrected) box.append(el("div", {}, el("div", { class: "muted small" }, "Bản dịch đã sửa:"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.corrected)));
   if (g.reference) box.append(el("details", {}, el("summary", { class: "small" }, "Bản dịch tham khảo"), el("div", { class: srcIsZh ? "meaning" : "hanzi-line", style: "text-align:left" }, g.reference)));

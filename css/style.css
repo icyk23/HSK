@@ -281,6 +281,28 @@ button.btn:disabled { opacity: .45; cursor: not-allowed; }
   border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
   border-radius: 999px; padding: 1px 7px;
 }
+.ai-pop { animation: popIn .28s cubic-bezier(.2,.7,.3,1) both; }
+
+/* Tab con trong trang (Luyện đề: Chọn đề / Nạp đề) — segmented control */
+.subtabs { display: inline-flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.subtab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
+  background: transparent; color: var(--text-muted); border: none; border-right: 1px solid var(--border);
+}
+.subtab:last-child { border-right: none; }
+.subtab .ic { width: 16px; height: 16px; }
+.subtab.on { background: var(--accent); color: #fff; }
+.subtab:not(.on):hover { color: var(--text); background: var(--accent-soft); }
+
+/* Thẻ AI trên trang chủ */
+.home-ai { display: flex; align-items: center; gap: 14px; }
+.home-ai .ha-ic { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
+.home-ai .ha-ic .ic { width: 22px; height: 22px; }
+.home-ai .ha-body { flex: 1; min-width: 0; }
+.home-ai .ha-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+.home-ai .ha-dot.on { background: var(--ok); }
+.home-ai .ha-dot.off { background: var(--text-muted); }
 
 .field { display: grid; gap: 6px; margin-bottom: 14px; }
 .field label { font-size: 14px; font-weight: 600; }
