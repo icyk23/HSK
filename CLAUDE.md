@@ -145,6 +145,10 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] TIẾN ĐỘ — thêm mục Giao tiếp + Luyện đề (P1-P2): Giao tiếp = Shadowing video mỗi tài liệu (n/N câu
+    từ store.shadowProg) + kỷ lục Sprint (commRecords.sprintBest 30/60/90s). Luyện đề = mỗi đề điểm Đọc
+    tốt nhất % (readingHistory) + số lần + nháp Viết (countChars). E2E: Shadowing·Vlog 2/3, Sprint 30s:12,
+    Đọc 90%, Viết 5 chữ. 0 lỗi. (Trước đã có: số liệu, biểu đồ 14 ngày, theo cấp/nhóm, Phồn thể, Dịch truyện.)
 [x] NẠP TÀI LIỆU — Thư viện cải tiến (P1-P3): (P1) thẻ libCard hiện icon video (matVideo) + meta "N đoạn ·
     K chương · thuộc x/M từ" + thanh "Đã dịch" (progressRow theo materialUnits + translations). (P2) ô tìm
     theo tên (hiện khi >4 tài liệu, renderLibList lọc) + empty state nút "Nạp mới". (P3) nút nhanh trên thẻ:

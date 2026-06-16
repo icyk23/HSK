@@ -777,6 +777,56 @@ export async function renderStats() {
     }
     root.append(box);
   }
+
+  // Giao tiếp — Shadowing video + kỷ lục Sprint
+  {
+    const shadowRows = [];
+    for (const m of materialList) {
+      if (!matVideo(m)) continue;
+      const sp = store.getShadowProgress(m.id);
+      const doneN = Object.values(sp).filter(Boolean).length;
+      const totalN = materialZh(m).length;
+      if (doneN > 0 && totalN) shadowRows.push({ title: m.title || "(không tên)", done: doneN, total: totalN });
+    }
+    const sprint = (store.getCommRecords() || {}).sprintBest || {};
+    const sprintKeys = Object.keys(sprint).sort((a, b) => +a - +b);
+    if (shadowRows.length || sprintKeys.length) {
+      root.append(el("h2", { class: "view-title", style: "margin-top:24px;font-size:17px" }, "Giao tiếp"));
+      const box = el("div", { class: "panel stack" });
+      for (const r of shadowRows) box.append(progressRow("Shadowing · " + r.title, r.done, r.total));
+      if (sprintKeys.length) {
+        const row = el("div", { class: "row" });
+        for (const k of sprintKeys) row.append(el("span", { class: "chip" }, `Sprint ${k}s: ${sprint[k]} câu`));
+        box.append(el("div", {}, el("div", { class: "muted small", style: "margin-bottom:6px" }, "Kỷ lục Sprint Việt→Trung"), row));
+      }
+      root.append(box);
+    }
+  }
+
+  // Luyện đề — điểm Đọc tốt nhất + nháp Viết
+  {
+    const exams = await getAllExams();
+    const rows = [];
+    for (const ex of exams) {
+      const p = store.getExamProgress(ex.id);
+      const hist = p.readingHistory || [];
+      const bestPct = hist.length ? Math.round(Math.max(...hist.map((h) => (h.total ? h.score / h.total : 0))) * 100)
+        : (p.reading && p.reading.total ? Math.round((p.reading.score / p.reading.total) * 100) : null);
+      const wChars = p.writing && p.writing.text ? countChars(p.writing.text) : 0;
+      if (bestPct != null || wChars) rows.push({ title: ex.title, bestPct, attempts: hist.length, wChars });
+    }
+    if (rows.length) {
+      root.append(el("h2", { class: "view-title", style: "margin-top:24px;font-size:17px" }, "Luyện đề"));
+      const box = el("div", { class: "panel stack" });
+      for (const r of rows) {
+        const chips = el("div", { class: "row" });
+        if (r.bestPct != null) chips.append(el("span", { class: "chip" + (r.bestPct >= 60 ? " st known" : "") }, `Đọc: ${r.bestPct}%` + (r.attempts ? ` · ${r.attempts} lần` : "")));
+        if (r.wChars) chips.append(el("span", { class: "chip st learning" }, `Viết: ${r.wChars} chữ`));
+        box.append(el("div", { class: "row spread" }, el("span", {}, r.title), chips));
+      }
+      root.append(box);
+    }
+  }
 }
 
 /* ---------------- TRANG CHỦ (dashboard) ---------------- */
