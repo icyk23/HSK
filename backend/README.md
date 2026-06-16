@@ -59,6 +59,8 @@ Khi backend sống, các nút AI tự bật: **Giao tiếp** (bóc tự động 
   `translate` (`true`/`false`) → `{ lines:[{zh,vi}], count, kind }`
 - `POST /ingest` (JSON): `{ url }` → `{ text, title, kind, chars }`
   (Nạp tài liệu — bóc bài web (trafilatura) hoặc video/YouTube (yt-dlp: phụ đề, không có thì ASR))
+- `POST /translate` (JSON): `{ lines:[…] }` → `{ translations:[…] }`
+  (Nạp tài liệu — dịch tham khảo zh→vi toàn bộ câu của tài liệu)
 - `POST /grade` (JSON): `{ source, user, dir }` (`dir`=`zh2vi`|`vi2zh`) →
   `{ reference, score, corrected, notes:[] }` (Dịch thuật — chấm & sửa bản dịch)
 - `POST /grade-writing` (JSON): `{ article, title, text, target }` →

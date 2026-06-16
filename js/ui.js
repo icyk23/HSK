@@ -2245,6 +2245,7 @@ async function transTaskRunner(root) {
     el("b", {}, srcIsZh ? "Nguồn · 中文" : "Nguồn · Tiếng Việt"),
     transDraft.sourcePinyin && el("div", { class: "pinyin", style: "text-align:left" }, transDraft.sourcePinyin),
     el("div", { class: srcIsZh ? "hanzi-line" : "meaning", style: "text-align:left;font-size:18px" }, source),
+    srcIsZh && sent.vi ? el("details", { class: "comm-personal" }, el("summary", {}, iconEl("bulb"), " Bản tham khảo (Qwen3)"), el("p", { class: "meaning", style: "text-align:left" }, sent.vi)) : null,
     srcBtns.childNodes.length ? srcBtns : null));
 
   // bản dịch người dùng
@@ -2522,7 +2523,43 @@ async function ingestLesson(root) {
     el("span", { class: "muted" }, lesson.title)));
   root.append(el("p", { class: "muted small" }, "Tài liệu này đã có sẵn trong Từ vựng · Giao tiếp · Dịch thuật (chọn theo nguồn). Bảng dưới để xem nhanh & theo dõi tiến độ."));
   if (lesson.lang === "zh" && lesson.vocab.length) root.append(lessonVocabPanel(lesson));
+  const tp = lessonTranslatePanel(lesson);
+  if (tp) root.append(tp);
   root.append(lessonTasksPanel(lesson));
+}
+
+// Dịch tham khảo toàn bộ câu (zh→vi) bằng Qwen3 — phục vụ Dịch thuật theo truyện & xem nghĩa khi Shadowing.
+function lessonTranslatePanel(lesson) {
+  if (lesson.lang !== "zh") return null;
+  const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
+  if (!zhS.length) return null;
+  const done = zhS.filter((s) => s.vi).length;
+  const box = el("div", { class: "panel stack" });
+  box.append(el("div", { class: "row spread" }, el("b", {}, "Dịch tham khảo (Qwen3)"), el("span", { class: "muted small" }, `${done}/${zhS.length} câu`)));
+  box.append(el("p", { class: "muted small" }, "Dịch toàn bộ câu sang tiếng Việt làm bản tham khảo — hiện trong Dịch thuật “theo truyện” và làm nghĩa khi Shadowing. Cần backend Qwen3 (Cài đặt)."));
+  box.append(el("div", { class: "story-prog" }, el("span", { style: `width:${zhS.length ? Math.round((done / zhS.length) * 100) : 0}%` })));
+  const btn = el("button", { class: "btn primary", onclick: run }, iconEl("ai"), done >= zhS.length ? " Dịch lại toàn bộ" : ` Dịch ${zhS.length - done} câu chưa có`);
+  box.append(btn);
+  async function run() {
+    if (!(await comm.pingBackend())) return toast("Bật backend Qwen3 (Cài đặt) để dịch.");
+    const todo = done >= zhS.length ? zhS : zhS.filter((s) => !s.vi);
+    btn.disabled = true;
+    let n = 0;
+    try {
+      for (let i = 0; i < todo.length; i += 20) {
+        const chunk = todo.slice(i, i + 20);
+        toast(`Đang dịch ${i + 1}–${Math.min(i + 20, todo.length)}/${todo.length}…`);
+        const { translations } = await comm.translateLines(chunk.map((s) => s.zh));
+        chunk.forEach((s, k) => { if (translations && translations[k]) { s.vi = translations[k]; n++; } });
+        await lessons.saveMaterial(lesson);
+      }
+      invalidateMaterials();
+      toast(n ? `Đã dịch ${n} câu.` : "Không dịch được câu nào (kiểm tra Ollama).");
+      renderIngest();
+    } catch (e) { toast("Lỗi: " + e.message); }
+    finally { btn.disabled = false; }
+  }
+  return box;
 }
 
 function lessonVocabPanel(lesson) {
@@ -2555,7 +2592,7 @@ function buildTasks(lesson) {
   const zhS = lesson.sentences.filter((s) => !s.chapter && s.zh);
   if (zhS.length) {
     tasks.push({ label: `Luyện nói ${zhS.length} câu (Shadowing)`, total: zhS.length, done: lesson.manual.shadow ? zhS.length : 0, manual: "shadow",
-      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh })); commPersonalLabel = lesson.title; commView = { screen: "shadow" }; navigate("comm"); } });
+      start: () => { commSel.sceneIds = []; commPersonal = zhS.map((s) => ({ zh: s.zh, vi: s.vi })); commPersonalLabel = lesson.title; commView = { screen: "shadow" }; navigate("comm"); } });
   }
   return tasks;
 }

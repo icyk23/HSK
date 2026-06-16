@@ -446,6 +446,19 @@ def grade_writing(req: WritingReq):
     }
 
 
+class TranslateReq(BaseModel):
+    lines: List[str] = []
+
+
+@app.post("/translate")
+def translate(req: TranslateReq):
+    """Dịch một loạt câu tiếng Trung sang tiếng Việt (Nạp tài liệu — bản tham khảo)."""
+    lines = [str(x) for x in (req.lines or []) if str(x).strip()]
+    if not lines:
+        return {"translations": []}
+    return {"translations": translate_lines(lines)}
+
+
 class GenQaReq(BaseModel):
     text: str = ""
     n: int = 8
@@ -616,5 +629,5 @@ def gen_hskk(req: GenHskkReq):
 @app.get("/")
 def root():
     return {"name": "HSK backend",
-            "endpoints": ["/health", "/extract", "/ingest", "/grade", "/grade-writing", "/gen-qa", "/gen-exam", "/gen-hskk"],
+            "endpoints": ["/health", "/extract", "/ingest", "/translate", "/grade", "/grade-writing", "/gen-qa", "/gen-exam", "/gen-hskk"],
             "model": QWEN_MODEL}

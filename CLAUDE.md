@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] BACKEND QWEN3 — tự dịch câu khi Nạp: endpoint POST /translate {lines}→{translations} (tái dùng
+    translate_lines); comm.translateLines(); panel "Dịch tham khảo (Qwen3)" ở màn tài liệu (Nạp) dịch
+    câu zh→vi theo lô 20, lưu s.vi vào material + thanh tiến độ. Dịch thuật "theo truyện" hiện
+    <details> "Bản tham khảo (Qwen3)" mỗi câu; Shadowing mang theo vi (hiện nghĩa). E2E mock OK
+    (0/4→4/4, vi lưu IndexedDB). 8 endpoint AI. Cần Ollama để chạy thật.
 [x] BACKEND QWEN3 — sinh đề HSKK 高级: endpoint POST /gen-hskk {topic} → đề 3 phần (retell[{zh,vi}] +
     read{zh,vi} + answer[{q_zh,q_pinyin,q_vi,outline_vi}]); comm.genHskk(); store thêm KEYS.hskk +
     getUserHskk/saveUserHskk/deleteUserHskk (vào export/import backup); exams.getHskkExams gộp bundled+user,
