@@ -145,6 +145,11 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] NẠP TÀI LIỆU — Thư viện cải tiến (P1-P3): (P1) thẻ libCard hiện icon video (matVideo) + meta "N đoạn ·
+    K chương · thuộc x/M từ" + thanh "Đã dịch" (progressRow theo materialUnits + translations). (P2) ô tìm
+    theo tên (hiện khi >4 tài liệu, renderLibList lọc) + empty state nút "Nạp mới". (P3) nút nhanh trên thẻ:
+    Mở · Dịch (transView story) · Shadowing (openShadowMaterial) · Xóa. E2E: 5 thẻ, 1 icon video, 5 bar,
+    lọc "Truyện"→2, click Dịch vào truyện. 0 lỗi.
 [x] PHỒN THỂ — Thư mục/Quiz cải tiến (P1-P3): (P1) mỗi cấp HSK có thanh tiến độ + "thuộc x/N" (từ
     store.tradSrs). (P2) công tắc Lưới/Chi tiết — Chi tiết = mỗi chữ 1 hàng 繁·简·pinyin·Hán-Việt·nghĩa·nghe
     (tradFolderView). (P3) Quiz 2 chiều 繁→简 / 简→繁 (tradQuizDir, makeTradQuestion theo field) + nút nghe;

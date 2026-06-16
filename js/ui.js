@@ -2850,6 +2850,7 @@ function loadTransDraft(t) {
    NẠP TÀI LIỆU (cửa nạp duy nhất → Tài liệu) — js/lessons.js
    ============================================================ */
 let ingestView = { screen: "new", lessonId: null };
+let ingestLibQ = "";   // tìm tài liệu trong Thư viện
 const LV_LABEL = { 1: "HSK 1", 2: "HSK 2", 3: "HSK 3", 4: "HSK 4", 5: "HSK 5", 6: "HSK 6" };
 
 // Cache tài liệu đã nạp — dùng chung cho bộ chọn ở Từ vựng / Giao tiếp / Dịch thuật.
@@ -2961,15 +2962,53 @@ async function ingestLibrary(root) {
   root.append(el("h1", { class: "view-title" }, "Nạp tài liệu"));
   root.append(ingestNav("library"));
   const list = await lessons.listMaterials();
-  if (!list.length) { root.append(emptyState("Chưa có tài liệu", "Vào “Nạp mới” để tạo từ văn bản.")); return; }
-  for (const l of list) {
-    root.append(el("div", { class: "panel exam-card" },
-      el("div", { class: "exam-head" }, el("h3", {}, l.title), el("span", { class: "chip" }, l.lang === "zh" ? "中文" : "Tiếng Việt")),
-      el("p", { class: "muted small" }, `${new Date(l.createdAt).toLocaleDateString("vi")} · ${(l.vocab || []).length} từ · ${(l.sentences || []).length} câu`),
-      el("div", { class: "exam-actions" },
-        el("button", { class: "btn primary", onclick: () => { ingestView = { screen: "lesson", lessonId: l.id }; renderIngest(); } }, "Mở"),
-        el("button", { class: "btn ghost", onclick: async () => { if (confirm("Xóa tài liệu?")) { await lessons.deleteMaterial(l.id); invalidateMaterials(); renderIngest(); } } }, "Xóa"))));
+  if (!list.length) {
+    root.append(emptyState("Chưa có tài liệu", "Vào “Nạp mới” để tạo tài liệu từ văn bản hoặc link.",
+      "ingest", { label: "Nạp mới", icon: "upload", onClick: () => { ingestView = { screen: "new" }; renderIngest(); } }));
+    return;
   }
+  if (list.length > 4 || ingestLibQ) {
+    const inp = el("input", { type: "text", class: "inp", placeholder: "Tìm tài liệu theo tên…", value: ingestLibQ });
+    inp.addEventListener("input", () => { ingestLibQ = inp.value.trim(); renderLibList(); });
+    root.append(el("div", { class: "field", style: "margin-bottom:12px" }, inp));
+  }
+  const host = el("div", { class: "stack" });
+  root.append(host);
+  const translated = new Set(store.getTranslations().map((t) => t.source));
+  const prog = store.getProgress();
+  function renderLibList() {
+    host.innerHTML = "";
+    const q = ingestLibQ.toLowerCase();
+    const items = list.filter((l) => !q || (l.title || "").toLowerCase().includes(q));
+    if (!items.length) { host.append(el("p", { class: "muted center", style: "padding:24px" }, "Không tìm thấy tài liệu.")); return; }
+    for (const l of items) host.append(libCard(l, translated, prog));
+  }
+  renderLibList();
+}
+
+function libCard(l, translated, prog) {
+  const isVideo = !!matVideo(l);
+  const units = materialUnits(l);
+  const tDone = units.filter((u) => translated.has(u.text)).length;
+  const dict = (l.vocab || []).filter((v) => v.cardId);
+  const learned = dict.filter((v) => prog[v.cardId] && prog[v.cardId].reps > 0).length;
+  const chapsN = (l.chapters || []).filter((c) => c.title).length;
+  const meta = `${new Date(l.createdAt).toLocaleDateString("vi")} · ${units.length} đoạn`
+    + (chapsN > 1 ? ` · ${chapsN} chương` : "")
+    + (dict.length ? ` · thuộc ${learned}/${dict.length} từ` : "");
+  const card = el("div", { class: "panel exam-card" });
+  card.append(el("div", { class: "exam-head" },
+    el("h3", {}, isVideo ? iconEl("video") : null, " " + (l.title || "(không tên)")),
+    el("span", { class: "chip" }, l.lang === "zh" ? "中文" : "Tiếng Việt")));
+  card.append(el("p", { class: "muted small" }, meta));
+  if (units.length) card.append(progressRow("Đã dịch", tDone, units.length));
+  const acts = el("div", { class: "exam-actions" });
+  acts.append(el("button", { class: "btn primary", onclick: () => { ingestView = { screen: "lesson", lessonId: l.id }; renderIngest(); } }, "Mở"));
+  if (l.lang === "zh" && units.length) acts.append(el("button", { class: "btn", onclick: () => { transView = { screen: "story", materialId: l.id }; navigate("trans"); } }, iconEl("trans"), el("span", { class: "btn-tx" }, " Dịch")));
+  if (materialZh(l).length) acts.append(el("button", { class: "btn", onclick: () => openShadowMaterial(l) }, iconEl("mic"), el("span", { class: "btn-tx" }, " Shadowing")));
+  acts.append(el("button", { class: "btn ghost", onclick: async () => { if (confirm("Xóa tài liệu?")) { await lessons.deleteMaterial(l.id); invalidateMaterials(); renderIngest(); } } }, "Xóa"));
+  card.append(acts);
+  return card;
 }
 
 async function ingestLesson(root) {
