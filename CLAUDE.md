@@ -145,6 +145,13 @@ Lý do: module/tính năng đang rối; trụ cột = cá nhân hóa (nạp 1 c�
 ## TRẠNG THÁI HIỆN TẠI
 
 ```
+[x] 4 YÊU CẦU: (1) Phồn thể có cấu trúc giống Từ vựng — thêm tab Thư mục (duyệt 993 chữ theo cấp HSK +
+    tick chọn) & Bộ của tôi (store.tradSets, backup), học scoped Thẻ nhớ/Quiz (tradScope, view ẩn,
+    vào qua ▶/▶Học cấp); giữ Lộ trình & Bộ thủ. (2) Đổi TOÀN BỘ icon sang phong cách ANGULAR
+    (icons.js: square caps + miter joins + bỏ bo góc) hợp theme esports; thêm file/image/search/folder/
+    audio; thay emoji KIND_ICON + 🔍 + 🔥 bằng SVG/đơn sắc. (3) Giao tiếp: mỗi drill có segmented
+    "Tình huống" / "Tài liệu của tôi" (commSrcMode) để chọn nguồn rõ. (4) Bỏ hết Nhập đề JSON (HSK+HSKK),
+    Nạp đề chỉ còn Sinh Qwen3 + Kho đề zip/file. Quét 9 tab desktop+mobile = 0 lỗi.
 [x] LUYỆN ĐỀ TÁCH HSK / HSKK + 3 ĐÁNH BÓNG: (A) Luyện đề nay có 2 tab con (NAV) HSK & HSKK
     (view exam / examHskk); mỗi tab có segmented "Chọn đề luyện" / "Nạp đề" (examSubTabs, examView.tab).
     HSK Nạp = Sinh đề văn bản + Nhập JSON + Kho đề zip; HSKK Nạp = Sinh đề chủ đề + Nhập JSON

@@ -666,7 +666,7 @@ export async function renderStats() {
     statBox(`${learned}/${total}`, "Tiến độ bộ thẻ"),
     statBox(due, "Đến hạn ôn"),
     statBox(todayStat.reviews, "Lượt ôn hôm nay"),
-    statBox(streak + " 🔥", "Chuỗi ngày"),
+    statBox(streak, "Chuỗi ngày"),
     statBox(todayStat.reviews ? Math.round((todayStat.correct / todayStat.reviews) * 100) + "%" : "—", "Độ chính xác hôm nay"),
   ));
 
@@ -1113,7 +1113,7 @@ async function libraryBar() {
   return wrap;
 }
 
-const KIND_ICON = { pdf: "📕", audio: "🎧", image: "🖼️", text: "📄", ebook: "📘", other: "📎" };
+const KIND_ICON = { pdf: "file", audio: "audio", image: "image", text: "book", ebook: "book", other: "file" };
 
 async function examLibrary(root) {
   const coll = await lib.getCollection(examView.collId);
@@ -1126,7 +1126,7 @@ async function examLibrary(root) {
     const kind = lib.fileKind(fm);
     const active = examView.fileId === fm.id;
     fileList.append(el("button", { class: "lib-file" + (active ? " active" : ""), onclick: () => { examView = { ...examView, fileId: fm.id }; renderExam(); } },
-      el("span", { class: "lf-icon" }, KIND_ICON[kind] || "📎"),
+      el("span", { class: "lf-icon" }, iconEl(KIND_ICON[kind] || "file")),
       el("span", { class: "lf-name" }, fm.name),
       el("span", { class: "muted small" }, lib.humanSize(fm.size)),
     ));
@@ -2570,7 +2570,7 @@ async function ingestNew(root) {
     el("div", { class: "field" }, titleInput),
     el("div", { class: "row" }, urlInput, urlBtn),
     el("div", { class: "field" }, ta),
-    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, "🔍 Phân tích & tạo tài liệu")),
+    el("div", { class: "row" }, fileInput, el("button", { class: "btn primary", onclick: () => createLesson(ta.value, titleInput.value) }, iconEl("search"), el("span", { class: "btn-tx" }, " Phân tích & tạo tài liệu"))),
     el("p", { class: "muted small" }, "Nạp xong, tài liệu tự xuất hiện trong Từ vựng (lọc nguồn), Giao tiếp (nguồn câu) và Dịch thuật. Văn bản .txt/.srt xử lý ngay; link web/YouTube cần backend Qwen3 (Cài đặt) — bóc xong điền vào ô trên để bạn xem lại rồi Phân tích."),
   ));
 }
